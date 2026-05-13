@@ -206,23 +206,27 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ─── Storage S3-compatible (MinIO) ────────────────────────────────────────────
 # USE_S3=True en dev → MinIO local | en prod → MinIO self-hosted ou vraie S3
+#
+# Côté env on utilise des noms `MINIO_S3_*` (sémantique du projet). Côté Python,
+# django-storages lit obligatoirement des settings nommés `AWS_*` — on fait donc
+# le mapping ici.
 USE_S3 = env.bool('USE_S3', default=False)
 
 if USE_S3:
-    # Identifiants d'accès (= MINIO_ROOT_USER/PASSWORD côté MinIO)
-    AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default='vizhome-media')
-    AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
+    # Identifiants d'accès (= MINIO_ROOT_USER/PASSWORD côté serveur MinIO)
+    AWS_ACCESS_KEY_ID = env('MINIO_S3_ACCESS_KEY')
+    AWS_SECRET_ACCESS_KEY = env('MINIO_S3_SECRET_KEY')
+    AWS_STORAGE_BUCKET_NAME = env('MINIO_S3_BUCKET_NAME', default='vizhome-media')
+    AWS_S3_REGION_NAME = env('MINIO_S3_REGION', default='us-east-1')
 
     # Endpoint interne (réseau Docker : http://minio:9000 ; prod : http://minio:9000 aussi)
-    AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL')
+    AWS_S3_ENDPOINT_URL = env('MINIO_S3_ENDPOINT_URL')
 
-    # Domaine public pour les URLs générées dans les réponses API
-    # Dev : localhost:9000 | Prod : cdn.vizhome.fr (via reverse proxy devant MinIO)
-    AWS_S3_CUSTOM_DOMAIN = env('AWS_S3_CUSTOM_DOMAIN', default='')
+    # Domaine public pour les URLs renvoyées au frontend.
+    # Dev : localhost:9000/vizhome-media | Prod : cdn.vizhome.fr (reverse proxy)
+    AWS_S3_CUSTOM_DOMAIN = env('MINIO_S3_CUSTOM_DOMAIN', default='')
 
-    AWS_S3_URL_PROTOCOL = env('AWS_S3_URL_PROTOCOL', default='http:')
+    AWS_S3_URL_PROTOCOL = env('MINIO_S3_URL_PROTOCOL', default='http:')
     AWS_S3_FILE_OVERWRITE = False
     AWS_DEFAULT_ACL = None  # la politique d'accès est gérée par le bucket
     AWS_QUERYSTRING_AUTH = False  # URLs publiques, pas de signature
