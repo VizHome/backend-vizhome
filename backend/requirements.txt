@@ -1,9 +1,0 @@
-opencv-python
-numpy
-diffusers
-transformers
-torch
-torchvision
-Pillow
-matplotlib
-tqdm
