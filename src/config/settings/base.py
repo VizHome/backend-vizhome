@@ -40,7 +40,11 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'axes',
+    'django_otp',
+    'django_otp.plugins.otp_totp',
 ]
 
 LOCAL_APPS = [
@@ -64,7 +68,23 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_otp.middleware.OTPMiddleware',
+    # axes doit être en dernier
+    'axes.middleware.AxesMiddleware',
 ]
+
+# Auth backends : axes intercepte les échecs de login pour le verrouillage
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+# ─── django-axes (lockout après tentatives échouées) ──────────────────────────
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 0.25  # 15 minutes
+AXES_LOCKOUT_PARAMETERS = ['username', 'ip_address']  # verrouille par combo
+AXES_RESET_ON_SUCCESS = True
+AXES_LOCKOUT_CALLABLE = 'apps.accounts.lockout.api_lockout_response'
 
 ROOT_URLCONF = 'config.urls'
 
@@ -100,8 +120,23 @@ DATABASES = {
 }
 
 # ─── Auth ─────────────────────────────────────────────────────────────────────
-# Custom user model — sera défini à l'étape 2 dans apps.accounts.models.User
-# AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = 'accounts.User'
+
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='no-reply@vizhome.fr')
+
+# ─── OAuth providers ──────────────────────────────────────────────────────────
+GOOGLE_OAUTH_CLIENT_ID = env('GOOGLE_OAUTH_CLIENT_ID', default='')
+GITHUB_OAUTH_CLIENT_ID = env('GITHUB_OAUTH_CLIENT_ID', default='')
+GITHUB_OAUTH_CLIENT_SECRET = env('GITHUB_OAUTH_CLIENT_SECRET', default='')
+
+# ─── Cache (utilisé pour les challenges 2FA) ─────────────────────────────────
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': env('REDIS_URL', default='redis://localhost:6379/1'),
+    }
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -123,6 +158,17 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '60/min',
+        'user': '120/min',
+        'register': '5/hour',
+        'forgot-password': '3/hour',
+        'login': '20/min',
+    },
 }
 
 SIMPLE_JWT = {
@@ -158,6 +204,52 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ─── Provider IA (étape 3) ────────────────────────────────────────────────────
-# GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
-# RENDERS_DEFAULT_PROVIDER = env('RENDERS_DEFAULT_PROVIDER', default='gemini')
+# ─── Storage S3-compatible (MinIO) ────────────────────────────────────────────
+# USE_S3=True en dev → MinIO local | en prod → MinIO self-hosted ou vraie S3
+USE_S3 = env.bool('USE_S3', default=False)
+
+if USE_S3:
+    # Identifiants d'accès (= MINIO_ROOT_USER/PASSWORD côté MinIO)
+    AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default='vizhome-media')
+    AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
+
+    # Endpoint interne (réseau Docker : http://minio:9000 ; prod : http://minio:9000 aussi)
+    AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL')
+
+    # Domaine public pour les URLs générées dans les réponses API
+    # Dev : localhost:9000 | Prod : cdn.vizhome.fr (via reverse proxy devant MinIO)
+    AWS_S3_CUSTOM_DOMAIN = env('AWS_S3_CUSTOM_DOMAIN', default='')
+
+    AWS_S3_URL_PROTOCOL = env('AWS_S3_URL_PROTOCOL', default='http:')
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None  # la politique d'accès est gérée par le bucket
+    AWS_QUERYSTRING_AUTH = False  # URLs publiques, pas de signature
+    AWS_S3_ADDRESSING_STYLE = 'path'  # MinIO préfère path-style
+
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.s3.S3Storage',
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
+else:
+    # Fallback FileSystem (utile en tests et pour démarrer sans MinIO)
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
+
+# ─── Provider IA ──────────────────────────────────────────────────────────────
+GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
+GEMINI_IMAGE_MODEL = env(
+    'GEMINI_IMAGE_MODEL', default='gemini-2.5-flash-image-preview'
+)
+RENDERS_DEFAULT_PROVIDER = env('RENDERS_DEFAULT_PROVIDER', default='gemini')

@@ -8,10 +8,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Dépendances système : libpq pour psycopg, build-essential pour wheels manquants
+# Dépendances système :
+#  - libpq-dev + build-essential : compilation psycopg
+#  - postgresql-client : fournit pg_isready (utilisé par entrypoint.sh)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
+    postgresql-client \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -21,9 +24,14 @@ COPY src/requirements.txt src/requirements-dev.txt /tmp/
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r /tmp/requirements-dev.txt
 
+# Copier l'entrypoint et le rendre exécutable
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Le code source sera bind-mount via docker-compose
 WORKDIR /app/src
 
 EXPOSE 8000
 
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

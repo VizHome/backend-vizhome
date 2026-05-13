@@ -46,7 +46,7 @@ exclude = ["venv", ".venv", "migrations"]
 django_settings_module = "config.settings.dev"
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "config.settings.dev"
+DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["test_*.py", "tests.py"]
 addopts = "-ra --strict-markers --cov=apps --cov-report=term-missing"
 testpaths = ["src/apps"]

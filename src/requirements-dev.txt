@@ -11,6 +11,8 @@ pytest>=8.3
 pytest-django>=4.9
 pytest-cov>=6.0
 factory-boy>=3.3
+pyotp>=2.9
+responses>=0.25
 
 # Dev tooling
 ipython>=8.30
