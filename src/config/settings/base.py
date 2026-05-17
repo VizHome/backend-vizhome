@@ -45,6 +45,9 @@ THIRD_PARTY_APPS = [
     'axes',
     'django_otp',
     'django_otp.plugins.otp_totp',
+    'djstripe',
+    'drf_spectacular',
+    'django_celery_beat',
 ]
 
 LOCAL_APPS = [
@@ -130,6 +133,22 @@ GOOGLE_OAUTH_CLIENT_ID = env('GOOGLE_OAUTH_CLIENT_ID', default='')
 GITHUB_OAUTH_CLIENT_ID = env('GITHUB_OAUTH_CLIENT_ID', default='')
 GITHUB_OAUTH_CLIENT_SECRET = env('GITHUB_OAUTH_CLIENT_SECRET', default='')
 
+# ─── Stripe / dj-stripe ───────────────────────────────────────────────────────
+# Les clés sont à renseigner dans .env quand un compte Stripe est créé.
+# Sans clés, les endpoints /me/subscription/* renverront 503.
+STRIPE_LIVE_MODE = env.bool('STRIPE_LIVE_MODE', default=False)
+STRIPE_TEST_SECRET_KEY = env('STRIPE_TEST_SECRET_KEY', default='')
+STRIPE_LIVE_SECRET_KEY = env('STRIPE_LIVE_SECRET_KEY', default='')
+STRIPE_TEST_PUBLISHABLE_KEY = env('STRIPE_TEST_PUBLISHABLE_KEY', default='')
+STRIPE_LIVE_PUBLISHABLE_KEY = env('STRIPE_LIVE_PUBLISHABLE_KEY', default='')
+
+# dj-stripe — synchronise les objets Stripe en DB via webhooks
+DJSTRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET', default='whsec_placeholder')
+DJSTRIPE_USE_NATIVE_JSONFIELD = True
+DJSTRIPE_FOREIGN_KEY_TO_FIELD = 'id'  # recommandé pour les nouvelles installations
+DJSTRIPE_SUBSCRIBER_MODEL = 'accounts.User'
+DJSTRIPE_WEBHOOK_VALIDATION = 'verify_signature'
+
 # ─── Cache (utilisé pour les challenges 2FA) ─────────────────────────────────
 CACHES = {
     'default': {
@@ -158,6 +177,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_THROTTLE_CLASSES': (
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
@@ -183,11 +203,35 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = env('DJANGO_CORS_ALLOWED_ORIGINS')
 CORS_ALLOW_CREDENTIALS = True
 
-# ─── Celery (étape 3) ─────────────────────────────────────────────────────────
+# ─── Celery ───────────────────────────────────────────────────────────────────
 CELERY_BROKER_URL = env('REDIS_URL', default='redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = env('REDIS_URL', default='redis://localhost:6379/0')
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
+# Schedules sont stockés en DB via django-celery-beat (configurable via admin)
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# ─── OpenAPI / drf-spectacular ────────────────────────────────────────────────
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'VizHome API',
+    'DESCRIPTION': (
+        'API REST de la plateforme VizHome — visualisation 3D architecturale '
+        'propulsée par IA (Gemini).'
+    ),
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SCHEMA_PATH_PREFIX': r'/api/v1/',
+    'COMPONENT_SPLIT_REQUEST': True,
+    'CONTACT': {'email': 'support@vizhome.fr'},
+    'LICENSE': {'name': 'Propriétaire'},
+    'TAGS': [
+        {'name': 'Auth', 'description': 'Login, register, 2FA, OAuth'},
+        {'name': 'Me', 'description': 'Profile, préférences, sessions'},
+        {'name': 'Renders', 'description': 'Génération IA (Gemini)'},
+        {'name': 'Projects', 'description': 'Scènes 3D Three.js'},
+        {'name': 'Billing', 'description': 'Abonnements Stripe'},
+    ],
+}
 
 # ─── i18n / TZ ────────────────────────────────────────────────────────────────
 LANGUAGE_CODE = 'fr-fr'

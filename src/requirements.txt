@@ -33,8 +33,18 @@ Pillow>=11.0
 django-storages[s3]>=1.14
 boto3>=1.35
 
-# ─── Stripe (étape 5) ────────────────────────────────────────────────────────
-# dj-stripe>=2.9
+# ─── Stripe ──────────────────────────────────────────────────────────────────
+dj-stripe>=2.9
+stripe>=11.0
 
-# ─── Production WSGI server (étape 6) ────────────────────────────────────────
-# gunicorn>=23
+# ─── Documentation API ───────────────────────────────────────────────────────
+drf-spectacular>=0.28
+
+# ─── Tâches périodiques (Celery beat) ────────────────────────────────────────
+django-celery-beat>=2.7
+
+# ─── Monitoring / observabilité ──────────────────────────────────────────────
+sentry-sdk[django]>=2.20
+
+# ─── Production WSGI server ──────────────────────────────────────────────────
+gunicorn>=23
