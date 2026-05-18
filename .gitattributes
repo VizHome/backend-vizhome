@@ -1,0 +1,7 @@
+# Force LF endings for shell scripts and config files
+# (évite que Windows convertisse en CRLF et casse l'exécution dans Linux containers)
+*.sh           text eol=lf
+Dockerfile*    text eol=lf
+*.yml          text eol=lf
+*.yaml         text eol=lf
+.env*          text eol=lf
