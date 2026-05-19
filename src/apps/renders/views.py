@@ -1,17 +1,35 @@
 """Vues DRF de l'app renders."""
 from __future__ import annotations
 
+from django.conf import settings
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Render
+from .providers.base import ProviderError
 from .serializers import (
     RenderCreateSerializer,
     RenderSerializer,
     RenderUpdateSerializer,
 )
 from .tasks import generate_render
+
+
+def _provider_unavailable_response(exc: ProviderError) -> Response:
+    """Réponse 503 cohérente quand un provider IA n'est pas configuré.
+
+    Pattern identique à `_stripe_unavailable_response` (apps.billing.views) :
+    code structuré (`<provider>_unavailable`) que le frontend reconnaît
+    sans avoir à parser le message libre.
+    """
+    return Response(
+        {
+            'detail': str(exc),
+            'code': f'{settings.RENDERS_DEFAULT_PROVIDER}_unavailable',
+        },
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
 
 
 class RenderListCreateView(generics.ListCreateAPIView):
@@ -41,8 +59,12 @@ class RenderListCreateView(generics.ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        render = serializer.save()
+        try:
+            serializer.is_valid(raise_exception=True)
+            render = serializer.save()
+        except ProviderError as exc:
+            # Provider IA non configuré → 503 avec code structuré
+            return _provider_unavailable_response(exc)
 
         # Déclenche Celery (non bloquant)
         generate_render.delay(render.pk)

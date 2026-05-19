@@ -1,0 +1,45 @@
+meta {
+  name: List Plans (public)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/billing/plans
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns array of plans", function() {
+    expect(res.body).to.be.an("array");
+    expect(res.body.length).to.be.at.least(1);
+  });
+
+  test("each plan has expected fields", function() {
+    res.body.forEach(plan => {
+      expect(plan).to.have.property("name");
+      expect(plan).to.have.property("label");
+      expect(plan).to.have.property("price_eur");
+      expect(plan).to.have.property("renders_limit");
+      expect(plan).to.have.property("storage_limit_bytes");
+      expect(plan).to.have.property("is_billable");
+    });
+  });
+}
+
+docs {
+  Catalogue public des plans VizHome. Pas d'auth requise.
+
+  Plans courants : `free`, `pro`, `enterprise` (définis dans
+  `apps/billing/plans.py` → `PLAN_CONFIG`).
+
+  Le champ `is_billable` distingue les plans qui passent par Stripe
+  (true) vs le plan gratuit (false).
+
+  Cet endpoint est `APIView` plain → array non paginé.
+}

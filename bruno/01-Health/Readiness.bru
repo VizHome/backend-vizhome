@@ -1,0 +1,28 @@
+meta {
+  name: Readiness
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/health/ready
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns 200 or 503", function() {
+    expect([200, 503]).to.include(res.getStatus());
+  });
+
+  test("checks postgres and redis", function() {
+    expect(res.body.checks).to.have.property("postgres");
+    expect(res.body.checks).to.have.property("redis");
+  });
+}
+
+docs {
+  Readiness probe — vérifie que Postgres et Redis répondent. Retourne 503
+  si l'un des deux est down. Utilisé par Docker / Kubernetes pour le
+  load balancing.
+}

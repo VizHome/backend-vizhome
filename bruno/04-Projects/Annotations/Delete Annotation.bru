@@ -1,0 +1,25 @@
+meta {
+  name: Delete Annotation
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/annotations/{{annotationId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 204", function() {
+    expect(res.getStatus()).to.equal(204);
+  });
+}
+
+docs {
+  Supprime une annotation.
+}

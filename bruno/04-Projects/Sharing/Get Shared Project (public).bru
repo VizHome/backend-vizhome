@@ -1,0 +1,35 @@
+meta {
+  name: Get Shared Project (public)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/shared/{{shareToken}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns full project detail", function() {
+    expect(res.body).to.have.property("scene");
+    expect(res.body).to.have.property("imported_models");
+  });
+}
+
+docs {
+  **Endpoint public** — pas d'auth requise. Accès read-only au projet
+  via le `shareToken`.
+
+  Le champ `last_used_at` du `ShareLink` est mis à jour à chaque appel
+  (audit trail des accès).
+
+  Retourne 404 si :
+  - Le token n'existe pas
+  - Le lien a expiré (`expires_at < now`)
+  - Le lien a été supprimé
+}

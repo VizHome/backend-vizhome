@@ -40,14 +40,28 @@ backend-vizhome/
 ├── .github/workflows/
 │   └── ci.yml                    lint (ruff) + tests (pytest) + build
 │
-├── docker-compose.yml            stack dev (postgres + redis + minio + api + celery)
+├── docker-compose.yml            stack dev (postgres + redis + minio + mailpit + api + celery)
 ├── docker-compose.prod.yml       stack prod (+ traefik + celery-beat)
 ├── .env / .env.example
 ├── .env.prod.example
 ├── pyproject.toml                config ruff + mypy + pytest
 ├── SETUP_KEYS.md                 guide d'activation Gemini/Stripe/OAuth
 ├── README.md
-└── LICENSE
+├── LICENSE
+└── bruno/                        collection Bruno (test API end-to-end)
+    ├── bruno.json                config collection
+    ├── README.md                 workflow conseillé + variables d'env
+    ├── openapi.yml               schéma OpenAPI 3 export (régénéré depuis Django)
+    ├── environments/             Local.bru, Production.bru
+    ├── 01-Health/                liveness + readiness
+    ├── 02-Auth/                  register, login, refresh, logout, 2FA, OAuth (8 req)
+    ├── 03-Me/                    profil, prefs, sessions, 2FA setup (10 req)
+    ├── 04-Projects/              CRUD + Scene
+    │   ├── Models/               upload (multipart + presigned)
+    │   ├── Annotations/          CRUD annotations 3D
+    │   └── Sharing/              liens publics
+    ├── 05-Renders/               création (prompt + sketch) + polling + history
+    └── 06-Billing/               plans, subscription, invoices, payment-methods
 ```
 
 ## Détail des apps

@@ -1,0 +1,39 @@
+meta {
+  name: Update Project
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "title": "Bruno test project (updated)",
+    "description": "Mis à jour via Bruno",
+    "is_archived": false
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("title updated", function() {
+    expect(res.body.title).to.equal("Bruno test project (updated)");
+  });
+}
+
+docs {
+  Met à jour les métadonnées d'un projet : `title`, `description`,
+  `is_archived`. Pour modifier la scène 3D elle-même, utiliser
+  `PUT /projects/{id}/scene`.
+}

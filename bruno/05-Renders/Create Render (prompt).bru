@@ -1,0 +1,69 @@
+meta {
+  name: Create Render (prompt)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/renders/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "source": "prompt",
+    "output_type": "2d",
+    "prompt": "a modern minimalist living room with warm wooden floor, large windows, scandinavian furniture",
+    "style_hint": "photorealistic",
+    "title": "Salon moderne — test Bruno"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 202) {
+    bru.setEnvVar("renderId", res.body.id);
+  }
+}
+
+tests {
+  test("returns 202 (or 503 if Gemini not configured)", function() {
+    expect([202, 503]).to.include(res.getStatus());
+  });
+
+  test("if 202 → status is pending", function() {
+    if (res.getStatus() === 202) {
+      expect(res.body.status).to.equal("pending");
+    }
+  });
+
+  test("if 503 → structured error with code", function() {
+    if (res.getStatus() === 503) {
+      expect(res.body).to.have.property("detail");
+      expect(res.body.code).to.equal("gemini_unavailable");
+    }
+  });
+}
+
+docs {
+  Crée une demande de rendu IA à partir d'un prompt texte. Retourne
+  **202 Accepted** avec `status: "pending"` — la génération continue en
+  async via Celery.
+
+  Pour suivre l'avancement, exécute `Get Render` en boucle jusqu'à
+  `status: done` (ou `failed`). Polling typique : toutes les 2s.
+
+  **Requiert `GEMINI_API_KEY`** configurée dans `.env`. Sans clé →
+  retourne **503** avec `{detail, code: 'gemini_unavailable'}` (pattern
+  cohérent avec Stripe).
+
+  Champs :
+  - `source` : `prompt`, `sketch`, `screenshot`
+  - `output_type` : `2d`, `3d` (placeholder pour quand 3D arrivera)
+  - `style_hint` : optionnel — guide stylistique
+  - `title` : optionnel — pour l'affichage en galerie
+}

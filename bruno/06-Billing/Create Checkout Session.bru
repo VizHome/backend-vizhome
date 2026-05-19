@@ -1,0 +1,48 @@
+meta {
+  name: Create Checkout Session
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/me/subscription/checkout
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "plan": "pro"
+  }
+}
+
+tests {
+  test("returns 200 or 503", function() {
+    expect([200, 503]).to.include(res.getStatus());
+  });
+
+  test("if 200 → checkout_url returned", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("checkout_url");
+      expect(res.body).to.have.property("session_id");
+    }
+  });
+}
+
+docs {
+  Crée une Checkout Session Stripe pour upgrade vers `pro` ou
+  `enterprise`. Retourne une URL `checkout_url` vers laquelle rediriger
+  l'utilisateur.
+
+  **Requiert** :
+  - `STRIPE_TEST_SECRET_KEY` dans `.env`
+  - `python manage.py setup_stripe_products` exécuté pour créer les Prices
+
+  Sans config → 503 avec `code: stripe_unavailable`.
+
+  Plans acceptés : `pro`, `enterprise`.
+}

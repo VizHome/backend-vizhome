@@ -1,0 +1,40 @@
+meta {
+  name: Duplicate Project
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/duplicate?copy_assets=true
+  body: none
+  auth: bearer
+}
+
+params:query {
+  copy_assets: true
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("title has copie suffix", function() {
+    expect(res.body.title).to.match(/\(copie\)/);
+  });
+}
+
+docs {
+  Duplique un projet (clone : métadonnées + scène + annotations + share
+  links).
+
+  Query param `copy_assets`:
+  - `true` (défaut) — copie aussi les modèles 3D (duplique les fichiers MinIO)
+  - `false` — référence les mêmes fichiers MinIO (économie d'espace)
+
+  Le nouveau projet a le suffixe `(copie)` dans le titre.
+}

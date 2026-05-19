@@ -1,0 +1,52 @@
+meta {
+  name: OAuth Exchange
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/auth/oauth/google/exchange
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "id_token": "PASTE_GOOGLE_ID_TOKEN_HERE"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.setEnvVar("accessToken", res.body.access);
+    bru.setEnvVar("refreshToken", res.body.refresh);
+    bru.setEnvVar("userId", res.body.user.id);
+  }
+}
+
+tests {
+  test("returns 200 or 503", function() {
+    // 503 si GOOGLE_OAUTH_CLIENT_ID non configuré
+    expect([200, 503]).to.include(res.getStatus());
+  });
+}
+
+docs {
+  Échange un token OAuth provider contre un couple access/refresh JWT
+  VizHome.
+
+  **Deux providers supportés** :
+
+  - **Google** — URL: `/auth/oauth/google/exchange`
+    Body: `{ "id_token": "<google_id_token>" }`
+
+  - **GitHub** — URL: `/auth/oauth/github/exchange`
+    Body: `{ "code": "<github_code>", "redirect_uri": "<callback_url>" }`
+
+  **Requiert configuration** : `GOOGLE_OAUTH_CLIENT_ID` ou
+  `GITHUB_OAUTH_CLIENT_ID/SECRET` dans `.env` du backend. Sans config →
+  503.
+
+  Pour tester, tu peux obtenir un id_token Google via OAuth Playground :
+  https://developers.google.com/oauthplayground/
+}

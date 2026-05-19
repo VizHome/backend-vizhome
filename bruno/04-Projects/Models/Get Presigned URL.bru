@@ -1,0 +1,62 @@
+meta {
+  name: Get Presigned URL
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/models/upload-url
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Modèle Bruno test",
+    "file_name": "modele-test.glb",
+    "file_size_bytes": 5242880,
+    "content_type": "model/gltf-binary"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.setEnvVar("presignedKey", res.body.key);
+    bru.setEnvVar("presignedUploadUrl", res.body.upload_url);
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns presigned URL + key", function() {
+    expect(res.body).to.have.property("upload_url");
+    expect(res.body).to.have.property("key");
+    expect(res.body.method).to.equal("PUT");
+  });
+}
+
+docs {
+  Étape 1/3 du flow presigned. Génère une URL signée S3/MinIO valide 1h
+  pour upload direct du navigateur.
+
+  Pattern dual-client : l'URL retournée pointe vers `localhost:9000` (le
+  host **public** de MinIO), pas `minio:9000` (host Docker network) —
+  c'est intentionnel pour la signature SigV4.
+
+  **Étape suivante** : faire un `PUT` vers `upload_url` avec le binaire
+  du fichier (Bruno ne peut pas chaîner ça automatiquement, fais-le
+  manuellement avec curl ou via le frontend).
+
+  ```bash
+  curl -X PUT "$(echo {{presignedUploadUrl}})" \
+       -H "Content-Type: model/gltf-binary" \
+       --data-binary @/chemin/vers/modele.glb
+  ```
+}

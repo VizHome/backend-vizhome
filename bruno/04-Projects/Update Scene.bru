@@ -1,0 +1,54 @@
+meta {
+  name: Update Scene
+  type: http
+  seq: 8
+}
+
+put {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/scene
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "data": {
+      "camera": {
+        "position": [10, 5, 10],
+        "target": [0, 0, 0],
+        "fov": 50
+      },
+      "lighting": {
+        "preset": "day",
+        "sun_angle": 45
+      },
+      "weather": {
+        "type": "clear"
+      },
+      "models": []
+    }
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("version incremented", function() {
+    expect(res.body.version).to.be.at.least(2);
+  });
+}
+
+docs {
+  Sauvegarde l'état de la scène 3D. Le `data` est un JSON arbitraire
+  stocké dans un `JSONField` PostgreSQL — pas de validation de structure
+  côté backend (c'est le frontend qui le marshale/démarshale).
+
+  `version` est auto-incrémenté à chaque PUT. À chaque appel de
+  `useSceneSerializer.serialize()` côté frontend.
+}

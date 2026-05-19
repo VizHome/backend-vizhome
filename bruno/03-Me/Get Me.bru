@@ -1,0 +1,36 @@
+meta {
+  name: Get Me
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/me/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns full user shape", function() {
+    expect(res.body).to.have.property("id");
+    expect(res.body).to.have.property("email");
+    expect(res.body).to.have.property("plan");
+    expect(res.body).to.have.property("stats");
+    expect(res.body).to.have.property("preferences");
+  });
+}
+
+docs {
+  Récupère le profil de l'utilisateur connecté avec ses stats
+  (renders/quota, storage) et préférences nested.
+
+  Endpoint le plus appelé du frontend (au boot via `useUser.fetchMe`).
+}

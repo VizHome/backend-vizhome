@@ -85,6 +85,13 @@ Puis admin Django sur http://localhost:8000/admin/
 - ReDoc : http://localhost:8000/api/redoc/
 - Schéma brut : http://localhost:8000/api/schema/
 
+### Tester l'API avec Bruno
+
+Une collection [Bruno](https://www.usebruno.com/) prête à l'emploi est
+dans [`bruno/`](bruno/) — 57 requêtes pour les 48 endpoints, avec
+chaînage automatique des tokens JWT et fixtures pré-remplies. Voir
+[`bruno/README.md`](bruno/README.md) pour le workflow.
+
 ## Endpoints principaux
 
 | Préfixe | Domaine |

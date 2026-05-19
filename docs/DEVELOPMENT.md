@@ -133,6 +133,30 @@ cat backup.sql | docker compose exec -T postgres psql -U vizhome -d vizhome
   docker compose exec minio mc ls local/vizhome-media
   ```
 
+## Inspecter les emails (MailPit)
+
+Tous les emails envoyés par Django en dev (reset password, notifications,
+etc.) sont catchés par [MailPit](https://mailpit.axllent.org/) — aucun
+vrai envoi sur internet.
+
+- **UI web** : http://localhost:8025
+- **SMTP host** : `mailpit:1025` (depuis le réseau Docker)
+
+Tu peux tester un envoi rapide depuis le shell Django :
+
+```bash
+docker compose exec api python manage.py shell -c "
+from django.core.mail import send_mail
+send_mail('Test MailPit', 'Hello', 'dev@vizhome.local', ['user@example.com'])
+"
+# → l'email apparaît immédiatement dans http://localhost:8025
+```
+
+Pour revenir aux logs console (sans MailPit), set dans `.env` :
+```bash
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+```
+
 ## Inspecter Redis
 
 ```bash
@@ -172,6 +196,50 @@ régénère automatiquement. Visualiser :
 - Swagger UI : http://localhost:8000/api/docs/
 - ReDoc : http://localhost:8000/api/redoc/
 - YAML brut : http://localhost:8000/api/schema/
+
+## Tester l'API avec Bruno
+
+Une collection [Bruno](https://www.usebruno.com/) prête à l'emploi est
+dans [`../bruno/`](../bruno/) — 57 requêtes couvrant les 48 endpoints,
+groupées en 6 dossiers (`01-Health`, `02-Auth`, `03-Me`, `04-Projects`,
+`05-Renders`, `06-Billing`).
+
+### Démarrage
+
+1. **Installer Bruno** : https://www.usebruno.com/downloads (desktop)
+2. **Open Collection** → sélectionner `backend-vizhome/bruno/`
+3. Choisir l'environnement **Local** (en haut à droite)
+4. Lancer `01-Health > Readiness` pour vérifier que le backend répond
+
+### Workflow conseillé
+
+Les requêtes sont ordonnées (`seq:`) pour pouvoir être exécutées dans
+l'ordre. Le chaînage des tokens et IDs est automatique via des scripts
+`post-response` :
+
+```
+Register      → stocke accessToken, refreshToken, userId
+Create Project → stocke projectId
+Get Presigned URL → stocke presignedKey + presignedUploadUrl
+Confirm Upload   → stocke modelId
+Create Render    → stocke renderId (poll Get Render jusqu'à status=done)
+```
+
+Tu peux aussi lancer toute la collection en une fois (Run → Run All)
+pour un smoke test complet — chaque requête a un bloc `tests {}` qui
+vérifie le status code et la shape de la réponse.
+
+### Quand utiliser Bruno vs Swagger UI
+
+| Cas d'usage | Outil |
+|---|---|
+| Explorer un endpoint inconnu | **Swagger UI** (`/api/docs/`) |
+| Tester un flow complet (register → projet → render) | **Bruno** |
+| Reproduire un bug avec un payload précis | **Bruno** (sauvegardable + versionable) |
+| Vérifier qu'une PR n'a rien cassé | **Bruno** (Run All) |
+| Partager une requête avec un collègue | **Bruno** (commit dans git) |
+
+Détail complet : [`bruno/README.md`](../bruno/README.md).
 
 Pour customiser un endpoint :
 

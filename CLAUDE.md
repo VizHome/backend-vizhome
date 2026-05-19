@@ -26,7 +26,7 @@ containerized). Service name for the Django container is **`api`** (not
 
 ```bash
 # Stack lifecycle
-docker compose up -d                                  # start postgres + redis + minio + api + celery
+docker compose up -d                                  # start postgres + redis + minio + mailpit + api + celery
 docker compose logs -f api                            # live logs (replace api with celery, postgres…)
 docker compose down                                   # stop everything
 docker compose build api celery                       # rebuild after requirements change
@@ -135,6 +135,10 @@ Redis (cache + Celery broker) · Sentry SDK 2.20
 - `docs/CONTRIBUTING.md` — conventions, PR checklist
 - `SETUP_KEYS.md` — Gemini, Stripe, Google OAuth, GitHub OAuth activation
 - `README.md` — onboarding public (stack, démarrage Docker, scripts)
+- `bruno/` — collection [Bruno](https://www.usebruno.com/) pour tester
+  les 48 endpoints en local ou prod (chaînage auto JWT, fixtures
+  pré-remplies, scripts post-response qui stockent `accessToken`,
+  `projectId`, etc.). Voir `bruno/README.md` pour le workflow.
 
 ## Conventions
 

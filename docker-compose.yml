@@ -68,6 +68,23 @@ services:
       echo '✓ Bucket initialisé : '$${MINIO_S3_BUCKET_NAME};
       "
 
+  mailpit:
+    # Fake SMTP en dev — catch tous les emails, UI web sur :8025
+    # https://mailpit.axllent.org/
+    image: axllent/mailpit:latest
+    container_name: vizhome-mailpit
+    ports:
+      - "1025:1025"   # SMTP (utilisé par Django)
+      - "8025:8025"   # Web UI (http://localhost:8025)
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    volumes:
+      - mailpit_data:/data
+    restart: unless-stopped
+
   api:
     container_name: vizhome-api
     build:
@@ -119,3 +136,5 @@ volumes:
     name: vizhome_postgres_data
   minio_data:
     name: vizhome_minio_data
+  mailpit_data:
+    name: vizhome_mailpit_data

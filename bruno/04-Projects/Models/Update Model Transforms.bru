@@ -1,0 +1,43 @@
+meta {
+  name: Update Model Transforms
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/models/{{modelId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Modèle Bruno renommé",
+    "position": {"x": 1.5, "y": 0, "z": 2.0},
+    "rotation": {"x": 0, "y": 90, "z": 0},
+    "scale": {"x": 1, "y": 1, "z": 1}
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("position updated", function() {
+    expect(res.body.position.x).to.equal(1.5);
+  });
+}
+
+docs {
+  Met à jour le nom et les transforms (position/rotation/scale) d'un
+  modèle. Appelé côté frontend par `useThreeModels` après que l'user a
+  manipulé le `TransformControls`.
+
+  Les valeurs sont en système Three.js standard (mètres pour position,
+  degrés pour rotation, ratio pour scale).
+}

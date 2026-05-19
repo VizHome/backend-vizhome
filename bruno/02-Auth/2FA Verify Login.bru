@@ -1,0 +1,48 @@
+meta {
+  name: 2FA Verify Login
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/auth/2fa/verify
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "challenge_token": "{{challengeToken}}",
+    "code": "000000"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.setEnvVar("accessToken", res.body.access);
+    bru.setEnvVar("refreshToken", res.body.refresh);
+    bru.setEnvVar("userId", res.body.user.id);
+    bru.setEnvVar("challengeToken", "");
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns tokens", function() {
+    expect(res.body).to.have.property("access");
+    expect(res.body).to.have.property("refresh");
+  });
+}
+
+docs {
+  Deuxième étape du login quand la 2FA est activée. Utilise le
+  `challenge_token` retourné par `Login` + le code à 6 chiffres généré
+  par ton app TOTP (Google Authenticator, Authy, etc.).
+
+  Remplace `000000` par le code courant avant d'envoyer.
+
+  Le challenge expire après 5 minutes (`expires_in: 300`).
+}

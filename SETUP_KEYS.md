@@ -291,9 +291,26 @@ Le bucket doit avoir une policy "public read" pour les renders/modèles 3D.
 
 ---
 
-## 6. 📧 Email SMTP (prod uniquement)
+## 6. 📧 Email SMTP
 
-En dev les emails (forgot password etc.) s'affichent dans les logs Docker via `console.EmailBackend`. En prod, configure un SMTP :
+### Dev — MailPit (déjà configuré, rien à faire)
+
+Le `docker-compose.yml` inclut un service [MailPit](https://mailpit.axllent.org/) qui catch tous les emails envoyés en local.
+
+- **SMTP** : `mailpit:1025` (depuis le réseau Docker) ou `localhost:1025` (depuis l'host)
+- **UI web** : http://localhost:8025
+
+Tous les emails de l'app (reset password, notifications, etc.) arrivent automatiquement dans l'UI MailPit — aucun vrai envoi sur internet.
+
+Pour revenir aux logs console à la place :
+```bash
+# .env
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+```
+
+### Prod — provider SMTP réel
+
+Configure un provider (SendGrid, Mailgun, Postmark, AWS SES, OVH, etc.) :
 
 ```bash
 # backend-vizhome/.env.prod

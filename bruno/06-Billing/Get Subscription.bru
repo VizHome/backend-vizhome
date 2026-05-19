@@ -1,0 +1,35 @@
+meta {
+  name: Get Subscription
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/me/subscription
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns subscription shape", function() {
+    expect(res.body).to.have.property("has_subscription");
+    expect(res.body).to.have.property("plan");
+    expect(res.body).to.have.property("cancel_at_period_end");
+  });
+}
+
+docs {
+  Récupère l'état actuel de la subscription Stripe de l'utilisateur.
+
+  Si Stripe n'est pas configuré (pas de `STRIPE_TEST_SECRET_KEY`), retourne
+  quand même 200 avec `has_subscription: false` et le `plan` stocké dans
+  User.plan (dégradé gracieux).
+}

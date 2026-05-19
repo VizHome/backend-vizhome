@@ -1,0 +1,47 @@
+meta {
+  name: List Renders
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/renders/?page=1&page_size=20&status=done
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  page_size: 20
+  status: done
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.body.results && res.body.results.length > 0) {
+    bru.setEnvVar("renderId", res.body.results[0].id);
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("paginated response", function() {
+    expect(res.body).to.have.property("count");
+    expect(res.body).to.have.property("results");
+  });
+}
+
+docs {
+  Liste les renders de l'utilisateur (paginé). Filtres query optionnels :
+  - `?status=pending|processing|done|failed`
+  - `?source=prompt|sketch|screenshot`
+
+  Auto-stocke `renderId` = premier render trouvé. Utilisé par `useGallery`
+  côté frontend.
+}

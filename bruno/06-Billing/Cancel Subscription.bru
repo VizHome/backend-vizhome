@@ -1,0 +1,32 @@
+meta {
+  name: Cancel Subscription
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/me/subscription/cancel
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200, 400 or 503", function() {
+    expect([200, 400, 503]).to.include(res.getStatus());
+  });
+}
+
+docs {
+  Programme l'annulation de la subscription **à la fin de la période
+  courante** (l'utilisateur garde l'accès jusqu'à la fin de son mois
+  payé). Pas d'annulation immédiate côté API.
+
+  Retourne :
+  - 200 si OK
+  - 400 si pas de subscription active à annuler
+  - 503 si Stripe non configuré
+}

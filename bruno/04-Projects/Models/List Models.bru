@@ -1,0 +1,38 @@
+meta {
+  name: List Models
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/models
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && Array.isArray(res.body) && res.body.length > 0) {
+    bru.setEnvVar("modelId", res.body[0].id);
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns array (no pagination — APIView)", function() {
+    expect(res.body).to.be.an("array");
+  });
+}
+
+docs {
+  Liste tous les modèles 3D d'un projet. Cet endpoint utilise `APIView`
+  (pas `ListAPIView`) donc retourne un array simple, **pas paginé**.
+
+  Auto-stocke `modelId` = premier modèle trouvé.
+}

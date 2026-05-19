@@ -1,0 +1,45 @@
+meta {
+  name: Refresh Token
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/auth/refresh
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "refresh": "{{refreshToken}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.setEnvVar("accessToken", res.body.access);
+    // Token rotation activée — un nouveau refresh est aussi retourné
+    if (res.body.refresh) {
+      bru.setEnvVar("refreshToken", res.body.refresh);
+    }
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns new access token", function() {
+    expect(res.body).to.have.property("access");
+  });
+}
+
+docs {
+  Rafraîchit un access token expiré via le refresh token. La rotation est
+  activée donc un nouveau `refresh` est aussi retourné — les deux sont
+  mis à jour dans l'env.
+
+  L'ancien refresh est blacklisté immédiatement.
+}

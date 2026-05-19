@@ -1,0 +1,52 @@
+meta {
+  name: Confirm Presigned Upload
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/models/confirm
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Modèle Bruno test",
+    "key": "{{presignedKey}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("modelId", res.body.id);
+  }
+}
+
+tests {
+  test("returns 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("returns model record", function() {
+    expect(res.body).to.have.property("id");
+    expect(res.body).to.have.property("file_url");
+    expect(res.body).to.have.property("file_size_bytes");
+  });
+}
+
+docs {
+  Étape 3/3 du flow presigned. Confirme que le PUT vers MinIO a réussi
+  et crée l'objet `ImportedModel` en base.
+
+  Le backend vérifie via boto3 `head_object` que le fichier existe bien
+  à la clé annoncée, et lit sa taille réelle (pas celle annoncée par le
+  client → anti-tricherie).
+
+  Pour les modèles OBJ avec MTL : ajouter `mtl_key` (récupéré via un
+  deuxième `Get Presigned URL` pour le `.mtl`).
+}

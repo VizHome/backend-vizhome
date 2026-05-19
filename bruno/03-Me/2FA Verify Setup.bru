@@ -1,0 +1,39 @@
+meta {
+  name: 2FA Verify Setup
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/me/2fa/verify-setup
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "code": "000000"
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Finalise l'enrôlement 2FA avec le code à 6 chiffres généré par l'app
+  TOTP. Active la 2FA pour les futurs logins.
+
+  **Remplace `000000`** par le code courant de ton app (Google
+  Authenticator / Authy / etc.) avant d'envoyer. Le code expire toutes
+  les 30 secondes.
+
+  Si succès → la 2FA est active. Tu peux le vérifier dans `Get
+  Preferences` (`two_factor_enabled: true`).
+}
