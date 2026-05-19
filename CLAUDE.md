@@ -134,8 +134,7 @@ Redis (cache + Celery broker) · Sentry SDK 2.20
 - `docs/DEPLOYMENT.md` — `docker-compose.prod.yml`, Traefik, Stripe webhook
 - `docs/CONTRIBUTING.md` — conventions, PR checklist
 - `SETUP_KEYS.md` — Gemini, Stripe, Google OAuth, GitHub OAuth activation
-
-No `README.md` at root — onboarding lives in `docs/` and `SETUP_KEYS.md`.
+- `README.md` — onboarding public (stack, démarrage Docker, scripts)
 
 ## Conventions
 
