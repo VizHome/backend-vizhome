@@ -83,6 +83,7 @@ plutôt que de planter :
 | Endpoint | Requiert | Sans config |
 |---|---|---|
 | `POST /renders/` | `GEMINI_API_KEY` | HTTP 503 + `code: gemini_unavailable` |
+| `POST /forum/upload-image` | MinIO accessible | HTTP 201 + `{url, filename, size_bytes, content_type}` |
 | `POST /me/subscription/checkout` | `STRIPE_TEST_SECRET_KEY` + `setup_stripe_products` | HTTP 503 + `code: stripe_unavailable` |
 | `POST /auth/oauth/google/exchange` | `GOOGLE_OAUTH_CLIENT_ID` | HTTP 503 |
 | `POST /auth/oauth/github/exchange` | `GITHUB_OAUTH_*` | HTTP 503 |

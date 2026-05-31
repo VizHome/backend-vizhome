@@ -63,7 +63,8 @@ backend-vizhome/
     │   └── Sharing/              liens publics
     ├── 05-Renders/               création (prompt + sketch) + polling + history
     ├── 06-Billing/               plans, subscription, invoices, payment-methods
-    └── 07-Forum/                 categories, topics, replies (11 req)
+    ├── 07-Forum/                 categories, topics, replies, upload image (12 req)
+    └── 08-Admin/                 dashboard overview (staff-only, 1 req)
 ```
 
 ## Détail des apps
@@ -145,6 +146,29 @@ renders/
 └── tests/                        26 tests
 ```
 
+### `apps/forum/`
+
+```
+forum/
+├── apps.py                        ready() → load signals
+├── models.py                      Category, Topic, Reply, ForumUpload
+├── signals.py                     compteurs cache + mark uploads `used`
+├── serializers.py                 Category, Topic, Reply
+├── views.py                       CRUD forum + ForumImageUploadView (multipart)
+├── urls.py                        12 endpoints (incl. upload-image)
+├── permissions.py                 IsAuthorOrReadOnly, IsAuthorOrStaff
+├── uploads.py                     extract_used_keys() — parse `<img src>` HTML
+├── tasks.py                       cleanup_forum_orphan_uploads_task (Celery)
+├── admin.py
+├── management/commands/
+│   ├── seed_forum_categories.py   bootstrap des 5 catégories par défaut
+│   └── cleanup_forum_orphan_uploads.py  GC images uploadées sans post
+├── migrations/
+│   ├── 0001_initial.py
+│   └── 0002_forumupload.py
+└── tests/                         41 tests (views + uploads/cleanup)
+```
+
 ### `apps/billing/`
 
 ```
@@ -166,6 +190,23 @@ billing/
 
 Reposting les endpoints galerie (filtrage des renders `status=done`).
 Pas de modèles propres — réutilise `Render` de `apps.renders`.
+
+### `apps/admin_panel/`
+
+Endpoints staff-only pour le dashboard interne (cf
+`frontend-vizhome/pages/admin/index.vue`).
+
+```
+admin_panel/
+├── apps.py
+├── views.py                       AdminOverviewView (1 endpoint consolidé)
+├── urls.py                        GET /api/v1/admin/overview
+└── tests/                         13 tests (permissions + shape + métriques)
+```
+
+Pas de modèles propres : query directe en read-only sur les apps existantes
+(accounts, projects, renders, billing, forum). Permission DRF :
+`IsAuthenticated + IsAdminUser` (built-in).
 
 ### `apps/forum/`
 

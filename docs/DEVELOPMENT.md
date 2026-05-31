@@ -171,6 +171,44 @@ redis> KEYS 2fa_challenge:*
 redis> GET <key>
 ```
 
+## Forum : nettoyage des images orphelines
+
+Chaque image uploadée via le bouton 🖼️ ou paste dans l'éditeur forum
+crée un `ForumUpload(used=False)`. Quand un Topic ou Reply est sauvegardé,
+le signal `post_save` parse le HTML et passe à `used=True` les uploads
+dont la `key` apparaît en `<img src>`.
+
+**Si l'user ferme l'onglet sans publier**, les `ForumUpload(used=False)`
+restent + leurs fichiers MinIO. La commande de cleanup les supprime
+après une période de grâce :
+
+```bash
+# Manuel (dry-run pour voir sans rien supprimer)
+docker compose exec api python manage.py cleanup_forum_orphan_uploads --dry-run
+
+# Vraiment supprimer (orphelins > 24h)
+docker compose exec api python manage.py cleanup_forum_orphan_uploads
+
+# Période de grâce custom
+docker compose exec api python manage.py cleanup_forum_orphan_uploads --hours 12
+```
+
+**Activer en tâche planifiée (recommandé prod)** :
+
+1. Django admin → `Periodic Tasks` (django-celery-beat) → **Add**
+2. Name : `Forum cleanup orphan uploads`
+3. Task (registered) : `forum.cleanup_orphan_uploads`
+4. Crontab schedule : `0 3 * * *` (3h du matin tous les jours)
+5. Enabled ✓ → Save
+
+À ce moment Celery beat lance la task chaque nuit. Vérifier dans
+`docker compose logs celery` qu'elle tourne bien.
+
+⚠️ Une fois `used=True`, un upload n'est JAMAIS supprimé par ce
+cleanup, même si le post qui le référence est ensuite supprimé.
+Pour un vrai garbage collector avec ref-counting, ajouter un compteur
+sur `ForumUpload` + signal `post_save (update)` + `post_delete`.
+
 ## Reset complet de la DB
 
 ```bash

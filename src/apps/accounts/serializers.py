@@ -51,11 +51,12 @@ class UserSerializer(serializers.ModelSerializer):
             'name',
             'avatar_url',
             'plan',
+            'is_staff',
             'date_joined',
             'stats',
             'preferences',
         )
-        read_only_fields = ('id', 'email', 'plan', 'date_joined')
+        read_only_fields = ('id', 'email', 'plan', 'is_staff', 'date_joined')
 
 
 # ─── Register / Login ─────────────────────────────────────────────────────────

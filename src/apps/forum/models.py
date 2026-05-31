@@ -122,3 +122,50 @@ class Reply(models.Model):
 
     def __str__(self) -> str:
         return f'Reply by {self.author} on "{self.topic.title[:40]}"'
+
+
+class ForumUpload(models.Model):
+    """Trace chaque image uploadée pour un post (topic ou reply).
+
+    Cycle de vie :
+    1. Upload via `ForumImageUploadView` → record créé avec `used=False`
+    2. Sauvegarde Topic ou Reply → signal parse le HTML, mark `used=True`
+       les uploads dont la `key` apparaît en `<img src>` dans le contenu
+    3. Tâche periodic `cleanup_forum_orphan_uploads` → supprime les
+       uploads `used=False` plus vieux que 24h (orphelins = upload sans
+       post associé, probablement éditeur fermé sans publier)
+
+    Note : on ne décrémente pas quand un post est supprimé ou édité (les
+    fichiers restent). Pour un vrai garbage collector avec ref counting,
+    ajouter un compteur + signal sur post_save (update) et post_delete.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='forum_uploads',
+    )
+    # Clé MinIO (ex: forum/uploads/4/2026/05/abc.png)
+    key = models.CharField(max_length=500, unique=True)
+    # URL publique au moment de l'upload (utile pour debug / reconstruction)
+    url = models.URLField(max_length=1000)
+    content_type = models.CharField(max_length=50)
+    size_bytes = models.PositiveIntegerField()
+    # Passe à True dès qu'un Topic ou Reply référence cette image dans son HTML
+    used = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    # Mis à jour à chaque fois que used passe de False → True
+    first_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'forum_upload'
+        ordering = ['-created_at']
+        indexes = [
+            # Pour la tâche de cleanup : trouver vite les unused vieux
+            models.Index(fields=['used', 'created_at']),
+        ]
+
+    def __str__(self) -> str:
+        flag = 'used' if self.used else 'orphan'
+        return f'ForumUpload[{flag}] {self.key}'

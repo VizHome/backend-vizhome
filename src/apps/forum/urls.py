@@ -17,4 +17,7 @@ urlpatterns = [
     # Replies — nested under topic
     path('topics/<int:topic_id>/replies', views.ReplyListCreateView.as_view(), name='forum-replies'),
     path('replies/<int:pk>', views.ReplyDetailView.as_view(), name='forum-reply-detail'),
+
+    # Upload image pour insertion dans un post (multipart direct, pas presigned)
+    path('upload-image', views.ForumImageUploadView.as_view(), name='forum-upload-image'),
 ]

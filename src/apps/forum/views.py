@@ -1,14 +1,21 @@
 """Vues DRF du forum."""
 from __future__ import annotations
 
+import uuid
+from pathlib import Path
+
+from django.core.files.storage import default_storage
 from django.db.models import F
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics, status
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .models import Category, Reply, Topic
-from .permissions import IsAuthorOrStaff
+from .models import Category, ForumUpload, Reply, Topic
+from .permissions import IsAuthorOrStaff, IsAuthorWithinTimeWindowOrStaff
 from .serializers import (
     CategorySerializer,
     ReplyCreateSerializer,
@@ -114,10 +121,14 @@ class TopicListCreateView(generics.ListCreateAPIView):
 
 
 class TopicDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """GET/PATCH/DELETE /forum/topics/{id}."""
+    """GET/PATCH/DELETE /forum/topics/{id}.
 
-    permission_classes = [IsAuthorOrStaff]
+    Édition limitée à 15 min pour l'auteur (staff toujours OK).
+    """
+
+    permission_classes = [IsAuthorWithinTimeWindowOrStaff]
     serializer_class = TopicDetailSerializer
+    EDIT_WINDOW_MINUTES = 15
 
     def get_authenticators(self):
         if self.request.method == 'GET':
@@ -127,7 +138,7 @@ class TopicDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [AllowAny()]
-        return [IsAuthenticated(), IsAuthorOrStaff()]
+        return [IsAuthenticated(), IsAuthorWithinTimeWindowOrStaff()]
 
     def get_queryset(self):
         return Topic.objects.select_related('category', 'author').all()
@@ -187,13 +198,118 @@ class ReplyListCreateView(generics.ListCreateAPIView):
 
 
 class ReplyDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """PATCH/DELETE /forum/replies/{id} — édition/suppression par auteur ou staff.
+    """PATCH/DELETE /forum/replies/{id} — édition limitée dans le temps.
 
-    GET inutile dans ce design (les replies se chargent via topic).
+    L'auteur peut éditer sa réponse dans les 15 min qui suivent. Passé
+    ce délai, seul le staff peut éditer.
     """
 
-    permission_classes = [IsAuthenticated, IsAuthorOrStaff]
+    permission_classes = [IsAuthenticated, IsAuthorWithinTimeWindowOrStaff]
     serializer_class = ReplySerializer
+    EDIT_WINDOW_MINUTES = 15
 
     def get_queryset(self):
         return Reply.objects.select_related('author', 'topic').all()
+
+
+# ─── Upload images dans les posts du forum ───────────────────────────────
+# Upload direct multipart (vs presigned pour les modèles 3D) car les images
+# sont petites (~5MB max). Plus simple côté frontend = un seul POST.
+
+# Types MIME autorisés pour les images du forum
+_FORUM_IMAGE_ALLOWED_TYPES = {
+    'image/png': '.png',
+    'image/jpeg': '.jpg',
+    'image/jpg': '.jpg',
+    'image/gif': '.gif',
+    'image/webp': '.webp',
+}
+_FORUM_IMAGE_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+class ForumImageUploadView(APIView):
+    """POST /api/v1/forum/upload-image
+
+    Upload une image pour insertion dans un post (topic ou reply).
+    Auth requise. Stockage MinIO via django-storages.
+
+    Input  : multipart/form-data avec champ `file` (image)
+    Output : { url, filename, size_bytes, content_type }
+
+    Validation :
+    - Types acceptés : png, jpg, jpeg, gif, webp
+    - Taille max : 5 MB
+    - Renomme avec UUID pour éviter les collisions et masquer le nom original
+    """
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request, *args, **kwargs):
+        upload = request.FILES.get('file')
+        if not upload:
+            return Response(
+                {'detail': "Champ 'file' manquant.", 'code': 'no_file'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validation type
+        content_type = (upload.content_type or '').lower()
+        if content_type not in _FORUM_IMAGE_ALLOWED_TYPES:
+            return Response(
+                {
+                    'detail': (
+                        'Type de fichier non autorisé. '
+                        f'Acceptés : {", ".join(sorted(_FORUM_IMAGE_ALLOWED_TYPES))}.'
+                    ),
+                    'code': 'invalid_type',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validation taille
+        if upload.size > _FORUM_IMAGE_MAX_BYTES:
+            return Response(
+                {
+                    'detail': (
+                        f"Fichier trop volumineux ({upload.size} octets). "
+                        f"Max : {_FORUM_IMAGE_MAX_BYTES // (1024 * 1024)} MB."
+                    ),
+                    'code': 'too_large',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Génère une clé unique : forum/uploads/{user_id}/{YYYY}/{MM}/{uuid}.{ext}
+        ext = _FORUM_IMAGE_ALLOWED_TYPES[content_type]
+        now = timezone.now()
+        key = (
+            f'forum/uploads/{request.user.pk}/'
+            f'{now.year:04d}/{now.month:02d}/'
+            f'{uuid.uuid4().hex}{ext}'
+        )
+
+        # Upload via django-storages (utilise le backend S3/MinIO configuré)
+        saved_key = default_storage.save(key, upload)
+        url = default_storage.url(saved_key)
+
+        # Trace l'upload pour le garbage collector des orphelins
+        # (cleanup_forum_orphan_uploads). `used=False` jusqu'à ce qu'un
+        # Topic/Reply soit sauvegardé avec cette image en `<img src>`.
+        ForumUpload.objects.create(
+            user=request.user,
+            key=saved_key,
+            url=url,
+            content_type=content_type,
+            size_bytes=upload.size,
+        )
+
+        return Response(
+            {
+                'url': url,
+                'filename': Path(saved_key).name,
+                'size_bytes': upload.size,
+                'content_type': content_type,
+            },
+            status=status.HTTP_201_CREATED,
+        )

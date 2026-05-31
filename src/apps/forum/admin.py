@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from django.contrib import admin
 
-from .models import Category, Reply, Topic
+from .models import Category, ForumUpload, Reply, Topic
 
 
 @admin.register(Category)
@@ -37,3 +37,23 @@ class ReplyAdmin(admin.ModelAdmin):
     autocomplete_fields = ('author', 'topic')
     date_hierarchy = 'created_at'
     readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(ForumUpload)
+class ForumUploadAdmin(admin.ModelAdmin):
+    list_display = (
+        'key', 'user', 'used', 'size_bytes', 'content_type',
+        'created_at', 'first_used_at',
+    )
+    list_filter = ('used', 'content_type', 'created_at')
+    search_fields = ('key', 'user__email')
+    autocomplete_fields = ('user',)
+    date_hierarchy = 'created_at'
+    readonly_fields = (
+        'user', 'key', 'url', 'content_type', 'size_bytes',
+        'used', 'created_at', 'first_used_at',
+    )
+
+    def has_add_permission(self, request) -> bool:
+        # Les uploads ne peuvent être créés que via l'endpoint API
+        return False
