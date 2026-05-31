@@ -1,0 +1,52 @@
+meta {
+  name: Export Users CSV
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/admin/users?format=csv
+  body: none
+  auth: bearer
+}
+
+params:query {
+  format: csv
+  ~search:
+  ~plan: pro
+  ~is_staff: true
+  ~is_active: true
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 403 if not staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+
+  test("Content-Type is text/csv", function() {
+    if (res.getStatus() === 200) {
+      expect(res.getHeader("content-type") || "").to.include("text/csv");
+    }
+  });
+
+  test("Content-Disposition has filename", function() {
+    if (res.getStatus() === 200) {
+      const cd = res.getHeader("content-disposition") || "";
+      expect(cd).to.include("attachment");
+      expect(cd).to.include(".csv");
+    }
+  });
+}
+
+docs {
+  GET /api/v1/admin/users?format=csv — export CSV (staff-only).
+
+  Le renderer `CSVRenderer` aplatit `{results: [...]}` en CSV avec
+  `Content-Disposition: attachment; filename=admin-users-<date>.csv`.
+
+  Mêmes filtres que la version JSON : `search`, `plan`, `is_staff`, `is_active`.
+}

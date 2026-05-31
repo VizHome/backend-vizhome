@@ -64,7 +64,8 @@ backend-vizhome/
     ├── 05-Renders/               création (prompt + sketch) + polling + history
     ├── 06-Billing/               plans, subscription, invoices, payment-methods
     ├── 07-Forum/                 categories, topics, replies, upload image, moderation (15 req)
-    └── 08-Admin/                 overview + users/renders drill-down + timeline (5 req)
+    └── 08-Admin/                 overview, users, renders, timeline, audit-log,
+                                  subscriptions, invoices, forum/topics, CSV exports (11 req)
 ```
 
 ## Détail des apps
@@ -199,24 +200,39 @@ Endpoints staff-only pour le dashboard interne (cf
 ```
 admin_panel/
 ├── apps.py
-├── views.py                       AdminOverviewView + AdminUserList/Detail + AdminRenderList
-├── serializers.py                 AdminUser + AdminUserUpdate + AdminRender (riches)
-├── urls.py                        5 endpoints (overview, users, users/:id, renders, timeline)
-└── tests/                         28 tests (overview + drill-down + permissions + garde-fous)
+├── models.py                      ★ AdminAuditLog + AdminDailySnapshot (Phase 3)
+├── audit.py                       ★ log_admin_action() helper (actor + IP + UA + payload)
+├── renderers.py                   ★ CSVRenderer (flatten {results} → text/csv + filename)
+├── views.py                       9 views (overview, users CRUD, renders, timeline,
+│                                  audit-log, subscriptions, invoices, forum/topics)
+├── serializers.py                 AdminUser + AdminUserUpdate + AdminRender + AdminAuditLog
+├── urls.py                        9 endpoints
+├── tasks.py                       ★ snapshot_metrics_task (Celery, name='admin_panel.snapshot_metrics')
+├── management/commands/
+│   └── snapshot_admin_metrics.py  ★ snapshot daily metrics → AdminDailySnapshot
+└── tests/                         28+ tests (overview + drill-down + permissions + garde-fous)
 ```
 
-Endpoints :
+Endpoints (9, tous staff-only — `IsAuthenticated + IsAdminUser`) :
 - `GET /api/v1/admin/overview` — toutes les métriques en 1 réponse
-- `GET /api/v1/admin/users` — liste paginée + filtres (search, plan, is_staff, is_active)
+- `GET /api/v1/admin/users` — liste paginée + filtres ; aussi `?format=csv` (CSVRenderer)
 - `GET/PATCH /api/v1/admin/users/{id}` — modération (ban/unban, promote/demote staff)
-  avec garde-fous anti self-demotion / self-deactivation
-- `GET /api/v1/admin/renders` — liste paginée + filtres (status, source, user_id)
+  avec garde-fous anti self-demotion / self-deactivation + **audit log avant/après**
+- `GET /api/v1/admin/renders` — liste paginée + filtres ; aussi `?format=csv`
 - `GET /api/v1/admin/timeline?days=N` — séries temporelles pour graphiques
-  (users/jour, renders/jour par status, distribution status, forum/jour)
+- `GET /api/v1/admin/audit-log` — journal d'audit paginé + filtres (action, actor, target_type)
+- `GET /api/v1/admin/subscriptions` — subscriptions Stripe actives (mode `no_djstripe` détecté)
+- `GET /api/v1/admin/invoices` — 100 dernières factures Stripe
+- `GET /api/v1/admin/forum/topics` — liste paginée pour modération (réutilise `TopicListSerializer`).
+  Les actions pin/lock/delete passent par `/forum/topics/{id}/...` qui auditent via `log_admin_action`.
 
-Pas de modèles propres : query directe en read-only sur les apps existantes
-(accounts, projects, renders, billing, forum). Permission DRF :
-`IsAuthenticated + IsAdminUser` (built-in).
+**Patterns Phase 3** :
+- `AdminAuditLog` n'utilise pas de FK vers la cible → utilise `target_type` + `target_id` + `target_repr`
+  pour survivre aux suppressions.
+- `AdminDailySnapshot` capture l'overview chaque jour. Sérialisation : payload passé à
+  `json.loads(json.dumps(..., cls=DjangoJSONEncoder))` pour gérer les datetimes imbriqués.
+- `CSVRenderer` détecte la structure paginée DRF `{count, results}` et set
+  `Content-Disposition: attachment; filename=<csv_filename>-<date>.csv`.
 
 ### `apps/forum/`
 

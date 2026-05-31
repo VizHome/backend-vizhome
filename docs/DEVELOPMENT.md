@@ -209,6 +209,32 @@ cleanup, même si le post qui le référence est ensuite supprimé.
 Pour un vrai garbage collector avec ref-counting, ajouter un compteur
 sur `ForumUpload` + signal `post_save (update)` + `post_delete`.
 
+## Snapshot quotidien des métriques admin (Phase 3)
+
+Le panel admin garde un historique long-terme via la table
+`AdminDailySnapshot` (1 ligne par jour, payload = overview consolidé).
+
+```bash
+# Manuel (à lancer une première fois pour valider)
+docker compose exec api python manage.py snapshot_admin_metrics
+
+# Pour une date spécifique (ex: rattraper hier)
+docker compose exec api python manage.py snapshot_admin_metrics --date 2026-05-31
+```
+
+**Activer en tâche planifiée (recommandé prod)** :
+
+1. Django admin → `Periodic Tasks` (django-celery-beat) → **Add**
+2. Name : `Admin daily snapshot`
+3. Task (registered) : `admin_panel.snapshot_metrics`
+4. Crontab schedule : `5 0 * * *` (00h05 UTC tous les jours — laisse
+   passer minuit pour capturer la veille complète)
+5. Enabled ✓ → Save
+
+Vérifier dans `docker compose logs celery` qu'elle tourne. Les snapshots
+sont consultables dans `Django admin → AdminDailySnapshot` ou via une
+query Postgres directe (`SELECT date, payload->'users' FROM ...`).
+
 ## Reset complet de la DB
 
 ```bash
