@@ -1,0 +1,57 @@
+meta {
+  name: List Renders
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/admin/renders?page=1&page_size=25
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  page_size: 25
+  ~status: done
+  ~source: prompt
+  ~user_id: 1
+  ~ordering: -created_at
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 403 if not staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+
+  test("if 200 → paginated + user_email nested", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("count");
+      expect(res.body).to.have.property("results");
+      if (res.body.results.length > 0) {
+        const r = res.body.results[0];
+        expect(r).to.have.property("user_email");
+        expect(r).to.have.property("user_id");
+        expect(r).to.have.property("status");
+        expect(r).to.have.property("source");
+      }
+    }
+  });
+}
+
+docs {
+  GET /api/v1/admin/renders — liste paginée des renders (staff-only).
+
+  **Query params** (optionnels) :
+  - `status` : `pending` | `processing` | `done` | `failed`
+  - `source` : `prompt` | `sketch` | `screenshot`
+  - `user_id` : filtre par auteur (id)
+  - `ordering` : `-created_at` (défaut), `created_at`, `-completed_at`
+
+  Chaque render inclut `user_email` + `user_id` (vs juste l'id côté
+  endpoint /renders/ normal qui filtre déjà sur le user courant).
+}

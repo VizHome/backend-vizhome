@@ -18,6 +18,11 @@ urlpatterns = [
     path('topics/<int:topic_id>/replies', views.ReplyListCreateView.as_view(), name='forum-replies'),
     path('replies/<int:pk>', views.ReplyDetailView.as_view(), name='forum-reply-detail'),
 
+    # Actions modération (staff ou owner du topic selon le cas)
+    path('topics/<int:pk>/toggle-pin', views.TopicTogglePinView.as_view(), name='forum-topic-toggle-pin'),
+    path('topics/<int:pk>/toggle-lock', views.TopicToggleLockView.as_view(), name='forum-topic-toggle-lock'),
+    path('replies/<int:pk>/toggle-solution', views.ReplyToggleSolutionView.as_view(), name='forum-reply-toggle-solution'),
+
     # Upload image pour insertion dans un post (multipart direct, pas presigned)
     path('upload-image', views.ForumImageUploadView.as_view(), name='forum-upload-image'),
 ]

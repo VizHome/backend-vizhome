@@ -12,4 +12,13 @@ urlpatterns = [
     path('users/<int:pk>', views.AdminUserDetailView.as_view(), name='admin-user-detail'),
     # Drill-down renders : liste
     path('renders', views.AdminRenderListView.as_view(), name='admin-renders'),
+    # Séries temporelles pour graphiques (page /admin/analytics)
+    path('timeline', views.AdminTimelineView.as_view(), name='admin-timeline'),
+    # Audit log des actions admin (qui a fait quoi, quand)
+    path('audit-log', views.AdminAuditLogListView.as_view(), name='admin-audit-log'),
+    # Billing : subscriptions Stripe actives + invoices récentes
+    path('subscriptions', views.AdminSubscriptionsView.as_view(), name='admin-subscriptions'),
+    path('invoices', views.AdminInvoicesView.as_view(), name='admin-invoices'),
+    # Forum admin : liste paginée de tous les topics (modération bulk)
+    path('forum/topics', views.AdminForumTopicsView.as_view(), name='admin-forum-topics'),
 ]

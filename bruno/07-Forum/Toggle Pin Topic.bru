@@ -1,0 +1,32 @@
+meta {
+  name: Toggle Pin Topic
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/forum/topics/{{topicId}}/toggle-pin
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 403 if not staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+  test("if 200 → returns boolean", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("is_pinned");
+      expect(res.body.is_pinned).to.be.a("boolean");
+    }
+  });
+}
+
+docs {
+  Toggle l'épinglage du topic. **Réservé au staff** (HTTP 403 sinon).
+  Topic épinglé = remonté en haut de la liste de sa catégorie.
+}

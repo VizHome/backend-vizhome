@@ -27,7 +27,13 @@ from apps.forum.models import ForumUpload, Reply as ForumReply, Topic as ForumTo
 from apps.projects.models import ImportedModel, Project
 from apps.renders.models import Render
 
+from rest_framework.renderers import JSONRenderer
+
+from .audit import log_admin_action
+from .models import AdminAuditLog
+from .renderers import CSVRenderer
 from .serializers import (
+    AdminAuditLogSerializer,
     AdminRenderSerializer,
     AdminUserSerializer,
     AdminUserUpdateSerializer,
@@ -240,10 +246,13 @@ class AdminUserListView(generics.ListAPIView):
     - `?is_staff=true|false`
     - `?is_active=true|false`
     - `?ordering=...`   : -date_joined (défaut), date_joined, email, plan, last_login
+    - `?format=csv`     : exporte en CSV (téléchargement)
     """
 
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class = AdminUserSerializer
+    renderer_classes = [JSONRenderer, CSVRenderer]
+    csv_filename = 'admin-users'
 
     def get_queryset(self):
         qs = User.objects.select_related('stats').all()
@@ -312,7 +321,166 @@ class AdminUserDetailView(generics.RetrieveUpdateAPIView):
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-        return super().update(request, *args, **kwargs)
+
+        # Snapshot avant/après pour l'audit log
+        before = {
+            'is_active': instance.is_active,
+            'is_staff': instance.is_staff,
+        }
+        response = super().update(request, *args, **kwargs)
+        instance.refresh_from_db()
+        after = {
+            'is_active': instance.is_active,
+            'is_staff': instance.is_staff,
+        }
+
+        # Log uniquement les changements effectifs (pas une PATCH no-op)
+        if before['is_active'] != after['is_active']:
+            log_admin_action(
+                request,
+                AdminAuditLog.Action.USER_BAN if not after['is_active']
+                else AdminAuditLog.Action.USER_UNBAN,
+                target=instance,
+                payload={'before': before, 'after': after},
+            )
+        if before['is_staff'] != after['is_staff']:
+            log_admin_action(
+                request,
+                AdminAuditLog.Action.USER_PROMOTE_STAFF if after['is_staff']
+                else AdminAuditLog.Action.USER_DEMOTE_STAFF,
+                target=instance,
+                payload={'before': before, 'after': after},
+            )
+        return response
+
+
+# ─── Timeline : séries temporelles pour graphiques ─────────────────────────
+class AdminTimelineView(APIView):
+    """GET /api/v1/admin/timeline?days=30
+
+    Retourne des séries temporelles pour les graphiques admin :
+    - users_per_day : nouveaux users par jour
+    - renders_per_day : renders créés par jour (groupé par status)
+    - renders_status_breakdown : distribution actuelle par status (pour donut)
+
+    Query param :
+    - `days` : nombre de jours rétrospectifs (défaut 30, max 365)
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request, *args, **kwargs) -> Response:
+        try:
+            days = max(1, min(365, int(request.query_params.get('days', 30))))
+        except (TypeError, ValueError):
+            days = 30
+
+        now = timezone.now()
+        start = (now - timedelta(days=days - 1)).replace(
+            hour=0, minute=0, second=0, microsecond=0,
+        )
+
+        # Bucket bornes : 1 entrée par jour (yyyy-mm-dd)
+        days_list = [(start + timedelta(days=i)).date() for i in range(days)]
+
+        # ─── Users / jour ────────────────────────────────────────────────
+        users_qs = User.objects.filter(date_joined__gte=start)
+        users_count_by_day: dict[str, int] = {d.isoformat(): 0 for d in days_list}
+        for u in users_qs.values('date_joined'):
+            key = u['date_joined'].date().isoformat()
+            if key in users_count_by_day:
+                users_count_by_day[key] += 1
+
+        # ─── Renders / jour (par status) ────────────────────────────────
+        renders_qs = Render.objects.filter(created_at__gte=start)
+        renders_status_by_day: dict[str, dict[str, int]] = {
+            d.isoformat(): {
+                'pending': 0,
+                'processing': 0,
+                'done': 0,
+                'failed': 0,
+            }
+            for d in days_list
+        }
+        for r in renders_qs.values('created_at', 'status'):
+            key = r['created_at'].date().isoformat()
+            if key in renders_status_by_day:
+                renders_status_by_day[key][r['status']] = (
+                    renders_status_by_day[key].get(r['status'], 0) + 1
+                )
+
+        # ─── Distribution actuelle par status (snapshot pour donut) ─────
+        all_renders = Render.objects.values('status').annotate(c=Count('id'))
+        renders_status_breakdown = {row['status']: row['c'] for row in all_renders}
+
+        # ─── Forum activity / jour ──────────────────────────────────────
+        topics_qs = ForumTopic.objects.filter(created_at__gte=start).values('created_at')
+        replies_qs = ForumReply.objects.filter(created_at__gte=start).values('created_at')
+        topics_per_day = {d.isoformat(): 0 for d in days_list}
+        replies_per_day = {d.isoformat(): 0 for d in days_list}
+        for t in topics_qs:
+            k = t['created_at'].date().isoformat()
+            if k in topics_per_day:
+                topics_per_day[k] += 1
+        for r in replies_qs:
+            k = r['created_at'].date().isoformat()
+            if k in replies_per_day:
+                replies_per_day[k] += 1
+
+        return Response({
+            'days': days,
+            'start': start.isoformat(),
+            'end': now.isoformat(),
+            'users_per_day': [
+                {'date': k, 'count': v}
+                for k, v in users_count_by_day.items()
+            ],
+            'renders_per_day': [
+                {'date': k, **v}
+                for k, v in renders_status_by_day.items()
+            ],
+            'renders_status_breakdown': renders_status_breakdown,
+            'forum_activity_per_day': [
+                {
+                    'date': k,
+                    'topics': topics_per_day.get(k, 0),
+                    'replies': replies_per_day.get(k, 0),
+                }
+                for k in users_count_by_day  # même ordre que users_per_day
+            ],
+        })
+
+
+# ─── Audit log : liste paginée des actions admin ───────────────────────────
+class AdminAuditLogListView(generics.ListAPIView):
+    """GET /api/v1/admin/audit-log — liste paginée + filtres staff-only.
+
+    Query params :
+    - `action=<value>` : filtre par action (ex: user.ban, topic.pin)
+    - `actor=<email>`  : filtre par email d'acteur (icontains)
+    - `target_type=<X>` : filtre par type de cible (User, Topic, Reply, …)
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = AdminAuditLogSerializer
+
+    def get_queryset(self):
+        qs = AdminAuditLog.objects.select_related('actor').all()
+        params = self.request.query_params
+
+        action = params.get('action')
+        if action:
+            qs = qs.filter(action=action)
+
+        actor = params.get('actor', '').strip()
+        if actor:
+            qs = qs.filter(actor_email__icontains=actor)
+
+        target_type = params.get('target_type')
+        if target_type:
+            qs = qs.filter(target_type=target_type)
+
+        return qs
 
 
 # ─── Drill-down : renders ───────────────────────────────────────────────────
@@ -324,10 +492,13 @@ class AdminRenderListView(generics.ListAPIView):
     - `?source=<s>`   : prompt / sketch / screenshot
     - `?user_id=<n>`  : filtre par auteur
     - `?ordering=...` : -created_at (défaut), created_at, -completed_at
+    - `?format=csv`   : exporte en CSV
     """
 
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class = AdminRenderSerializer
+    renderer_classes = [JSONRenderer, CSVRenderer]
+    csv_filename = 'admin-renders'
 
     def get_queryset(self):
         qs = Render.objects.select_related('user').all()
@@ -346,5 +517,148 @@ class AdminRenderListView(generics.ListAPIView):
         allowed = {
             'created_at', '-created_at',
             'completed_at', '-completed_at',
+        }
+        return qs.order_by(ordering if ordering in allowed else '-created_at')
+
+
+# ─── Billing : subscriptions + invoices (staff drill-down Stripe) ──────────
+class AdminSubscriptionsView(APIView):
+    """GET /api/v1/admin/subscriptions — liste des subscriptions Stripe actives.
+
+    Lit djstripe `Subscription` directement. Si Stripe n'est pas configuré,
+    retourne une liste vide (mode dégradé).
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request, *args, **kwargs) -> Response:
+        try:
+            from djstripe.models import Subscription
+            # djstripe stocke status dans stripe_data JSONField selon la version
+            # → on récupère tout et filtre en Python (pagination implicite via [:200])
+            all_subs = Subscription.objects.all()[:500]
+        except Exception as e:
+            return Response({
+                'count': 0, 'results': [], 'mode': 'no_djstripe',
+                'detail': str(e),
+            })
+
+        active_statuses = {'active', 'trialing', 'past_due'}
+        data = []
+        for sub in all_subs:
+            # Lire status — peut être direct OU dans stripe_data selon version djstripe
+            sub_status = (
+                getattr(sub, 'status', None)
+                or (sub.stripe_data or {}).get('status', '')
+            )
+            if sub_status not in active_statuses:
+                continue
+            row = {'id': str(sub.id), 'status': sub_status}
+            for attr, key in (
+                ('current_period_end', 'current_period_end'),
+                ('cancel_at_period_end', 'cancel_at_period_end'),
+                ('created', 'created'),
+            ):
+                try:
+                    val = getattr(sub, attr, None)
+                    row[key] = val.isoformat() if hasattr(val, 'isoformat') else val
+                except Exception:
+                    row[key] = None
+            try:
+                cust = getattr(sub, 'customer', None)
+                subscriber = getattr(cust, 'subscriber', None) if cust else None
+                row['user_email'] = getattr(subscriber, 'email', '') if subscriber else ''
+                row['user_id'] = getattr(subscriber, 'pk', None) if subscriber else None
+            except Exception:
+                row['user_email'] = ''
+                row['user_id'] = None
+            data.append(row)
+        return Response({'count': len(data), 'results': data})
+
+
+class AdminInvoicesView(APIView):
+    """GET /api/v1/admin/invoices — 100 dernières factures Stripe.
+
+    Retourne les invoices les plus récentes toutes-confondues.
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request, *args, **kwargs) -> Response:
+        try:
+            from djstripe.models import Invoice
+            invoices = Invoice.objects.order_by('-created')[:100]
+        except Exception as e:
+            return Response({
+                'count': 0, 'results': [], 'mode': 'no_djstripe',
+                'detail': str(e),
+            })
+
+        data = []
+        for inv in invoices:
+            row = {
+                'id': str(inv.id),
+                'number': getattr(inv, 'number', '') or '',
+                'amount_paid': getattr(inv, 'amount_paid', 0) or 0,
+                'currency': getattr(inv, 'currency', '') or '',
+                'status': getattr(inv, 'status', '') or '',
+                'hosted_invoice_url': getattr(inv, 'hosted_invoice_url', '') or '',
+                'invoice_pdf': getattr(inv, 'invoice_pdf', '') or '',
+            }
+            try:
+                created = getattr(inv, 'created', None)
+                row['created'] = created.isoformat() if hasattr(created, 'isoformat') else None
+            except Exception:
+                row['created'] = None
+            try:
+                cust = getattr(inv, 'customer', None)
+                subscriber = getattr(cust, 'subscriber', None) if cust else None
+                row['user_email'] = getattr(subscriber, 'email', '') if subscriber else ''
+            except Exception:
+                row['user_email'] = ''
+            data.append(row)
+        return Response({'count': len(data), 'results': data})
+
+
+# ─── Forum admin : liste topics + actions modération ───────────────────────
+class AdminForumTopicsView(generics.ListAPIView):
+    """GET /api/v1/admin/forum/topics — liste paginée des topics (staff).
+
+    Différent de /forum/topics (publique) : ne filtre rien, retourne aussi
+    is_pinned / is_locked / replies_count pour faciliter la modération.
+
+    Query params :
+    - `?category=<slug>` : filtre par catégorie
+    - `?search=<q>`     : recherche dans le titre
+    - `?ordering=...`   : -created_at (défaut), -replies_count, -views_count
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    renderer_classes = [JSONRenderer, CSVRenderer]
+    csv_filename = 'admin-forum-topics'
+
+    def get_serializer_class(self):
+        # Réutilise le serializer public List du forum
+        from apps.forum.serializers import TopicListSerializer
+        return TopicListSerializer
+
+    def get_queryset(self):
+        from apps.forum.models import Topic as ForumTopicModel
+        qs = ForumTopicModel.objects.select_related('category', 'author').all()
+        params = self.request.query_params
+
+        category = params.get('category')
+        if category:
+            qs = qs.filter(category__slug=category)
+
+        search = params.get('search', '').strip()
+        if search:
+            qs = qs.filter(title__icontains=search)
+
+        ordering = params.get('ordering', '-created_at')
+        allowed = {
+            'created_at', '-created_at',
+            'replies_count', '-replies_count',
+            'views_count', '-views_count',
         }
         return qs.order_by(ordering if ordering in allowed else '-created_at')

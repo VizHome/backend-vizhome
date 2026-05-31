@@ -63,8 +63,8 @@ backend-vizhome/
     │   └── Sharing/              liens publics
     ├── 05-Renders/               création (prompt + sketch) + polling + history
     ├── 06-Billing/               plans, subscription, invoices, payment-methods
-    ├── 07-Forum/                 categories, topics, replies, upload image (12 req)
-    └── 08-Admin/                 dashboard overview (staff-only, 1 req)
+    ├── 07-Forum/                 categories, topics, replies, upload image, moderation (15 req)
+    └── 08-Admin/                 overview + users/renders drill-down + timeline (5 req)
 ```
 
 ## Détail des apps
@@ -194,15 +194,25 @@ Pas de modèles propres — réutilise `Render` de `apps.renders`.
 ### `apps/admin_panel/`
 
 Endpoints staff-only pour le dashboard interne (cf
-`frontend-vizhome/pages/admin/index.vue`).
+`frontend-vizhome/pages/admin/*.vue`).
 
 ```
 admin_panel/
 ├── apps.py
-├── views.py                       AdminOverviewView (1 endpoint consolidé)
-├── urls.py                        GET /api/v1/admin/overview
-└── tests/                         13 tests (permissions + shape + métriques)
+├── views.py                       AdminOverviewView + AdminUserList/Detail + AdminRenderList
+├── serializers.py                 AdminUser + AdminUserUpdate + AdminRender (riches)
+├── urls.py                        5 endpoints (overview, users, users/:id, renders, timeline)
+└── tests/                         28 tests (overview + drill-down + permissions + garde-fous)
 ```
+
+Endpoints :
+- `GET /api/v1/admin/overview` — toutes les métriques en 1 réponse
+- `GET /api/v1/admin/users` — liste paginée + filtres (search, plan, is_staff, is_active)
+- `GET/PATCH /api/v1/admin/users/{id}` — modération (ban/unban, promote/demote staff)
+  avec garde-fous anti self-demotion / self-deactivation
+- `GET /api/v1/admin/renders` — liste paginée + filtres (status, source, user_id)
+- `GET /api/v1/admin/timeline?days=N` — séries temporelles pour graphiques
+  (users/jour, renders/jour par status, distribution status, forum/jour)
 
 Pas de modèles propres : query directe en read-only sur les apps existantes
 (accounts, projects, renders, billing, forum). Permission DRF :
@@ -218,7 +228,7 @@ forum/
 ├── serializers.py                Category, Topic (List + Detail + Create), Reply
 ├── views.py                      CRUD complet + GET public + permissions custom
 ├── urls.py
-├── permissions.py                IsAuthorOrReadOnly, IsAuthorOrStaff
+├── permissions.py                IsAuthorOrReadOnly, IsAuthorOrStaff, IsAuthorWithinTimeWindowOrStaff (édition 15 min)
 ├── admin.py
 ├── management/commands/
 │   └── seed_forum_categories.py  seed des 5 cats par défaut

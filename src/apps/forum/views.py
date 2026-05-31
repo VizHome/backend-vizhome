@@ -212,6 +212,101 @@ class ReplyDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Reply.objects.select_related('author', 'topic').all()
 
 
+# ─── Actions modération (staff ou owner du topic selon le cas) ─────────────
+class TopicTogglePinView(APIView):
+    """POST /forum/topics/{id}/toggle-pin — épingle/désépingle (staff only)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk: int, *args, **kwargs):
+        if not request.user.is_staff:
+            return Response(
+                {'detail': 'Réservé au staff.', 'code': 'forbidden'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        topic = get_object_or_404(Topic, pk=pk)
+        topic.is_pinned = not topic.is_pinned
+        topic.save(update_fields=['is_pinned'])
+        # Audit log staff action
+        from apps.admin_panel.audit import log_admin_action
+        from apps.admin_panel.models import AdminAuditLog
+        log_admin_action(
+            request,
+            AdminAuditLog.Action.TOPIC_PIN if topic.is_pinned
+            else AdminAuditLog.Action.TOPIC_UNPIN,
+            target=topic,
+        )
+        return Response({'is_pinned': topic.is_pinned})
+
+
+class TopicToggleLockView(APIView):
+    """POST /forum/topics/{id}/toggle-lock — verrouille/déverrouille (staff only)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk: int, *args, **kwargs):
+        if not request.user.is_staff:
+            return Response(
+                {'detail': 'Réservé au staff.', 'code': 'forbidden'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        topic = get_object_or_404(Topic, pk=pk)
+        topic.is_locked = not topic.is_locked
+        topic.save(update_fields=['is_locked'])
+        from apps.admin_panel.audit import log_admin_action
+        from apps.admin_panel.models import AdminAuditLog
+        log_admin_action(
+            request,
+            AdminAuditLog.Action.TOPIC_LOCK if topic.is_locked
+            else AdminAuditLog.Action.TOPIC_UNLOCK,
+            target=topic,
+        )
+        return Response({'is_locked': topic.is_locked})
+
+
+class ReplyToggleSolutionView(APIView):
+    """POST /forum/replies/{id}/toggle-solution
+
+    Marque une réponse comme "solution acceptée". Permission :
+    - L'auteur du TOPIC (qui a posé la question)
+    - OU le staff (modération)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk: int, *args, **kwargs):
+        reply = get_object_or_404(
+            Reply.objects.select_related('topic'), pk=pk,
+        )
+        is_topic_author = reply.topic.author_id == request.user.id
+        if not (request.user.is_staff or is_topic_author):
+            return Response(
+                {
+                    'detail': "Seul l'auteur du sujet ou le staff peut marquer une solution.",
+                    'code': 'forbidden',
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Une seule solution acceptée par topic : on unset les autres avant
+        if not reply.is_solution:
+            Reply.objects.filter(topic_id=reply.topic_id, is_solution=True).update(
+                is_solution=False,
+            )
+        reply.is_solution = not reply.is_solution
+        reply.save(update_fields=['is_solution'])
+        # Audit log staff actions only (les owners c'est normal)
+        if request.user.is_staff and reply.is_solution:
+            from apps.admin_panel.audit import log_admin_action
+            from apps.admin_panel.models import AdminAuditLog
+            log_admin_action(
+                request,
+                AdminAuditLog.Action.REPLY_MARK_SOLUTION,
+                target=reply,
+            )
+        return Response({'is_solution': reply.is_solution})
+
+
 # ─── Upload images dans les posts du forum ───────────────────────────────
 # Upload direct multipart (vs presigned pour les modèles 3D) car les images
 # sont petites (~5MB max). Plus simple côté frontend = un seul POST.

@@ -4,7 +4,31 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from .models import AdminAuditLog, AdminDailySnapshot
+
 User = get_user_model()
+
+
+class AdminAuditLogSerializer(serializers.ModelSerializer):
+    """Sérialise un log d'action admin pour la page d'audit."""
+
+    action_label = serializers.CharField(source='get_action_display', read_only=True)
+
+    class Meta:
+        model = AdminAuditLog
+        fields = (
+            'id', 'actor', 'actor_email', 'action', 'action_label',
+            'target_type', 'target_id', 'target_repr',
+            'payload', 'ip_address', 'created_at',
+        )
+        read_only_fields = fields
+
+
+class AdminDailySnapshotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AdminDailySnapshot
+        fields = ('id', 'date', 'payload', 'created_at')
+        read_only_fields = fields
 
 
 class AdminUserSerializer(serializers.ModelSerializer):
