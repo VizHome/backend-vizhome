@@ -1,50 +1,50 @@
-# ─── Core Django ─────────────────────────────────────────────────────────────
+#  Core Django 
 Django>=5.2,<6.0
 djangorestframework>=3.16
 djangorestframework-simplejwt>=5.5
 
-# ─── Database ────────────────────────────────────────────────────────────────
+#  Database 
 psycopg[binary]>=3.2
 
-# ─── Configuration ───────────────────────────────────────────────────────────
+#  Configuration 
 django-environ>=0.12
 
-# ─── CORS ────────────────────────────────────────────────────────────────────
+#  CORS 
 django-cors-headers>=4.6
 
-# ─── Sécurité ────────────────────────────────────────────────────────────────
+#  Sécurité 
 django-axes>=7.0
 django-otp>=1.5
 qrcode[pil]>=8.0
 
-# ─── OAuth ───────────────────────────────────────────────────────────────────
+#  OAuth 
 google-auth>=2.36
 requests>=2.32
 
-# ─── Async tasks (étape 3) ───────────────────────────────────────────────────
+#  Async tasks (étape 3) 
 celery>=5.4
 redis>=5.2
 
-# ─── Provider IA Gemini ──────────────────────────────────────────────────────
+#  Provider IA Gemini 
 google-genai>=1.0
 Pillow>=11.0
 
-# ─── Storage S3-compatible (MinIO en dev/prod self-hosted) ───────────────────
+#  Storage S3-compatible (MinIO en dev/prod self-hosted) 
 django-storages[s3]>=1.14
 boto3>=1.35
 
-# ─── Stripe ──────────────────────────────────────────────────────────────────
+#  Stripe 
 dj-stripe>=2.9
 stripe>=11.0
 
-# ─── Documentation API ───────────────────────────────────────────────────────
+#  Documentation API 
 drf-spectacular>=0.28
 
-# ─── Tâches périodiques (Celery beat) ────────────────────────────────────────
+#  Tâches périodiques (Celery beat) 
 django-celery-beat>=2.7
 
-# ─── Monitoring / observabilité ──────────────────────────────────────────────
+#  Monitoring / observabilité 
 sentry-sdk[django]>=2.20
 
-# ─── Production WSGI server ──────────────────────────────────────────────────
+#  Production WSGI server 
 gunicorn>=23
