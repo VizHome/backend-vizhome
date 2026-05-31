@@ -1,0 +1,30 @@
+meta {
+  name: Get Topic
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/forum/topics/{{topicId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("has full content + author", function() {
+    expect(res.body).to.have.property("content");
+    expect(res.body.author).to.have.property("name");
+  });
+}
+
+docs {
+  Détail complet d'un topic (publique).
+
+  **Side effect** : chaque GET incrémente `views_count` atomiquement.
+  Pas d'idempotence — le frontend doit appeler une seule fois par visite
+  (debouncé côté Vue, ou via un flag local).
+}

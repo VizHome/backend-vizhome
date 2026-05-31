@@ -20,13 +20,14 @@ backend-vizhome/
 │   │   ├── urls.py               routing racine + API v1
 │   │   ├── wsgi.py / asgi.py
 │   │   └── celery.py             instance Celery + autodiscover
-│   └── apps/                     6 apps métier
+│   └── apps/                     7 apps métier
 │       ├── core/                 healthcheck, middleware partagé
 │       ├── accounts/             User custom + 2FA + OAuth + sessions
 │       ├── projects/             Project + Scene + ImportedModel + Annotation
 │       ├── renders/              Render + providers IA (Gemini)
 │       ├── gallery/              endpoints galerie (réutilise renders)
-│       └── billing/              dj-stripe + plans + webhook handlers
+│       ├── billing/              dj-stripe + plans + webhook handlers
+│       └── forum/                Category + Topic + Reply (forum communautaire)
 │
 ├── docker/
 │   ├── Dockerfile                multi-stage prod (~629 MB)
@@ -61,7 +62,8 @@ backend-vizhome/
     │   ├── Annotations/          CRUD annotations 3D
     │   └── Sharing/              liens publics
     ├── 05-Renders/               création (prompt + sketch) + polling + history
-    └── 06-Billing/               plans, subscription, invoices, payment-methods
+    ├── 06-Billing/               plans, subscription, invoices, payment-methods
+    └── 07-Forum/                 categories, topics, replies (11 req)
 ```
 
 ## Détail des apps
@@ -164,6 +166,37 @@ billing/
 
 Reposting les endpoints galerie (filtrage des renders `status=done`).
 Pas de modèles propres — réutilise `Render` de `apps.renders`.
+
+### `apps/forum/`
+
+```
+forum/
+├── apps.py                       ready() → load signals
+├── models.py                     Category, Topic, Reply
+├── signals.py                    update topics_count + replies_count + last_reply_at
+├── serializers.py                Category, Topic (List + Detail + Create), Reply
+├── views.py                      CRUD complet + GET public + permissions custom
+├── urls.py
+├── permissions.py                IsAuthorOrReadOnly, IsAuthorOrStaff
+├── admin.py
+├── management/commands/
+│   └── seed_forum_categories.py  seed des 5 cats par défaut
+├── migrations/
+└── tests/                        18 tests (categories + topics + replies + cascade)
+```
+
+**Endpoints** (sous `/api/v1/forum/`) :
+- `GET    /categories` — liste publique (pas paginé)
+- `GET    /categories/{slug}` — détail
+- `GET    /topics` — liste paginée (filtres `?category=`, `?search=`, `?ordering=`)
+- `POST   /topics` — créer (auth)
+- `GET    /topics/{id}` — détail + auto-incrémente views_count
+- `PATCH  /topics/{id}` — édit (auteur ou staff)
+- `DELETE /topics/{id}` — supprime (auteur ou staff)
+- `GET    /topics/{id}/replies` — liste paginée
+- `POST   /topics/{id}/replies` — créer (auth, refusé si topic locked)
+- `PATCH  /replies/{id}` — édit (auteur ou staff)
+- `DELETE /replies/{id}` — supprime (auteur ou staff)
 
 ## Migration vers production
 

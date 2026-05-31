@@ -1,0 +1,33 @@
+meta {
+  name: List Replies
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/forum/topics/{{topicId}}/replies
+  body: none
+  auth: none
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.body.results && res.body.results.length > 0) {
+    bru.setEnvVar("replyId", res.body.results[0].id);
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("paginated", function() {
+    expect(res.body).to.have.property("results");
+  });
+}
+
+docs {
+  Liste les réponses d'un topic (paginé, tri chronologique ASC).
+
+  Lecture publique. Auto-stocke `replyId` = première réponse.
+}
