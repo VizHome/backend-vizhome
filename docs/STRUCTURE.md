@@ -27,7 +27,8 @@ backend-vizhome/
 │       ├── renders/              Render + providers IA (Gemini)
 │       ├── gallery/              endpoints galerie (réutilise renders)
 │       ├── billing/              dj-stripe + plans + webhook handlers
-│       └── forum/                Category + Topic + Reply (forum communautaire)
+│       ├── forum/                Category + Topic + Reply (forum communautaire)
+│       └── support/              SupportTicket + SupportMessage (ticketing helpdesk)
 │
 ├── docker/
 │   ├── Dockerfile                multi-stage prod (~629 MB)
@@ -64,8 +65,10 @@ backend-vizhome/
     ├── 05-Renders/               création (prompt + sketch) + polling + history
     ├── 06-Billing/               plans, subscription, invoices, payment-methods
     ├── 07-Forum/                 categories, topics, replies, upload image, moderation (15 req)
-    └── 08-Admin/                 overview, users, renders, timeline, audit-log,
-                                  subscriptions, invoices, forum/topics, CSV exports (11 req)
+    ├── 08-Admin/                 overview, users, renders, timeline, audit-log,
+    │                             subscriptions, invoices, forum/topics, support/tickets,
+    │                             CSV exports (12 req)
+    └── 09-Support/               tickets CRUD + messages threading (4 req)
 ```
 
 ## Détail des apps
@@ -244,13 +247,19 @@ forum/
 ├── serializers.py                Category, Topic (List + Detail + Create), Reply
 ├── views.py                      CRUD complet + GET public + permissions custom
 ├── urls.py
-├── permissions.py                IsAuthorOrReadOnly, IsAuthorOrStaff, IsAuthorWithinTimeWindowOrStaff (édition 15 min)
+├── permissions.py                IsAuthorOrReadOnly, IsAuthorOrStaff,
+│                                 IsAuthorWithinTimeWindowOrStaff (édition 15 min),
+│                                 ★ IsNotForumBanned (bloque write si user.is_banned_from_forum)
 ├── admin.py
 ├── management/commands/
 │   └── seed_forum_categories.py  seed des 5 cats par défaut
 ├── migrations/
 └── tests/                        18 tests (categories + topics + replies + cascade)
 ```
+
+★ **Modération user-level** (Phase 4) : la flag `User.is_banned_from_forum`
+empêche la création de topics/réponses (lecture reste libre). Géré depuis
+`/admin/users` (action "Bannir du forum") avec audit log dédié.
 
 **Endpoints** (sous `/api/v1/forum/`) :
 - `GET    /categories` — liste publique (pas paginé)
@@ -264,6 +273,37 @@ forum/
 - `POST   /topics/{id}/replies` — créer (auth, refusé si topic locked)
 - `PATCH  /replies/{id}` — édit (auteur ou staff)
 - `DELETE /replies/{id}` — supprime (auteur ou staff)
+
+### `apps/support/`
+
+Système de tickets utilisateur ↔ staff (mini-helpdesk).
+
+```
+support/
+├── apps.py
+├── models.py                     SupportTicket (status/priority/category) + SupportMessage
+├── serializers.py                Ticket (List/Detail/Create) + Message (read/create) + UpdateStatus
+├── views.py                      TicketListCreateView, TicketDetailView,
+│                                 TicketMessageCreateView, AdminTicketListView
+├── urls.py                       3 endpoints user (+ 1 endpoint admin monté sur /admin/support/tickets)
+├── admin.py                      Inline messages dans Django admin
+└── migrations/
+```
+
+**Endpoints user** (sous `/api/v1/support/`) :
+- `GET    /tickets` — liste paginée de mes tickets (annotés `messages_count`, `last_message_at`, `last_message_from_staff`)
+- `POST   /tickets` — créer (subject + category + priority + body 1er message)
+- `GET    /tickets/{id}` — détail + messages threadés
+- `POST   /tickets/{id}/messages` — répondre
+
+**Endpoint admin** (sous `/api/v1/admin/`) :
+- `GET    /admin/support/tickets` — liste paginée tous tickets (filtres status/priority/category/assignee/search)
+- `PATCH  /support/tickets/{id}` — staff change status/priority/assignee
+
+**Transitions automatiques de status** :
+- 1ère réponse staff → ticket passe en `pending` + assignee staff
+- Reply user sur ticket `resolved` → repasse en `pending` (insatisfait)
+- Reply impossible si ticket `closed`
 
 ## Migration vers production
 

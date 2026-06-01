@@ -37,6 +37,31 @@ class IsAuthorOrStaff(BasePermission):
         return getattr(obj, 'author_id', None) == request.user.id
 
 
+class IsNotForumBanned(BasePermission):
+    """Bloque toute écriture forum si `user.is_banned_from_forum=True`.
+
+    Lecture (GET / HEAD / OPTIONS) reste autorisée — le ban ne masque pas
+    le forum, il empêche juste de poster. Le staff n'est jamais bloqué
+    (même si le flag est mis par erreur).
+    """
+
+    message = (
+        "Tu as été banni du forum par un modérateur — "
+        "tu peux toujours lire mais pas créer ni répondre."
+    )
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if request.method in SAFE_METHODS:
+            return True
+        user = request.user
+        if not user.is_authenticated:
+            # Les autres permissions gèrent l'auth — on n'intervient pas ici
+            return True
+        if user.is_staff:
+            return True
+        return not getattr(user, 'is_banned_from_forum', False)
+
+
 class IsAuthorWithinTimeWindowOrStaff(BasePermission):
     """Édition limitée dans le temps pour l'auteur, illimitée pour le staff.
 

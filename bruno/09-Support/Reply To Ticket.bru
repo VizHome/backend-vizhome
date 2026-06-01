@@ -1,0 +1,51 @@
+meta {
+  name: Reply To Ticket
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/support/tickets/{{ticketId}}/messages
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "body": "Merci pour ta réponse. Je viens de relancer et ça marche !"
+  }
+}
+
+tests {
+  test("returns 201 (or 403 if ticket closed)", function() {
+    expect([201, 403]).to.include(res.getStatus());
+  });
+
+  test("message created with from_staff snapshot", function() {
+    if (res.getStatus() === 201) {
+      expect(res.body).to.have.property("id");
+      expect(res.body).to.have.property("body");
+      expect(res.body).to.have.property("from_staff");
+      expect(res.body).to.have.property("author");
+    }
+  });
+}
+
+docs {
+  POST /api/v1/support/tickets/{id}/messages — répond au ticket.
+
+  Validations body : 2-10 000 caractères.
+
+  **Transitions automatiques de status** :
+  - Reply staff sur ticket `open` → status passe à `pending` + assignee = staff
+  - Reply user sur ticket `resolved` → repasse en `pending` (insatisfait)
+  - Reply impossible si status = `closed` (403 + `code: 'ticket_closed'`)
+
+  `from_staff` est snapshotté au moment du message — si le staff perd son
+  rôle plus tard, l'historique reste cohérent (le message reste marqué
+  "staff").
+}

@@ -1,0 +1,48 @@
+meta {
+  name: Update Ticket Status (staff)
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}{{apiPrefix}}/support/tickets/{{ticketId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "status": "resolved",
+    "priority": "medium"
+  }
+}
+
+tests {
+  test("returns 200 (or 403 if not staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+
+  test("status persisted", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body.status).to.equal("resolved");
+    }
+  });
+}
+
+docs {
+  PATCH /api/v1/support/tickets/{id} — staff modifie status, priority,
+  assignee. Réservé `IsAdminUser`.
+
+  Champs modifiables :
+  - `status` : open | pending | resolved | closed
+  - `priority` : low | medium | high | urgent
+  - `assignee` : ID user staff qui prend en charge (null = unassign)
+
+  Side effects :
+  - Passage à `closed` → set `closed_at = now()` côté serveur si pas déjà set.
+  - Un user reply après `resolved` (voir Reply To Ticket) repasse en `pending`.
+}

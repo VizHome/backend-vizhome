@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Category, ForumUpload, Reply, Topic
-from .permissions import IsAuthorOrStaff, IsAuthorWithinTimeWindowOrStaff
+from .permissions import IsAuthorOrStaff, IsAuthorWithinTimeWindowOrStaff, IsNotForumBanned
 from .serializers import (
     CategorySerializer,
     ReplyCreateSerializer,
@@ -64,7 +64,7 @@ class TopicListCreateView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [IsAuthenticated()]
+            return [IsAuthenticated(), IsNotForumBanned()]
         return [AllowAny()]
 
     def get_authenticators(self):
@@ -162,7 +162,7 @@ class ReplyListCreateView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [IsAuthenticated()]
+            return [IsAuthenticated(), IsNotForumBanned()]
         return [AllowAny()]
 
     def get_authenticators(self):

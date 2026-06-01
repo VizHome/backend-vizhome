@@ -2,10 +2,21 @@
 from __future__ import annotations
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
 
 from .managers import UserManager
+
+
+# Validator pour le pseudo : 3-30 chars, alphanum + _ -, doit commencer par une lettre
+PSEUDO_VALIDATOR = RegexValidator(
+    regex=r'^[a-zA-Z][a-zA-Z0-9_-]{2,29}$',
+    message=(
+        'Le pseudo doit faire 3 à 30 caractères, commencer par une lettre, '
+        'et ne contenir que des lettres, chiffres, tirets ou underscores.'
+    ),
+)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -17,6 +28,15 @@ class User(AbstractBaseUser, PermissionsMixin):
         ENTERPRISE = 'enterprise', 'Entreprise'
 
     email = models.EmailField(unique=True, db_index=True)
+    # Pseudo public, unique et immuable (modifiable seulement par staff).
+    # Utilisé partout où le user est exposé publiquement (forum, support, etc.).
+    pseudo = models.CharField(
+        max_length=30,
+        unique=True,
+        db_index=True,
+        validators=[PSEUDO_VALIDATOR],
+        help_text='Pseudo public unique, modifiable seulement par staff.',
+    )
     first_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100, blank=True)
     avatar_url = models.URLField(max_length=500, blank=True)
@@ -24,13 +44,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    # Banni de la création de topics/réponses forum (le compte reste actif).
+    is_banned_from_forum = models.BooleanField(default=False)
 
     date_joined = models.DateTimeField(default=timezone.now)
 
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []  # email + password déjà requis
+    REQUIRED_FIELDS = ['pseudo']  # email + password déjà requis ; pseudo requis aussi
 
     class Meta:
         db_table = 'accounts_user'
@@ -43,9 +65,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def name(self) -> str:
-        """Nom complet, ou la partie avant @ si vide."""
+        """Nom d'affichage public : pseudo en priorité, fallback email."""
+        return self.pseudo or self.email.split('@')[0]
+
+    @property
+    def full_name(self) -> str:
+        """Prénom + nom (privé, utilisé dans Settings / facturation)."""
         full = f'{self.first_name} {self.last_name}'.strip()
-        return full or self.email.split('@')[0]
+        return full or self.pseudo or self.email.split('@')[0]
 
 
 class UserPreferences(models.Model):

@@ -35,7 +35,11 @@ class UserPreferencesSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Serializer principal pour /me — inclut stats + preferences en nested."""
+    """Serializer principal pour /me — inclut stats + preferences en nested.
+
+    `pseudo` est read-only ici : modifiable uniquement par staff via
+    /admin/users/{id} (cf. apps.admin_panel.serializers.AdminUserUpdateSerializer).
+    """
 
     name = serializers.CharField(read_only=True)
     stats = UserStatsSerializer(read_only=True)
@@ -46,32 +50,45 @@ class UserSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'email',
+            'pseudo',
             'first_name',
             'last_name',
             'name',
             'avatar_url',
             'plan',
             'is_staff',
+            'is_banned_from_forum',
             'date_joined',
             'stats',
             'preferences',
         )
-        read_only_fields = ('id', 'email', 'plan', 'is_staff', 'date_joined')
+        read_only_fields = (
+            'id', 'email', 'pseudo', 'plan', 'is_staff',
+            'is_banned_from_forum', 'date_joined',
+        )
 
 
 # ─── Register / Login ─────────────────────────────────────────────────────────
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True, required=True)
+    pseudo = serializers.CharField(required=True, min_length=3, max_length=30)
 
     class Meta:
         model = User
-        fields = ('email', 'first_name', 'last_name', 'password', 'password_confirm')
+        fields = ('email', 'pseudo', 'first_name', 'last_name', 'password', 'password_confirm')
 
     def validate_email(self, value: str) -> str:
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError('Un compte avec cet email existe déjà.')
         return value.lower()
+
+    def validate_pseudo(self, value: str) -> str:
+        # Le validator regex du modèle est appliqué automatiquement par
+        # full_clean → ici on ajoute juste l'unicité case-insensitive.
+        if User.objects.filter(pseudo__iexact=value).exists():
+            raise serializers.ValidationError('Ce pseudo est déjà pris.')
+        return value
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if attrs['password'] != attrs['password_confirm']:

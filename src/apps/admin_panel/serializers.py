@@ -47,19 +47,33 @@ class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'first_name', 'last_name', 'plan',
-            'is_active', 'is_staff', 'date_joined', 'last_login',
+            'id', 'email', 'pseudo', 'first_name', 'last_name', 'plan',
+            'is_active', 'is_staff', 'is_banned_from_forum',
+            'date_joined', 'last_login',
             'storage_used_bytes', 'renders_this_month', 'total_projects',
         )
         read_only_fields = ('id', 'email', 'date_joined', 'last_login')
 
 
 class AdminUserUpdateSerializer(serializers.ModelSerializer):
-    """PATCH limité : modération (ban/unban, promouvoir staff)."""
+    """PATCH limité : modération (ban/unban, promouvoir staff, ban forum, pseudo).
+
+    Le pseudo est modifiable uniquement par le staff (les users normaux
+    ne peuvent pas changer leur pseudo via /me).
+    """
 
     class Meta:
         model = User
-        fields = ('is_active', 'is_staff')
+        fields = ('is_active', 'is_staff', 'is_banned_from_forum', 'pseudo')
+
+    def validate_pseudo(self, value: str) -> str:
+        instance = self.instance
+        qs = User.objects.filter(pseudo__iexact=value)
+        if instance:
+            qs = qs.exclude(pk=instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError('Ce pseudo est déjà pris.')
+        return value
 
 
 class AdminRenderSerializer(serializers.ModelSerializer):

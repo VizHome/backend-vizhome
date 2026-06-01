@@ -5,11 +5,19 @@ Workflow quotidien pour développer sur le backend Django.
 ## Démarrer la stack
 
 ```bash
-docker compose up -d              # postgres + redis + minio + api + celery
+docker compose up -d              # postgres + redis + minio + pgweb + api + celery
 docker compose logs -f api        # logs Django en live
 docker compose logs -f celery     # logs worker en live
 docker compose ps                 # statut des services
 ```
+
+**Services exposés en dev** :
+- `http://localhost:8000` — API Django
+- `http://localhost:8000/admin/` — Django admin (back-office classique)
+- `http://localhost:8081` — **pgweb** : UI moderne pour browse/query Postgres
+  (auto-connecté via `PGWEB_DATABASE_URL`, aucune auth — local-only)
+- `http://localhost:9000` / `9001` — MinIO API / Console
+- `http://localhost:8025` — Mailpit (mails sortants en dev)
 
 ## Commandes Django via Docker
 

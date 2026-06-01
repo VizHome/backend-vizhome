@@ -58,6 +58,7 @@ LOCAL_APPS = [
     'apps.gallery',
     'apps.billing',
     'apps.forum',
+    'apps.support',
     'apps.admin_panel',
 ]
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from django.urls import path
 
+from apps.support.views import AdminTicketListView
+
 from . import views
 
 urlpatterns = [
@@ -21,4 +23,6 @@ urlpatterns = [
     path('invoices', views.AdminInvoicesView.as_view(), name='admin-invoices'),
     # Forum admin : liste paginée de tous les topics (modération bulk)
     path('forum/topics', views.AdminForumTopicsView.as_view(), name='admin-forum-topics'),
+    # Support admin : liste paginée de tous les tickets (modération staff)
+    path('support/tickets', AdminTicketListView.as_view(), name='admin-support-tickets'),
 ]

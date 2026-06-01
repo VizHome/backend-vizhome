@@ -1,0 +1,57 @@
+meta {
+  name: List Tickets
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/support/tickets?page=1&page_size=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  page_size: 20
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 401 if not auth)", function() {
+    expect([200, 401]).to.include(res.getStatus());
+  });
+
+  test("if 200 → paginated shape", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("count");
+      expect(res.body).to.have.property("results");
+      expect(res.body.results).to.be.an("array");
+    }
+  });
+
+  test("each ticket has computed fields", function() {
+    if (res.getStatus() === 200 && res.body.results.length > 0) {
+      const t = res.body.results[0];
+      expect(t).to.have.property("id");
+      expect(t).to.have.property("subject");
+      expect(t).to.have.property("status");
+      expect(t).to.have.property("priority");
+      expect(t).to.have.property("messages_count");
+    }
+  });
+}
+
+docs {
+  GET /api/v1/support/tickets — liste paginée des tickets du user connecté.
+
+  Annotations server-side (pas de N+1) :
+  - `messages_count` : nombre total de messages dans le ticket
+  - `last_message_at` : timestamp du dernier message (utile pour tri "récents")
+  - `last_message_from_staff` : true si la dernière réponse vient du staff
+    (sert au badge "Nouvelle réponse staff" côté UI)
+
+  Pagination DRF standard `{count, next, previous, results[]}`.
+}

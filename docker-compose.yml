@@ -29,6 +29,22 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # pgweb — UI web légère pour browse/query la DB Postgres en dev.
+  # Accessible sur http://localhost:8081 (sessions auto-connectées via env vars).
+  # Aucune auth → exposé uniquement en local, jamais en prod.
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: vizhome-pgweb
+    environment:
+      PGWEB_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      PGWEB_SESSIONS: "1"
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
   minio:
     image: minio/minio:latest
     container_name: vizhome-minio

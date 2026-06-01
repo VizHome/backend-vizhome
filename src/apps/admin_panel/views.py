@@ -326,12 +326,16 @@ class AdminUserDetailView(generics.RetrieveUpdateAPIView):
         before = {
             'is_active': instance.is_active,
             'is_staff': instance.is_staff,
+            'is_banned_from_forum': instance.is_banned_from_forum,
+            'pseudo': instance.pseudo,
         }
         response = super().update(request, *args, **kwargs)
         instance.refresh_from_db()
         after = {
             'is_active': instance.is_active,
             'is_staff': instance.is_staff,
+            'is_banned_from_forum': instance.is_banned_from_forum,
+            'pseudo': instance.pseudo,
         }
 
         # Log uniquement les changements effectifs (pas une PATCH no-op)
@@ -350,6 +354,21 @@ class AdminUserDetailView(generics.RetrieveUpdateAPIView):
                 else AdminAuditLog.Action.USER_DEMOTE_STAFF,
                 target=instance,
                 payload={'before': before, 'after': after},
+            )
+        if before['is_banned_from_forum'] != after['is_banned_from_forum']:
+            log_admin_action(
+                request,
+                AdminAuditLog.Action.USER_BAN_FORUM if after['is_banned_from_forum']
+                else AdminAuditLog.Action.USER_UNBAN_FORUM,
+                target=instance,
+                payload={'before': before, 'after': after},
+            )
+        if before['pseudo'] != after['pseudo']:
+            log_admin_action(
+                request,
+                AdminAuditLog.Action.USER_PSEUDO_CHANGE,
+                target=instance,
+                payload={'before': before['pseudo'], 'after': after['pseudo']},
             )
         return response
 
