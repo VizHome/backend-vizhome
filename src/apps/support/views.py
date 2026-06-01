@@ -119,18 +119,12 @@ class TicketDetailView(generics.RetrieveUpdateAPIView):
             return qs
         return qs.filter(user=self.request.user)
 
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        # Si staff résout/ferme : enregistre closed_at + assigne automatiquement
-        new_status = request.data.get('status')
-        if new_status == SupportTicket.Status.CLOSED and not instance.closed_at:
-            request.data._mutable = True if hasattr(request.data, '_mutable') else None
-        response = super().update(request, *args, **kwargs)
-        instance.refresh_from_db()
+    def perform_update(self, serializer):
+        """Hook DRF : après save, set closed_at quand le ticket passe à closed."""
+        instance = serializer.save()
         if instance.status == SupportTicket.Status.CLOSED and not instance.closed_at:
             instance.closed_at = timezone.now()
             instance.save(update_fields=['closed_at'])
-        return response
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -187,6 +181,16 @@ class TicketMessageCreateView(APIView):
                 updated_fields.append('status')
         if updated_fields:
             ticket.save(update_fields=updated_fields + ['updated_at'])
+
+        # Notifie l'autre partie (fail_silently à l'intérieur).
+        from .notifications import (
+            notify_staff_user_replied,
+            notify_user_staff_replied,
+        )
+        if request.user.is_staff:
+            notify_user_staff_replied(msg)
+        else:
+            notify_staff_user_replied(msg)
 
         return Response(
             SupportMessageSerializer(msg).data,

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import pytest
+from django.core import mail
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
@@ -265,6 +266,71 @@ def test_admin_filter_by_status(
 
     res_open = staff_client.get('/api/v1/admin/support/tickets?status=open')
     assert res_open.data['count'] == 0
+
+
+# ─── Notifications email ───────────────────────────────────────────────────
+@pytest.mark.django_db
+def test_create_ticket_notifies_staff(
+    auth_client: APIClient, staff_user: User,
+):
+    """Création d'un ticket → mail aux staffs actifs."""
+    mail.outbox.clear()
+    res = auth_client.post('/api/v1/support/tickets', {
+        'subject': 'Bug critique', 'category': 'technical',
+        'priority': 'urgent', 'body': 'Le service est down.',
+    }, format='json')
+    assert res.status_code == 201
+    assert len(mail.outbox) == 1
+    sent = mail.outbox[0]
+    assert staff_user.email in sent.to
+    assert 'Bug critique' in sent.subject
+    assert '@alice' in sent.body  # pseudo du créateur
+
+
+@pytest.mark.django_db
+def test_staff_reply_notifies_user(
+    staff_client: APIClient, user: User, ticket: SupportTicket,
+):
+    """Reply staff → email à l'auteur du ticket."""
+    mail.outbox.clear()
+    res = staff_client.post(f'/api/v1/support/tickets/{ticket.pk}/messages', {
+        'body': 'On regarde ça maintenant.',
+    }, format='json')
+    assert res.status_code == 201
+    assert len(mail.outbox) == 1
+    assert user.email in mail.outbox[0].to
+    assert 'Nouvelle réponse' in mail.outbox[0].subject
+
+
+@pytest.mark.django_db
+def test_user_reply_without_assignee_no_email(
+    auth_client: APIClient, ticket: SupportTicket,
+):
+    """User répond mais pas d'assignee staff → aucun email envoyé."""
+    assert ticket.assignee is None
+    mail.outbox.clear()
+    res = auth_client.post(f'/api/v1/support/tickets/{ticket.pk}/messages', {
+        'body': 'Complément.',
+    }, format='json')
+    assert res.status_code == 201
+    assert len(mail.outbox) == 0
+
+
+@pytest.mark.django_db
+def test_user_reply_notifies_assignee_only(
+    auth_client: APIClient, ticket: SupportTicket, staff_user: User,
+):
+    """User répond sur ticket assigné → seul l'assignee reçoit le mail (pas tous les staffs)."""
+    ticket.assignee = staff_user
+    ticket.save()
+    mail.outbox.clear()
+
+    res = auth_client.post(f'/api/v1/support/tickets/{ticket.pk}/messages', {
+        'body': 'Complément d\'info.',
+    }, format='json')
+    assert res.status_code == 201
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == [staff_user.email]
 
 
 # ─── Pseudo affichage (régression) ─────────────────────────────────────────

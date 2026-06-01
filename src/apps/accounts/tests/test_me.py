@@ -20,7 +20,11 @@ class TestMe:
         response = auth_client.get('/api/v1/me/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['email'] == user.email
-        assert response.data['name'] == 'Jean Dupont'
+        # `name` est désormais le pseudo public (immuable), pas first_name+last_name
+        assert response.data['name'] == user.pseudo
+        assert response.data['pseudo'] == user.pseudo
+        assert response.data['first_name'] == 'Jean'
+        assert response.data['last_name'] == 'Dupont'
         assert 'stats' in response.data
         assert 'preferences' in response.data
         assert response.data['stats']['renders_limit'] == 5  # plan free

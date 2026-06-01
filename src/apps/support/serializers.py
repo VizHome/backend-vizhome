@@ -98,6 +98,10 @@ class SupportTicketCreateSerializer(serializers.ModelSerializer):
             from_staff=False,
             body=body,
         )
+        # Notifie l'équipe support (mail aux staff actifs).
+        # fail_silently=True à l'intérieur → un SMTP down ne bloque pas la création.
+        from .notifications import notify_staff_new_ticket
+        notify_staff_new_ticket(ticket)
         return ticket
 
 

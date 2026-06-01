@@ -15,7 +15,9 @@ docker compose ps                 # statut des services
 - `http://localhost:8000` — API Django
 - `http://localhost:8000/admin/` — Django admin (back-office classique)
 - `http://localhost:8081` — **pgweb** : UI moderne pour browse/query Postgres
-  (auto-connecté via `PGWEB_DATABASE_URL`, aucune auth — local-only)
+  (auto-connecté via `PGWEB_DATABASE_URL`, aucune auth — local-only).
+  Si pull en échec (`EOF` sur cloudfront), retry plus tard ou switche vers
+  `adminer` (bloc commenté dans `docker-compose.yml`, port 8082).
 - `http://localhost:9000` / `9001` — MinIO API / Console
 - `http://localhost:8025` — Mailpit (mails sortants en dev)
 

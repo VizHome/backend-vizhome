@@ -287,7 +287,10 @@ support/
 │                                 TicketMessageCreateView, AdminTicketListView
 ├── urls.py                       3 endpoints user (+ 1 endpoint admin monté sur /admin/support/tickets)
 ├── admin.py                      Inline messages dans Django admin
-└── migrations/
+├── notifications.py              notify_staff_new_ticket / notify_user_staff_replied /
+│                                 notify_staff_user_replied (send_mail + fail_silently)
+├── migrations/
+└── tests/                        26 tests (CRUD + perms + transitions + emails + pseudo)
 ```
 
 **Endpoints user** (sous `/api/v1/support/`) :
@@ -304,6 +307,13 @@ support/
 - 1ère réponse staff → ticket passe en `pending` + assignee staff
 - Reply user sur ticket `resolved` → repasse en `pending` (insatisfait)
 - Reply impossible si ticket `closed`
+
+**Notifications email** (envoyées via Mailpit en dev, SMTP réel en prod,
+`fail_silently=True` pour ne jamais bloquer l'UX) :
+- Création ticket → mail à TOUS les staffs actifs (file d'attente partagée)
+- Reply staff → mail à l'auteur du ticket
+- Reply user sur ticket assigné → mail à l'assignee uniquement (pas à tous
+  les staffs pour éviter le spam)
 
 ## Migration vers production
 

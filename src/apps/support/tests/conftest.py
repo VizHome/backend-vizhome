@@ -36,21 +36,26 @@ def staff_user(db) -> User:
 
 
 @pytest.fixture
-def auth_client(api_client: APIClient, user: User) -> APIClient:
-    api_client.force_authenticate(user=user)
-    return api_client
+def auth_client(user: User) -> APIClient:
+    # APIClient dédié par fixture pour éviter que `force_authenticate` se chevauchent
+    # quand plusieurs clients sont demandés dans un même test (alice ↔ bob ↔ staff).
+    c = APIClient()
+    c.force_authenticate(user=user)
+    return c
 
 
 @pytest.fixture
-def other_client(api_client: APIClient, other_user: User) -> APIClient:
-    api_client.force_authenticate(user=other_user)
-    return api_client
+def other_client(other_user: User) -> APIClient:
+    c = APIClient()
+    c.force_authenticate(user=other_user)
+    return c
 
 
 @pytest.fixture
-def staff_client(api_client: APIClient, staff_user: User) -> APIClient:
-    api_client.force_authenticate(user=staff_user)
-    return api_client
+def staff_client(staff_user: User) -> APIClient:
+    c = APIClient()
+    c.force_authenticate(user=staff_user)
+    return c
 
 
 @pytest.fixture

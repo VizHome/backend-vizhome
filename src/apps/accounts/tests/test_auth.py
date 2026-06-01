@@ -16,6 +16,7 @@ class TestRegister:
     def test_register_creates_user_with_prefs_and_stats(self, api_client: APIClient):
         payload = {
             'email': 'new@example.fr',
+            'pseudo': 'newuser',
             'first_name': 'New',
             'last_name': 'User',
             'password': 'Test1234!',
@@ -27,10 +28,39 @@ class TestRegister:
         assert 'access' in response.data
         assert 'refresh' in response.data
         assert response.data['user']['email'] == 'new@example.fr'
+        assert response.data['user']['pseudo'] == 'newuser'
 
         user = User.objects.get(email='new@example.fr')
+        assert user.pseudo == 'newuser'
         assert UserPreferences.objects.filter(user=user).exists()
         assert UserStats.objects.filter(user=user).exists()
+
+    def test_register_rejects_missing_pseudo(self, api_client: APIClient):
+        response = api_client.post(self.url, {
+            'email': 'np@example.fr',
+            'first_name': 'A', 'last_name': 'B',
+            'password': 'Test1234!', 'password_confirm': 'Test1234!',
+        }, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'pseudo' in response.data
+
+    def test_register_rejects_duplicate_pseudo(self, api_client: APIClient, user: User):
+        response = api_client.post(self.url, {
+            'email': 'unique@example.fr',
+            'pseudo': user.pseudo,  # déjà pris
+            'password': 'Test1234!', 'password_confirm': 'Test1234!',
+        }, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'pseudo' in response.data
+
+    def test_register_rejects_invalid_pseudo_format(self, api_client: APIClient):
+        # Pseudo qui ne commence pas par une lettre → rejet
+        response = api_client.post(self.url, {
+            'email': 'xx@example.fr',
+            'pseudo': '123abc',
+            'password': 'Test1234!', 'password_confirm': 'Test1234!',
+        }, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_register_rejects_password_mismatch(self, api_client: APIClient):
         response = api_client.post(self.url, {

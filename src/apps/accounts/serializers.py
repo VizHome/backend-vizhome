@@ -10,7 +10,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import User, UserPreferences, UserSession, UserStats
+from .models import PSEUDO_VALIDATOR, User, UserPreferences, UserSession, UserStats
 
 
 # ─── User ─────────────────────────────────────────────────────────────────────
@@ -72,7 +72,15 @@ class UserSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True, required=True)
-    pseudo = serializers.CharField(required=True, min_length=3, max_length=30)
+    # Le validator regex doit être réappliqué explicitement : déclarer
+    # `pseudo = CharField()` override le mapping ModelSerializer → on perd
+    # les validators du modèle si on ne les réinjecte pas.
+    pseudo = serializers.CharField(
+        required=True,
+        min_length=3,
+        max_length=30,
+        validators=[PSEUDO_VALIDATOR],
+    )
 
     class Meta:
         model = User
