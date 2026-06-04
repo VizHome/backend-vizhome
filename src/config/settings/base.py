@@ -133,6 +133,9 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='no-reply@vizhome.fr')
 
 # ─── OAuth providers ──────────────────────────────────────────────────────────
 GOOGLE_OAUTH_CLIENT_ID = env('GOOGLE_OAUTH_CLIENT_ID', default='')
+# Requis pour le flow `authorization code` (redirect-based) ; pas requis
+# pour le flow legacy `id_token` (Google One Tap / SDK JS).
+GOOGLE_OAUTH_CLIENT_SECRET = env('GOOGLE_OAUTH_CLIENT_SECRET', default='')
 GITHUB_OAUTH_CLIENT_ID = env('GITHUB_OAUTH_CLIENT_ID', default='')
 GITHUB_OAUTH_CLIENT_SECRET = env('GITHUB_OAUTH_CLIENT_SECRET', default='')
 
