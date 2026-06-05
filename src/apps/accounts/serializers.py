@@ -1,4 +1,5 @@
 """Serializers DRF pour accounts."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -18,12 +19,12 @@ class UserStatsSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserStats
         fields = (
-            'renders_this_month',
-            'renders_limit',
-            'total_projects',
-            'storage_used_bytes',
-            'storage_limit_bytes',
-            'period_started_at',
+            "renders_this_month",
+            "renders_limit",
+            "total_projects",
+            "storage_used_bytes",
+            "storage_limit_bytes",
+            "period_started_at",
         )
         read_only_fields = fields
 
@@ -31,7 +32,7 @@ class UserStatsSerializer(serializers.ModelSerializer):
 class UserPreferencesSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserPreferences
-        exclude = ('id', 'user', 'updated_at')
+        exclude = ("id", "user", "updated_at")
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -48,23 +49,28 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id',
-            'email',
-            'pseudo',
-            'first_name',
-            'last_name',
-            'name',
-            'avatar_url',
-            'plan',
-            'is_staff',
-            'is_banned_from_forum',
-            'date_joined',
-            'stats',
-            'preferences',
+            "id",
+            "email",
+            "pseudo",
+            "first_name",
+            "last_name",
+            "name",
+            "avatar_url",
+            "plan",
+            "is_staff",
+            "is_banned_from_forum",
+            "date_joined",
+            "stats",
+            "preferences",
         )
         read_only_fields = (
-            'id', 'email', 'pseudo', 'plan', 'is_staff',
-            'is_banned_from_forum', 'date_joined',
+            "id",
+            "email",
+            "pseudo",
+            "plan",
+            "is_staff",
+            "is_banned_from_forum",
+            "date_joined",
         )
 
 
@@ -84,29 +90,38 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('email', 'pseudo', 'first_name', 'last_name', 'password', 'password_confirm')
+        fields = (
+            "email",
+            "pseudo",
+            "first_name",
+            "last_name",
+            "password",
+            "password_confirm",
+        )
 
     def validate_email(self, value: str) -> str:
         if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError('Un compte avec cet email existe déjà.')
+            raise serializers.ValidationError("Un compte avec cet email existe déjà.")
         return value.lower()
 
     def validate_pseudo(self, value: str) -> str:
         # Le validator regex du modèle est appliqué automatiquement par
         # full_clean → ici on ajoute juste l'unicité case-insensitive.
         if User.objects.filter(pseudo__iexact=value).exists():
-            raise serializers.ValidationError('Ce pseudo est déjà pris.')
+            raise serializers.ValidationError("Ce pseudo est déjà pris.")
         return value
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError({'password_confirm': 'Les mots de passe ne correspondent pas.'})
-        password_validation.validate_password(attrs['password'])
+        if attrs["password"] != attrs["password_confirm"]:
+            raise serializers.ValidationError(
+                {"password_confirm": "Les mots de passe ne correspondent pas."}
+            )
+        password_validation.validate_password(attrs["password"])
         return attrs
 
     def create(self, validated_data: dict[str, Any]) -> User:
-        validated_data.pop('password_confirm')
-        password = validated_data.pop('password')
+        validated_data.pop("password_confirm")
+        password = validated_data.pop("password")
         return User.objects.create_user(password=password, **validated_data)
 
 
@@ -116,15 +131,15 @@ class LoginSerializer(serializers.Serializer):
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         user = authenticate(
-            request=self.context.get('request'),
-            username=attrs['email'].lower(),
-            password=attrs['password'],
+            request=self.context.get("request"),
+            username=attrs["email"].lower(),
+            password=attrs["password"],
         )
         if not user:
-            raise serializers.ValidationError('Email ou mot de passe incorrect.')
+            raise serializers.ValidationError("Email ou mot de passe incorrect.")
         if not user.is_active:
-            raise serializers.ValidationError('Ce compte est désactivé.')
-        attrs['user'] = user
+            raise serializers.ValidationError("Ce compte est désactivé.")
+        attrs["user"] = user
         return attrs
 
 
@@ -140,20 +155,22 @@ class ResetPasswordSerializer(serializers.Serializer):
     password_confirm = serializers.CharField(write_only=True)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError({'password_confirm': 'Les mots de passe ne correspondent pas.'})
+        if attrs["password"] != attrs["password_confirm"]:
+            raise serializers.ValidationError(
+                {"password_confirm": "Les mots de passe ne correspondent pas."}
+            )
 
         try:
-            uid = force_str(urlsafe_base64_decode(attrs['uid']))
+            uid = force_str(urlsafe_base64_decode(attrs["uid"]))
             user = User.objects.get(pk=uid)
         except (User.DoesNotExist, ValueError, TypeError):
-            raise serializers.ValidationError({'uid': 'Lien invalide.'})
+            raise serializers.ValidationError({"uid": "Lien invalide."})
 
-        if not default_token_generator.check_token(user, attrs['token']):
-            raise serializers.ValidationError({'token': 'Token invalide ou expiré.'})
+        if not default_token_generator.check_token(user, attrs["token"]):
+            raise serializers.ValidationError({"token": "Token invalide ou expiré."})
 
-        password_validation.validate_password(attrs['password'], user=user)
-        attrs['user'] = user
+        password_validation.validate_password(attrs["password"], user=user)
+        attrs["user"] = user
         return attrs
 
 
@@ -163,16 +180,18 @@ class ChangePasswordSerializer(serializers.Serializer):
     new_password_confirm = serializers.CharField(write_only=True)
 
     def validate_current_password(self, value: str) -> str:
-        user = self.context['request'].user
+        user = self.context["request"].user
         if not user.check_password(value):
-            raise serializers.ValidationError('Mot de passe actuel incorrect.')
+            raise serializers.ValidationError("Mot de passe actuel incorrect.")
         return value
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        if attrs['new_password'] != attrs['new_password_confirm']:
-            raise serializers.ValidationError({'new_password_confirm': 'Les mots de passe ne correspondent pas.'})
+        if attrs["new_password"] != attrs["new_password_confirm"]:
+            raise serializers.ValidationError(
+                {"new_password_confirm": "Les mots de passe ne correspondent pas."}
+            )
         password_validation.validate_password(
-            attrs['new_password'], user=self.context['request'].user
+            attrs["new_password"], user=self.context["request"].user
         )
         return attrs
 
@@ -185,20 +204,20 @@ class UserSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserSession
         fields = (
-            'id',
-            'device_name',
-            'user_agent',
-            'ip_address',
-            'location',
-            'created_at',
-            'last_active',
-            'is_active',
-            'is_current',
+            "id",
+            "device_name",
+            "user_agent",
+            "ip_address",
+            "location",
+            "created_at",
+            "last_active",
+            "is_active",
+            "is_current",
         )
         read_only_fields = fields
 
     def get_is_current(self, obj: UserSession) -> bool:
-        current_id = self.context.get('current_session_id')
+        current_id = self.context.get("current_session_id")
         return current_id is not None and obj.pk == current_id
 
 
@@ -211,12 +230,12 @@ def build_token_pair(user: User, session: UserSession) -> dict[str, str]:
     middleware pour identifier la session courante lors des requêtes).
     """
     refresh = RefreshToken.for_user(user)
-    refresh['session_id'] = session.pk
+    refresh["session_id"] = session.pk
     access = refresh.access_token
-    access['session_id'] = session.pk
+    access["session_id"] = session.pk
     return {
-        'access': str(access),
-        'refresh': str(refresh),
+        "access": str(access),
+        "refresh": str(refresh),
     }
 
 

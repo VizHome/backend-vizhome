@@ -15,73 +15,132 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Category',
+            name="Category",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('slug', models.SlugField(max_length=80, unique=True)),
-                ('name', models.CharField(max_length=100)),
-                ('description', models.TextField(blank=True)),
-                ('icon', models.CharField(blank=True, max_length=50)),
-                ('color', models.CharField(blank=True, max_length=20)),
-                ('order', models.PositiveIntegerField(default=0)),
-                ('is_admin_only', models.BooleanField(default=False)),
-                ('topics_count', models.PositiveIntegerField(default=0)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("slug", models.SlugField(max_length=80, unique=True)),
+                ("name", models.CharField(max_length=100)),
+                ("description", models.TextField(blank=True)),
+                ("icon", models.CharField(blank=True, max_length=50)),
+                ("color", models.CharField(blank=True, max_length=20)),
+                ("order", models.PositiveIntegerField(default=0)),
+                ("is_admin_only", models.BooleanField(default=False)),
+                ("topics_count", models.PositiveIntegerField(default=0)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
             options={
-                'verbose_name_plural': 'Categories',
-                'db_table': 'forum_category',
-                'ordering': ['order', 'name'],
+                "verbose_name_plural": "Categories",
+                "db_table": "forum_category",
+                "ordering": ["order", "name"],
             },
         ),
         migrations.CreateModel(
-            name='Topic',
+            name="Topic",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=200)),
-                ('slug', models.SlugField(blank=True, max_length=220)),
-                ('content', models.TextField()),
-                ('is_pinned', models.BooleanField(default=False)),
-                ('is_locked', models.BooleanField(default=False)),
-                ('views_count', models.PositiveIntegerField(default=0)),
-                ('replies_count', models.PositiveIntegerField(default=0)),
-                ('last_reply_at', models.DateTimeField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('author', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='topics', to=settings.AUTH_USER_MODEL)),
-                ('category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='topics', to='forum.category')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=200)),
+                ("slug", models.SlugField(blank=True, max_length=220)),
+                ("content", models.TextField()),
+                ("is_pinned", models.BooleanField(default=False)),
+                ("is_locked", models.BooleanField(default=False)),
+                ("views_count", models.PositiveIntegerField(default=0)),
+                ("replies_count", models.PositiveIntegerField(default=0)),
+                ("last_reply_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "author",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="topics",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "category",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="topics",
+                        to="forum.category",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'forum_topic',
-                'ordering': ['-is_pinned', '-last_reply_at', '-created_at'],
+                "db_table": "forum_topic",
+                "ordering": ["-is_pinned", "-last_reply_at", "-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='Reply',
+            name="Reply",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content', models.TextField()),
-                ('is_solution', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('author', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='forum_replies', to=settings.AUTH_USER_MODEL)),
-                ('topic', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='replies', to='forum.topic')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("content", models.TextField()),
+                ("is_solution", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "author",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="forum_replies",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "topic",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="replies",
+                        to="forum.topic",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'forum_reply',
-                'ordering': ['created_at'],
+                "db_table": "forum_reply",
+                "ordering": ["created_at"],
             },
         ),
         migrations.AddIndex(
-            model_name='topic',
-            index=models.Index(fields=['-last_reply_at'], name='forum_topic_last_re_34a142_idx'),
+            model_name="topic",
+            index=models.Index(
+                fields=["-last_reply_at"], name="forum_topic_last_re_34a142_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='topic',
-            index=models.Index(fields=['category', '-last_reply_at'], name='forum_topic_categor_c3d5f7_idx'),
+            model_name="topic",
+            index=models.Index(
+                fields=["category", "-last_reply_at"],
+                name="forum_topic_categor_c3d5f7_idx",
+            ),
         ),
         migrations.AddIndex(
-            model_name='reply',
-            index=models.Index(fields=['topic', 'created_at'], name='forum_reply_topic_i_9cf349_idx'),
+            model_name="reply",
+            index=models.Index(
+                fields=["topic", "created_at"], name="forum_reply_topic_i_9cf349_idx"
+            ),
         ),
     ]

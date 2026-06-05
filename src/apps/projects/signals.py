@@ -1,4 +1,5 @@
 """Signaux : auto-Scene à la création, sync storage stats à l'upload/delete de modèles."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -20,7 +21,7 @@ def create_scene_for_new_project(
     if created:
         Scene.objects.create(project=instance)
         UserStats.objects.filter(user=instance.user).update(
-            total_projects=F('total_projects') + 1
+            total_projects=F("total_projects") + 1
         )
 
 
@@ -29,7 +30,7 @@ def decrement_project_count(
     sender: type[Project], instance: Project, **kwargs: Any
 ) -> None:
     UserStats.objects.filter(user=instance.user).update(
-        total_projects=F('total_projects') - 1
+        total_projects=F("total_projects") - 1
     )
 
 
@@ -40,7 +41,7 @@ def increment_storage_on_model_save(
     """À l'ajout d'un ImportedModel, incrémente le storage usage du user."""
     if created:
         UserStats.objects.filter(user=instance.project.user).update(
-            storage_used_bytes=F('storage_used_bytes') + instance.file_size_bytes
+            storage_used_bytes=F("storage_used_bytes") + instance.file_size_bytes
         )
 
 
@@ -49,7 +50,7 @@ def decrement_storage_on_model_delete(
     sender: type[ImportedModel], instance: ImportedModel, **kwargs: Any
 ) -> None:
     UserStats.objects.filter(user=instance.project.user).update(
-        storage_used_bytes=F('storage_used_bytes') - instance.file_size_bytes
+        storage_used_bytes=F("storage_used_bytes") - instance.file_size_bytes
     )
     # Nettoie les fichiers du storage
     if instance.file:

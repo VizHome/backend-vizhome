@@ -4,6 +4,7 @@ Usage : `?format=csv` sur n'importe quel endpoint admin list pour
 télécharger un CSV au lieu du JSON. Fonctionne avec DRF content
 negotiation native (Accept header ou query param via DEFAULT_CONTENT_NEGOTIATION).
 """
+
 from __future__ import annotations
 
 import csv
@@ -24,18 +25,22 @@ class CSVRenderer(BaseRenderer):
     Les valeurs nested (dict/list) sont serializées en JSON inline.
     """
 
-    media_type = 'text/csv'
-    format = 'csv'
-    charset = 'utf-8'
+    media_type = "text/csv"
+    format = "csv"
+    charset = "utf-8"
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
         if not data:
-            return ''
+            return ""
 
         # Détecte la structure paginée DRF
         rows: list[dict[str, Any]] = []
-        if isinstance(data, dict) and 'results' in data and isinstance(data['results'], list):
-            rows = data['results']
+        if (
+            isinstance(data, dict)
+            and "results" in data
+            and isinstance(data["results"], list)
+        ):
+            rows = data["results"]
         elif isinstance(data, list):
             rows = data
         else:
@@ -43,7 +48,7 @@ class CSVRenderer(BaseRenderer):
             rows = [data]
 
         if not rows:
-            return 'count\n0\n'
+            return "count\n0\n"
 
         # Colonnes = union des keys de toutes les lignes (préserve l'ordre du 1er)
         seen = list(rows[0].keys())
@@ -54,20 +59,18 @@ class CSVRenderer(BaseRenderer):
 
         # Sérialise les valeurs nested en JSON pour les flatten
         buf = io.StringIO()
-        writer = csv.DictWriter(buf, fieldnames=seen, extrasaction='ignore')
+        writer = csv.DictWriter(buf, fieldnames=seen, extrasaction="ignore")
         writer.writeheader()
         for row in rows:
             writer.writerow({k: _flatten(row.get(k)) for k in seen})
 
         # Set filename sur la réponse HTTP via le context
         if renderer_context:
-            response = renderer_context.get('response')
+            response = renderer_context.get("response")
             if response is not None:
-                view = renderer_context.get('view')
-                name = getattr(view, 'csv_filename', 'export') if view else 'export'
-                response['Content-Disposition'] = (
-                    f'attachment; filename="{name}.csv"'
-                )
+                view = renderer_context.get("view")
+                name = getattr(view, "csv_filename", "export") if view else "export"
+                response["Content-Disposition"] = f'attachment; filename="{name}.csv"'
 
         return buf.getvalue()
 
@@ -75,8 +78,9 @@ class CSVRenderer(BaseRenderer):
 def _flatten(value: Any) -> Any:
     """Convertit les dict/list en string JSON-like pour qu'ils tiennent dans une cellule."""
     if value is None:
-        return ''
+        return ""
     if isinstance(value, (dict, list)):
         import json
+
         return json.dumps(value, ensure_ascii=False)
     return value

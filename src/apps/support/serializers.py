@@ -1,4 +1,5 @@
 """Serializers DRF pour le support."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -22,31 +23,35 @@ class SupportMessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SupportMessage
-        fields = ('id', 'author', 'from_staff', 'body', 'created_at')
-        read_only_fields = ('id', 'author', 'from_staff', 'created_at')
+        fields = ("id", "author", "from_staff", "body", "created_at")
+        read_only_fields = ("id", "author", "from_staff", "created_at")
 
 
 class SupportMessageCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = SupportMessage
-        fields = ('body',)
+        fields = ("body",)
 
     def validate_body(self, value: str) -> str:
-        clean = (value or '').strip()
+        clean = (value or "").strip()
         if len(clean) < 2:
-            raise serializers.ValidationError('Le message est trop court.')
+            raise serializers.ValidationError("Le message est trop court.")
         if len(clean) > 50_000:
-            raise serializers.ValidationError('Le message est trop long (max 50 000 caractères avec formatage).')
+            raise serializers.ValidationError(
+                "Le message est trop long (max 50 000 caractères avec formatage)."
+            )
         return clean
 
 
 class SupportTicketListSerializer(serializers.ModelSerializer):
     """Liste — compact, sans le détail des messages."""
 
-    user_email = serializers.CharField(source='user.email', read_only=True)
-    user_pseudo = serializers.CharField(source='user.pseudo', read_only=True)
+    user_email = serializers.CharField(source="user.email", read_only=True)
+    user_pseudo = serializers.CharField(source="user.pseudo", read_only=True)
     assignee_pseudo = serializers.CharField(
-        source='assignee.pseudo', read_only=True, default=None,
+        source="assignee.pseudo",
+        read_only=True,
+        default=None,
     )
     messages_count = serializers.IntegerField(read_only=True)
     last_message_at = serializers.DateTimeField(read_only=True)
@@ -55,11 +60,20 @@ class SupportTicketListSerializer(serializers.ModelSerializer):
     class Meta:
         model = SupportTicket
         fields = (
-            'id', 'subject', 'category', 'status', 'priority',
-            'user_email', 'user_pseudo',
-            'assignee_pseudo',
-            'messages_count', 'last_message_at', 'last_message_from_staff',
-            'created_at', 'updated_at', 'closed_at',
+            "id",
+            "subject",
+            "category",
+            "status",
+            "priority",
+            "user_email",
+            "user_pseudo",
+            "assignee_pseudo",
+            "messages_count",
+            "last_message_at",
+            "last_message_from_staff",
+            "created_at",
+            "updated_at",
+            "closed_at",
         )
         read_only_fields = fields
 
@@ -70,7 +84,7 @@ class SupportTicketDetailSerializer(SupportTicketListSerializer):
     messages = SupportMessageSerializer(many=True, read_only=True)
 
     class Meta(SupportTicketListSerializer.Meta):
-        fields = SupportTicketListSerializer.Meta.fields + ('messages',)
+        fields = SupportTicketListSerializer.Meta.fields + ("messages",)
 
 
 class SupportTicketCreateSerializer(serializers.ModelSerializer):
@@ -80,17 +94,19 @@ class SupportTicketCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SupportTicket
-        fields = ('subject', 'category', 'priority', 'body')
+        fields = ("subject", "category", "priority", "body")
 
     def validate_subject(self, value: str) -> str:
         clean = value.strip()
         if len(clean) < 5:
-            raise serializers.ValidationError('Le sujet doit faire au moins 5 caractères.')
+            raise serializers.ValidationError(
+                "Le sujet doit faire au moins 5 caractères."
+            )
         return clean
 
     def create(self, validated_data: dict[str, Any]) -> SupportTicket:
-        body = validated_data.pop('body')
-        user = self.context['request'].user
+        body = validated_data.pop("body")
+        user = self.context["request"].user
         ticket = SupportTicket.objects.create(user=user, **validated_data)
         SupportMessage.objects.create(
             ticket=ticket,
@@ -101,6 +117,7 @@ class SupportTicketCreateSerializer(serializers.ModelSerializer):
         # Notifie l'équipe support (mail aux staff actifs).
         # fail_silently=True à l'intérieur → un SMTP down ne bloque pas la création.
         from .notifications import notify_staff_new_ticket
+
         notify_staff_new_ticket(ticket)
         return ticket
 
@@ -110,4 +127,4 @@ class SupportTicketUpdateStatusSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SupportTicket
-        fields = ('status', 'priority', 'assignee')
+        fields = ("status", "priority", "assignee")

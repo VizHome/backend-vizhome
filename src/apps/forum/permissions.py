@@ -7,6 +7,7 @@
 - `CanPostInCategory` : restreint la création de topic dans une cat
   `is_admin_only=True` aux seuls staff
 """
+
 from __future__ import annotations
 
 from datetime import timedelta
@@ -23,7 +24,7 @@ class IsAuthorOrReadOnly(BasePermission):
     def has_object_permission(self, request: Request, view: APIView, obj) -> bool:
         if request.method in SAFE_METHODS:
             return True
-        return getattr(obj, 'author_id', None) == request.user.id
+        return getattr(obj, "author_id", None) == request.user.id
 
 
 class IsAuthorOrStaff(BasePermission):
@@ -34,7 +35,7 @@ class IsAuthorOrStaff(BasePermission):
             return True
         if request.user.is_staff:
             return True
-        return getattr(obj, 'author_id', None) == request.user.id
+        return getattr(obj, "author_id", None) == request.user.id
 
 
 class IsNotForumBanned(BasePermission):
@@ -59,7 +60,7 @@ class IsNotForumBanned(BasePermission):
             return True
         if user.is_staff:
             return True
-        return not getattr(user, 'is_banned_from_forum', False)
+        return not getattr(user, "is_banned_from_forum", False)
 
 
 class IsAuthorWithinTimeWindowOrStaff(BasePermission):
@@ -83,9 +84,9 @@ class IsAuthorWithinTimeWindowOrStaff(BasePermission):
             return True
         if request.user.is_staff:
             return True
-        if getattr(obj, 'author_id', None) != request.user.id:
+        if getattr(obj, "author_id", None) != request.user.id:
             return False
         # Author : check fenêtre temporelle
-        window_min = getattr(view, 'EDIT_WINDOW_MINUTES', 15)
+        window_min = getattr(view, "EDIT_WINDOW_MINUTES", 15)
         deadline = obj.created_at + timedelta(minutes=window_min)
         return timezone.now() <= deadline

@@ -15,38 +15,94 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='AdminDailySnapshot',
+            name="AdminDailySnapshot",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date', models.DateField(unique=True)),
-                ('payload', models.JSONField(default=dict)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date", models.DateField(unique=True)),
+                ("payload", models.JSONField(default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
             options={
-                'db_table': 'admin_daily_snapshot',
-                'ordering': ['-date'],
-                'indexes': [models.Index(fields=['-date'], name='admin_daily_date_8a7ef9_idx')],
+                "db_table": "admin_daily_snapshot",
+                "ordering": ["-date"],
+                "indexes": [
+                    models.Index(fields=["-date"], name="admin_daily_date_8a7ef9_idx")
+                ],
             },
         ),
         migrations.CreateModel(
-            name='AdminAuditLog',
+            name="AdminAuditLog",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('actor_email', models.CharField(blank=True, max_length=255)),
-                ('action', models.CharField(choices=[('user.ban', 'Bannir un user'), ('user.unban', 'Réactiver un user'), ('user.promote_staff', 'Promouvoir staff'), ('user.demote_staff', 'Retirer staff'), ('topic.pin', 'Épingler un topic'), ('topic.unpin', 'Désépingler un topic'), ('topic.lock', 'Verrouiller un topic'), ('topic.unlock', 'Déverrouiller un topic'), ('topic.delete', 'Supprimer un topic'), ('reply.delete', 'Supprimer une réponse'), ('reply.mark_solution', 'Marquer solution')], max_length=50)),
-                ('target_type', models.CharField(blank=True, max_length=50)),
-                ('target_id', models.PositiveIntegerField(blank=True, null=True)),
-                ('target_repr', models.CharField(blank=True, max_length=255)),
-                ('payload', models.JSONField(blank=True, default=dict)),
-                ('ip_address', models.GenericIPAddressField(blank=True, null=True)),
-                ('user_agent', models.CharField(blank=True, max_length=500)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('actor', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='admin_actions', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("actor_email", models.CharField(blank=True, max_length=255)),
+                (
+                    "action",
+                    models.CharField(
+                        choices=[
+                            ("user.ban", "Bannir un user"),
+                            ("user.unban", "Réactiver un user"),
+                            ("user.promote_staff", "Promouvoir staff"),
+                            ("user.demote_staff", "Retirer staff"),
+                            ("topic.pin", "Épingler un topic"),
+                            ("topic.unpin", "Désépingler un topic"),
+                            ("topic.lock", "Verrouiller un topic"),
+                            ("topic.unlock", "Déverrouiller un topic"),
+                            ("topic.delete", "Supprimer un topic"),
+                            ("reply.delete", "Supprimer une réponse"),
+                            ("reply.mark_solution", "Marquer solution"),
+                        ],
+                        max_length=50,
+                    ),
+                ),
+                ("target_type", models.CharField(blank=True, max_length=50)),
+                ("target_id", models.PositiveIntegerField(blank=True, null=True)),
+                ("target_repr", models.CharField(blank=True, max_length=255)),
+                ("payload", models.JSONField(blank=True, default=dict)),
+                ("ip_address", models.GenericIPAddressField(blank=True, null=True)),
+                ("user_agent", models.CharField(blank=True, max_length=500)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "actor",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="admin_actions",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'admin_audit_log',
-                'ordering': ['-created_at'],
-                'indexes': [models.Index(fields=['-created_at'], name='admin_audit_created_d091be_idx'), models.Index(fields=['target_type', 'target_id'], name='admin_audit_target__bfbef1_idx'), models.Index(fields=['action'], name='admin_audit_action_9d8c52_idx')],
+                "db_table": "admin_audit_log",
+                "ordering": ["-created_at"],
+                "indexes": [
+                    models.Index(
+                        fields=["-created_at"], name="admin_audit_created_d091be_idx"
+                    ),
+                    models.Index(
+                        fields=["target_type", "target_id"],
+                        name="admin_audit_target__bfbef1_idx",
+                    ),
+                    models.Index(
+                        fields=["action"], name="admin_audit_action_9d8c52_idx"
+                    ),
+                ],
             },
         ),
     ]

@@ -1,4 +1,5 @@
 """Lookup des providers OAuth par nom."""
+
 from __future__ import annotations
 
 from .base import OAuthProvider
@@ -6,8 +7,8 @@ from .github import GitHubProvider
 from .google import GoogleProvider
 
 _PROVIDERS: dict[str, type[OAuthProvider]] = {
-    'google': GoogleProvider,
-    'github': GitHubProvider,
+    "google": GoogleProvider,
+    "github": GitHubProvider,
 }
 
 

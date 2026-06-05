@@ -1,4 +1,5 @@
 """Vues DRF de l'app renders."""
+
 from __future__ import annotations
 
 from django.conf import settings
@@ -25,8 +26,8 @@ def _provider_unavailable_response(exc: ProviderError) -> Response:
     """
     return Response(
         {
-            'detail': str(exc),
-            'code': f'{settings.RENDERS_DEFAULT_PROVIDER}_unavailable',
+            "detail": str(exc),
+            "code": f"{settings.RENDERS_DEFAULT_PROVIDER}_unavailable",
         },
         status=status.HTTP_503_SERVICE_UNAVAILABLE,
     )
@@ -41,19 +42,19 @@ class RenderListCreateView(generics.ListCreateAPIView):
         qs = Render.objects.filter(user=self.request.user)
 
         # Filtre optionnel ?source=prompt|sketch|screenshot
-        source = self.request.query_params.get('source')
+        source = self.request.query_params.get("source")
         if source:
             qs = qs.filter(source=source)
 
         # Filtre optionnel ?status=done|failed|...
-        status_filter = self.request.query_params.get('status')
+        status_filter = self.request.query_params.get("status")
         if status_filter:
             qs = qs.filter(status=status_filter)
 
         return qs
 
     def get_serializer_class(self):
-        if self.request.method == 'POST':
+        if self.request.method == "POST":
             return RenderCreateSerializer
         return RenderSerializer
 
@@ -69,7 +70,7 @@ class RenderListCreateView(generics.ListCreateAPIView):
         # Déclenche Celery (non bloquant)
         generate_render.delay(render.pk)
 
-        output = RenderSerializer(render, context={'request': request})
+        output = RenderSerializer(render, context={"request": request})
         return Response(output.data, status=status.HTTP_202_ACCEPTED)
 
 
@@ -82,7 +83,7 @@ class RenderDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Render.objects.filter(user=self.request.user)
 
     def get_serializer_class(self):
-        if self.request.method in ('PATCH', 'PUT'):
+        if self.request.method in ("PATCH", "PUT"):
             return RenderUpdateSerializer
         return RenderSerializer
 

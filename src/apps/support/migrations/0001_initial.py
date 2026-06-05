@@ -15,39 +15,124 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='SupportTicket',
+            name="SupportTicket",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('subject', models.CharField(max_length=200)),
-                ('category', models.CharField(choices=[('technical', 'Problème technique'), ('billing', 'Facturation'), ('account', 'Compte / accès'), ('feature', 'Demande de fonctionnalité'), ('other', 'Autre')], default='other', max_length=20)),
-                ('status', models.CharField(choices=[('open', 'Ouvert'), ('pending', 'En cours'), ('resolved', 'Résolu'), ('closed', 'Fermé')], db_index=True, default='open', max_length=20)),
-                ('priority', models.CharField(choices=[('low', 'Faible'), ('medium', 'Moyenne'), ('high', 'Haute'), ('urgent', 'Urgente')], default='medium', max_length=10)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('closed_at', models.DateTimeField(blank=True, null=True)),
-                ('assignee', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='assigned_support_tickets', to=settings.AUTH_USER_MODEL)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='support_tickets', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("subject", models.CharField(max_length=200)),
+                (
+                    "category",
+                    models.CharField(
+                        choices=[
+                            ("technical", "Problème technique"),
+                            ("billing", "Facturation"),
+                            ("account", "Compte / accès"),
+                            ("feature", "Demande de fonctionnalité"),
+                            ("other", "Autre"),
+                        ],
+                        default="other",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("open", "Ouvert"),
+                            ("pending", "En cours"),
+                            ("resolved", "Résolu"),
+                            ("closed", "Fermé"),
+                        ],
+                        db_index=True,
+                        default="open",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "priority",
+                    models.CharField(
+                        choices=[
+                            ("low", "Faible"),
+                            ("medium", "Moyenne"),
+                            ("high", "Haute"),
+                            ("urgent", "Urgente"),
+                        ],
+                        default="medium",
+                        max_length=10,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("closed_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "assignee",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="assigned_support_tickets",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="support_tickets",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Ticket de support',
-                'verbose_name_plural': 'Tickets de support',
-                'db_table': 'support_ticket',
-                'ordering': ['-updated_at'],
+                "verbose_name": "Ticket de support",
+                "verbose_name_plural": "Tickets de support",
+                "db_table": "support_ticket",
+                "ordering": ["-updated_at"],
             },
         ),
         migrations.CreateModel(
-            name='SupportMessage',
+            name="SupportMessage",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('from_staff', models.BooleanField(default=False)),
-                ('body', models.TextField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('author', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='support_messages', to=settings.AUTH_USER_MODEL)),
-                ('ticket', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messages', to='support.supportticket')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("from_staff", models.BooleanField(default=False)),
+                ("body", models.TextField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "author",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="support_messages",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "ticket",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="messages",
+                        to="support.supportticket",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'support_message',
-                'ordering': ['created_at'],
+                "db_table": "support_message",
+                "ordering": ["created_at"],
             },
         ),
     ]

@@ -1,4 +1,5 @@
 """Serializers DRF pour billing."""
+
 from __future__ import annotations
 
 from rest_framework import serializers
@@ -19,7 +20,7 @@ class PlanSerializer(serializers.Serializer):
 class CheckoutRequestSerializer(serializers.Serializer):
     """Body de POST /me/subscription/checkout."""
 
-    plan = serializers.ChoiceField(choices=['pro', 'enterprise'])
+    plan = serializers.ChoiceField(choices=["pro", "enterprise"])
 
 
 class CheckoutResponseSerializer(serializers.Serializer):

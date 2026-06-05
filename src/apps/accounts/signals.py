@@ -1,4 +1,5 @@
 """Signaux : auto-création de Preferences et Stats à l'inscription."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -22,6 +23,6 @@ def create_user_relations(
     quotas = PLAN_QUOTAS[instance.plan]
     UserStats.objects.create(
         user=instance,
-        renders_limit=quotas['renders_limit'],
-        storage_limit_bytes=quotas['storage_limit_bytes'],
+        renders_limit=quotas["renders_limit"],
+        storage_limit_bytes=quotas["storage_limit_bytes"],
     )

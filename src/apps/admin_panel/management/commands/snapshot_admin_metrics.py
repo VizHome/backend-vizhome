@@ -12,6 +12,7 @@ Usage manuel :
     docker compose exec api python manage.py snapshot_admin_metrics
     docker compose exec api python manage.py snapshot_admin_metrics --date 2026-05-30
 """
+
 from __future__ import annotations
 
 import json
@@ -31,10 +32,10 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser) -> None:
         parser.add_argument(
-            '--date',
+            "--date",
             type=str,
             default=None,
-            help='Date du snapshot (YYYY-MM-DD). Défaut : aujourd\'hui.',
+            help="Date du snapshot (YYYY-MM-DD). Défaut : aujourd'hui.",
         )
 
     def handle(self, *args, **options) -> None:
@@ -43,9 +44,9 @@ class Command(BaseCommand):
         from rest_framework.test import APIRequestFactory
 
         # Date du snapshot
-        date_str = options.get('date')
+        date_str = options.get("date")
         snapshot_date = (
-            datetime.strptime(date_str, '%Y-%m-%d').date()
+            datetime.strptime(date_str, "%Y-%m-%d").date()
             if date_str
             else timezone.now().date()
         )
@@ -53,7 +54,7 @@ class Command(BaseCommand):
         # Construit une fausse request pour appeler AdminOverviewView en interne
         # (le request.user n'est pas utilisé dans les agrégations)
         factory = APIRequestFactory()
-        request = factory.get('/api/v1/admin/overview')
+        request = factory.get("/api/v1/admin/overview")
 
         view = AdminOverviewView()
         response = view.get(request)
@@ -66,10 +67,12 @@ class Command(BaseCommand):
 
         obj, created = AdminDailySnapshot.objects.update_or_create(
             date=snapshot_date,
-            defaults={'payload': payload},
+            defaults={"payload": payload},
         )
-        verb = 'créé' if created else 'mis à jour'
-        self.stdout.write(self.style.SUCCESS(
-            f'✓ Snapshot {snapshot_date} {verb} '
-            f'({len(payload)} sections capturées).'
-        ))
+        verb = "créé" if created else "mis à jour"
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"✓ Snapshot {snapshot_date} {verb} "
+                f"({len(payload)} sections capturées)."
+            )
+        )

@@ -5,6 +5,7 @@ Chaque provider doit déclarer :
 - les output_types qu'il supporte
 - une méthode `generate()` qui retourne un GenerationResult ou raise ProviderError
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -22,7 +23,7 @@ class GenerationResult:
 
     image_bytes: bytes
     mime_type: str  # ex: 'image/png', 'image/jpeg'
-    provider_response_id: str = ''
+    provider_response_id: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -34,9 +35,9 @@ class BaseProvider(ABC):
     def generate(
         self,
         prompt: str,
-        output_type: str = '2d',
+        output_type: str = "2d",
         input_image_bytes: bytes | None = None,
-        style_hint: str = '',
+        style_hint: str = "",
     ) -> GenerationResult:
         """Génère un rendu à partir d'un prompt (+ image optionnelle pour img2img)."""
         ...
