@@ -7,6 +7,8 @@
 [![Release](https://img.shields.io/github/v/release/VizHome/backend-vizhome)](https://github.com/VizHome/backend-vizhome/releases)
 [![Docker](https://img.shields.io/badge/ghcr.io-vizhome--backend-blue)](https://github.com/VizHome/backend-vizhome/pkgs/container/vizhome-backend)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=VizHome_backend-vizhome&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=VizHome_backend-vizhome)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=VizHome_backend-vizhome&metric=coverage)](https://sonarcloud.io/summary/new_code?id=VizHome_backend-vizhome)
 
 ---
 
