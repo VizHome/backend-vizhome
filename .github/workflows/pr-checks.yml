@@ -1,0 +1,78 @@
+name: PR checks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [main, dev]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  # ─── Validation du titre PR (Conventional Commits) ─────────────────────
+  conventional-title:
+    name: Conventional Commits (PR title)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Types autorisés (cf. https://www.conventionalcommits.org/)
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            Le sujet du PR doit commencer par une minuscule.
+            Ex: `feat(auth): ajoute le login Google` ✓
+                `feat(auth): Ajoute le login Google` ✗
+
+  # ─── Auto-label par taille ─────────────────────────────────────────────
+  size-label:
+    name: Auto size label
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: codelytv/pr-size-labeler@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_label: 'size/xs'
+          xs_max_size: '10'
+          s_label: 'size/s'
+          s_max_size: '100'
+          m_label: 'size/m'
+          m_max_size: '500'
+          l_label: 'size/l'
+          l_max_size: '1000'
+          xl_label: 'size/xl'
+          fail_if_xl: 'false'
+
+  # ─── Vérification des fichiers .env / secrets potentiels ───────────────
+  secrets-check:
+    name: Secrets / .env leak check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect secret-like patterns
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
+          extra_args: --only-verified
