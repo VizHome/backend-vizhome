@@ -1,5 +1,10 @@
 # VizHome Backend
 
+<div align="center">
+  <img src="./public/images/logo/LogoBlack.png" alt="VizHome" width="120">
+</div>
+
+
 > API REST Django pour la plateforme SaaS **VizHome** — génération de rendus 3D
 > par IA (Gemini), forum communautaire, support helpdesk, billing Stripe.
 
