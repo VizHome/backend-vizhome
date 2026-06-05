@@ -41,7 +41,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GH_PAT }}
 
       - name: Build & push dev image
         uses: docker/build-push-action@v6
@@ -105,6 +105,7 @@ jobs:
       - name: Create pre-release
         uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.GH_PAT }}
           tag_name: ${{ steps.tag.outputs.tag }}
           name: "Pre-release ${{ steps.tag.outputs.tag }}"
           body: |

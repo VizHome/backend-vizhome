@@ -1,218 +1,194 @@
-# VizHome — Backend
+# VizHome Backend
 
-API REST Django + DRF qui propulse [VizHome](https://vizhome.fr) :
-authentification, projets 3D, génération IA d'images, facturation Stripe et
-stockage objet S3-compatible.
+> API REST Django pour la plateforme SaaS **VizHome** — génération de rendus 3D
+> par IA (Gemini), forum communautaire, support helpdesk, billing Stripe.
 
-> Frontend : [`frontend-vizhome`](../frontend-vizhome) (Nuxt 4) ·
-> Doc publique : [`docs-vizehome`](../docs-vizehome)
+[![CI](https://github.com/VizHome/backend-vizhome/actions/workflows/ci.yml/badge.svg)](https://github.com/VizHome/backend-vizhome/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/VizHome/backend-vizhome)](https://github.com/VizHome/backend-vizhome/releases)
+[![Docker](https://img.shields.io/badge/ghcr.io-vizhome--backend-blue)](https://github.com/VizHome/backend-vizhome/pkgs/container/vizhome-backend)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Stack
+---
 
-| Couche | Choix |
+## ✨ Features
+
+- 🔐 **Auth complète** : email/password, JWT (15 min access + refresh blacklist), 2FA TOTP, OAuth Google + GitHub
+- 🎨 **Génération IA** : pipeline async `prompt → Gemini image API → MinIO → galerie user`
+- 🧱 **Projets 3D** : CRUD + scene Three.js sérialisée en JSONField + upload presigned MinIO (modèles GLB/OBJ/FBX/STL)
+- 💬 **Forum** : catégories, topics, replies, modération staff (pin/lock/solution), édition 15 min, sanitisation HTML
+- 🆘 **Support helpdesk** : tickets utilisateur ↔ staff, threading, transitions auto status, notifications email
+- 👨‍💼 **Admin panel** : overview consolidé, drill-downs, audit log, CSV exports, snapshots quotidiens
+- 💳 **Billing Stripe** : checkout sessions, webhooks dj-stripe, subscriptions + invoices sync, MRR
+- 📦 **Storage S3** : MinIO (dev) / S3 compatible (prod) avec presigned uploads
+- ⚡ **Async** : Celery + Redis pour les tâches longues (renders IA, emails, cleanup)
+
+## 🛠 Stack
+
+| Couche | Tech |
 |---|---|
-| Framework | Django 5 + DRF 3.16 |
-| Auth | JWT (`djangorestframework-simplejwt`) + 2FA TOTP (`django-otp`) + OAuth Google/GitHub |
-| Base de données | PostgreSQL 16 (via `psycopg[binary]` v3) |
-| Cache & broker | Redis 7 |
-| Tâches async | Celery 5.4 + `django-celery-beat` |
-| Provider IA | Google Gemini (`google-genai`) — pluggable via registry |
-| Stockage objet | MinIO (S3-compatible) via `django-storages[s3]` + `boto3` |
-| Paiement | Stripe via `dj-stripe` 2.9 |
-| Documentation API | `drf-spectacular` (OpenAPI 3) |
-| Sécurité | `django-axes` (lockout), `django-cors-headers`, JWT rotation + blacklist |
-| Monitoring | Sentry SDK (optionnel) |
-| Serveur prod | Gunicorn |
+| Framework | Django 6 + DRF + simple-jwt |
+| DB | PostgreSQL 16 (psycopg 3) |
+| Cache + broker | Redis 7 |
+| Storage | MinIO / S3 via django-storages |
+| Tâches | Celery + django-celery-beat |
+| Auth | django-axes, django-otp, google-auth |
+| Billing | dj-stripe + Stripe SDK (+ patch compat `apps/billing/compat.py`) |
+| Monitoring | Sentry (prod) |
+| IA | Google GenAI (Gemini) |
+| Tests | pytest + pytest-django + pytest-cov |
+| Lint | ruff |
+| Doc API | drf-spectacular (OpenAPI 3) |
 
-## Architecture en 5 lignes
-
-- Un user envoie `POST /api/v1/renders/` → DRF retourne `202 pending`
-- Une tâche Celery prend le relais : appelle Gemini, upload vers MinIO, marque `done`
-- Le frontend poll `GET /api/v1/renders/{id}` toutes les 2s jusqu'au terminal state
-- Pour les uploads de modèles 3D, le frontend obtient une **URL pré-signée**
-  MinIO et envoie le binaire en direct (le backend ne voit jamais le fichier)
-- Stripe webhook → `dj-stripe` synchronise les subscriptions → `UserStats`
-  mis à jour via signaux
-
-Voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour les diagrammes
-détaillés.
-
-## Démarrage rapide
-
-### Prérequis
-
-- Docker Desktop (Compose v2)
-- Rien d'autre — toute la stack tourne en conteneurs
-
-### Lancer la stack
+## 🚀 Quick start (Docker)
 
 ```bash
+git clone https://github.com/VizHome/backend-vizhome.git
+cd backend-vizhome
+
 cp .env.example .env
-# (édite .env si tu veux changer les ports / secrets)
+# Édite .env : ajoute GEMINI_API_KEY, STRIPE_TEST_SECRET_KEY, etc.
+# (cf SETUP_KEYS.md)
 
 docker compose up -d
-```
 
-5 services démarrent :
-
-| Service | Port | Rôle |
-|---|---|---|
-| `api` | 8000 | Django + DRF (Gunicorn en prod, runserver en dev) |
-| `celery` | — | Worker async (renders IA) |
-| `postgres` | 5432 | PostgreSQL 16 |
-| `redis` | 6379 | Cache Django + broker Celery |
-| `minio` | 9000 / 9001 | API S3 + console web |
-
-Premier lancement : les migrations s'appliquent automatiquement via le
-`entrypoint.sh`. Vérifie :
-
-```bash
-curl http://localhost:8000/health/ready
-# → {"status":"ok","checks":{"postgres":"ok","redis":"ok"}}
-```
-
-### Créer un superuser
-
-```bash
+# Migrations + superuser (une fois)
+docker compose exec api python manage.py migrate
 docker compose exec api python manage.py createsuperuser
+
+# Setup Stripe products (si configuré)
+docker compose exec api python manage.py setup_stripe_products
+docker compose exec api python manage.py setup_webhook_endpoint
 ```
 
-Puis admin Django sur http://localhost:8000/admin/
+### Services exposés
 
-### Documentation API live
-
-- Swagger UI : http://localhost:8000/api/docs/
-- ReDoc : http://localhost:8000/api/redoc/
-- Schéma brut : http://localhost:8000/api/schema/
-
-### Tester l'API avec Bruno
-
-Une collection [Bruno](https://www.usebruno.com/) prête à l'emploi est
-dans [`bruno/`](bruno/) — 57 requêtes pour les 48 endpoints, avec
-chaînage automatique des tokens JWT et fixtures pré-remplies. Voir
-[`bruno/README.md`](bruno/README.md) pour le workflow.
-
-## Endpoints principaux
-
-| Préfixe | Domaine |
+| URL | Service |
 |---|---|
-| `/api/v1/auth/` | register, login, refresh, logout, 2FA verify, OAuth exchange |
-| `/api/v1/me/` | profil, préférences, sessions, 2FA setup, change-password |
-| `/api/v1/me/subscription/` | état Stripe, checkout, cancel |
-| `/api/v1/me/invoices`, `/me/payment-methods` | facturation |
-| `/api/v1/billing/plans` | catalogue public des plans |
-| `/api/v1/projects/` | CRUD + scène 3D + modèles importés + annotations + share links |
-| `/api/v1/renders/` | création + historique + détail |
-| `/api/v1/shared/{token}` | accès public read-only via lien partagé |
-| `/health/live`, `/health/ready` | liveness + readiness probes |
-| `/webhooks/stripe/` | webhook dj-stripe (signature vérifiée) |
+| http://localhost:8000 | API Django |
+| http://localhost:8000/api/docs/ | Swagger UI |
+| http://localhost:8000/admin/ | Django admin |
+| http://localhost:8081 | pgweb (UI Postgres) |
+| http://localhost:9000 / :9001 | MinIO API / Console |
+| http://localhost:8025 | Mailpit (mails dev) |
 
-48 endpoints au total. Voir Swagger pour le détail.
-
-## Configuration des intégrations tierces
-
-Le backend démarre **sans aucune clé tierce** (mode dégradé). Chaque
-intégration retourne une erreur explicite si non configurée, mais ne fait
-pas planter le serveur.
-
-Pour activer :
-
-- **Gemini** : `GEMINI_API_KEY=...` dans `.env` → générations IA fonctionnent
-- **Stripe** : `STRIPE_TEST_SECRET_KEY=...` + `setup_stripe_products` → checkout fonctionne
-- **Google OAuth** : `GOOGLE_OAUTH_CLIENT_ID=...` → login Google fonctionne
-- **GitHub OAuth** : `GITHUB_OAUTH_CLIENT_ID/SECRET` → login GitHub fonctionne
-- **SMTP** : `EMAIL_HOST*` → vrais emails (sinon affichés en console)
-- **Sentry** : `SENTRY_DSN=...` → tracking des erreurs en prod
-
-Guide pas-à-pas pour chaque clé : [`SETUP_KEYS.md`](SETUP_KEYS.md)
-
-## Commandes courantes
+## 📜 Commandes utiles
 
 ```bash
-# Tests (pytest)
-docker compose exec api pytest
-docker compose exec api pytest apps/projects -k presigned   # filtré
-docker compose exec api pytest --cov=apps                   # avec coverage
+# Tests + coverage
+docker compose exec api pytest -v
+docker compose exec api pytest apps/forum -k "edit_window"
+docker compose exec api pytest --cov=apps --cov-report=term
 
-# Lint + format + types
+# Lint + format
 docker compose exec api ruff check src/
 docker compose exec api ruff format src/
-docker compose exec api mypy src/
+
+# Type check
+docker compose exec api mypy --config-file pyproject.toml src/
+
+# Shell Django (autoreload)
+docker compose exec api python manage.py shell
 
 # Migrations
 docker compose exec api python manage.py makemigrations
 docker compose exec api python manage.py migrate
 
-# Shell Django interactif
-docker compose exec api python manage.py shell
-
-# Setup Stripe (crée Products + Prices à partir de plans.py)
-docker compose exec api python manage.py setup_stripe_products
-
-# Export OpenAPI
-docker compose exec api python manage.py spectacular --file schema.yml
+# Reset complet (DESTRUCTIF)
+docker compose down -v && docker compose up -d
 ```
 
-## Structure du repo
+## 🧪 Stripe webhook en local
 
-```
-backend-vizhome/
-├── src/
-│   ├── apps/
-│   │   ├── accounts/      ← User + 2FA + OAuth + sessions
-│   │   ├── projects/      ← Project + Scene + ImportedModel + presigned uploads
-│   │   ├── renders/       ← Render + providers (Gemini) + tasks Celery
-│   │   ├── billing/       ← dj-stripe + plans + checkout
-│   │   ├── gallery/       ← endpoints sur Render filtrés par status=done
-│   │   └── core/          ← healthchecks
-│   ├── config/
-│   │   ├── settings/      ← base / dev / prod / test (split)
-│   │   ├── urls.py
-│   │   ├── celery.py
-│   │   └── wsgi.py
-│   ├── manage.py
-│   ├── requirements.txt
-│   └── entrypoint.sh
-├── docker/
-│   └── Dockerfile         ← multi-stage (dev + prod)
-├── docker-compose.yml     ← stack dev complète
-├── docker-compose.prod.yml ← prod avec Traefik + Let's Encrypt
-├── .env.example
-├── SETUP_KEYS.md          ← activation des clés tierces
-├── CLAUDE.md              ← instructions IA + règles du repo
-└── docs/                  ← doc technique pour contributeurs
-    ├── STRUCTURE.md
-    ├── ARCHITECTURE.md
-    ├── DEVELOPMENT.md
-    ├── DEPLOYMENT.md
-    └── CONTRIBUTING.md
-```
-
-## Déploiement production
-
-Voir [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Résumé :
+Le pipeline `customer.subscription.*` requiert que **Stripe CLI** tourne :
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# 1. Install + auth
+stripe login
+
+# 2. Créer un WebhookEndpoint en DB (une fois)
+docker compose exec api python manage.py setup_webhook_endpoint
+# → affiche l'URL avec UUID
+
+# 3. Forwarding (terminal séparé)
+stripe listen --forward-to http://localhost:8000/webhooks/stripe/webhook/<UUID>/
+# → copie le whsec_xxx dans .env (STRIPE_WEBHOOK_SECRET)
+# → docker compose up -d --force-recreate api
 ```
 
-Traefik gère HTTPS + Let's Encrypt automatique. DNS A record requis sur
-`api.vizhome.fr → IP serveur`.
+Détails : `docs/DEVELOPMENT.md > Stripe : webhook en local`.
 
-## Conventions
+## 📂 Architecture
 
-- **Style** : `ruff` (lint + format), `mypy` (types)
-- **Tests** : `pytest` obligatoire pour tout nouvel endpoint
-- **Migrations** : 1 migration = 1 PR
-- **Commits** : Conventional Commits (`feat`, `fix`, `refactor`, `docs`, `chore`)
-- **PRs** : description + checklist [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)
+```
+src/
+├── config/                Settings (base, dev, prod, test) + routing
+├── apps/
+│   ├── core/              healthchecks
+│   ├── accounts/          User + 2FA + OAuth + sessions
+│   ├── projects/          Project + Scene + ImportedModel + Annotation
+│   ├── renders/           Render + providers IA (Gemini)
+│   ├── gallery/           endpoints galerie (réutilise renders)
+│   ├── billing/           dj-stripe + plans + handlers + compat.py
+│   ├── forum/             Category + Topic + Reply + uploads
+│   ├── support/           SupportTicket + SupportMessage + notifications
+│   └── admin_panel/       AdminAuditLog + AdminDailySnapshot + 9 endpoints
+└── manage.py
+```
 
-## Ressources
+Détails dans `docs/STRUCTURE.md`, `docs/ARCHITECTURE.md`, `docs/DEPLOYMENT.md`.
 
-- 📖 Documentation publique : https://docs.vizhome.fr
-- 🐛 Issues : GitHub Issues (privé)
-- 📧 Contact : dev@vizhome.fr
+## 🔁 CI / CD
 
-## Licence
+| Trigger | Workflow | Action |
+|---|---|---|
+| Push `main`/`dev` ou PR | `ci.yml` | lint, typecheck, tests+coverage, build Docker, smoke, Trivy |
+| Push `main` | `release.yml` | release-please PR → tag + GitHub Release + image GHCR multi-arch + SBOM |
+| Push `dev` | `pre-release.yml` | image `dev-<sha>` + GitHub Pre-Release |
+| PR | `pr-checks.yml` | titre Conventional Commits + size label + TruffleHog |
 
-Propriétaire — © VizHome 2026. Tous droits réservés.
+Tous les commits doivent suivre **[Conventional Commits](https://www.conventionalcommits.org/)** — détails dans `.github/CONTRIBUTING_CI.md`.
+
+### Secrets GitHub requis
+
+- `GH_PAT` : Personal Access Token (scopes `repo`, `write:packages`)
+- `SONAR_TOKEN` + `SONAR_HOST_URL` : SonarCloud/SonarQube
+- `CODECOV_TOKEN` (optionnel)
+
+## 📊 Endpoints principaux
+
+Swagger : http://localhost:8000/api/docs/ — quelques highlights :
+
+```
+POST   /api/v1/auth/register
+POST   /api/v1/auth/login
+POST   /api/v1/auth/oauth/{google,github}/exchange
+
+GET    /api/v1/me/                            profil + stats + prefs
+GET    /api/v1/me/subscription
+POST   /api/v1/me/subscription/checkout
+
+POST   /api/v1/renders/                       create render (async)
+GET    /api/v1/renders/                       gallery paginée
+
+GET    /api/v1/forum/topics
+POST   /api/v1/forum/topics
+POST   /api/v1/forum/topics/{id}/replies
+
+GET    /api/v1/support/tickets
+POST   /api/v1/support/tickets
+
+GET    /api/v1/admin/overview                 staff-only
+GET    /api/v1/admin/audit-log
+```
+
+## 🤝 Contribution
+
+1. Crée une branche `feat/<nom>` ou `fix/<nom>` depuis `dev`
+2. Code + tests + docs (cf règle "même commit" dans `CLAUDE.md`)
+3. PR vers `dev` avec un titre Conventional Commits (`feat(auth): …`)
+4. Merge sur `dev` → pre-release auto
+5. Quand prêt : PR `dev → main` → release-please prend le relais
+
+## 📄 License
+
+[MIT](LICENSE)
