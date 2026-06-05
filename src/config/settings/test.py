@@ -1,6 +1,8 @@
 """Settings utilisés par pytest — désactive le storage S3 pour ne pas hit MinIO."""
 
-from .dev import *  # noqa: F401, F403
+import tempfile
+
+from .dev import *  # noqa: F403  (re-export glob volontaire de la config dev)
 
 # Force FileSystem storage en tests (ignore USE_S3)
 STORAGES = {
@@ -13,8 +15,6 @@ STORAGES = {
 }
 
 # Storage temporaire dans /tmp pour ne pas polluer media/
-import tempfile
-
 MEDIA_ROOT = tempfile.mkdtemp(prefix="vizhome_test_")
 
 # Cache local (évite Redis en tests, pour éviter les fuites entre runs)

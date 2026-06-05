@@ -210,7 +210,7 @@ class UserSession(models.Model):
         ordering = ["-last_active"]
 
     def __str__(self) -> str:
-        return f'{self.user.email} — {self.device_name or "Inconnu"}'
+        return f"{self.user.email} — {self.device_name or 'Inconnu'}"
 
     @property
     def is_active(self) -> bool:

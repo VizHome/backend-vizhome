@@ -20,8 +20,7 @@ def get_provider(name: str) -> BaseProvider:
     cls = _PROVIDERS.get(name)
     if cls is None:
         raise ProviderError(
-            f"Provider IA inconnu : '{name}'. "
-            f"Disponibles : {sorted(_PROVIDERS.keys())}"
+            f"Provider IA inconnu : '{name}'. Disponibles : {sorted(_PROVIDERS.keys())}"
         )
     return cls()
 

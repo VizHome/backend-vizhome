@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from apps.accounts.models import User
 from apps.billing.handlers import _apply_plan_to_user
 
 

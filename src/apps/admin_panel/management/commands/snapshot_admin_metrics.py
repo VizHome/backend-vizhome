@@ -16,7 +16,7 @@ Usage manuel :
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any
 
 from django.core.management.base import BaseCommand

@@ -17,7 +17,6 @@ from rest_framework.views import APIView
 
 from .models import Category, ForumUpload, Reply, Topic
 from .permissions import (
-    IsAuthorOrStaff,
     IsAuthorWithinTimeWindowOrStaff,
     IsNotForumBanned,
 )
@@ -385,7 +384,7 @@ class ForumImageUploadView(APIView):
                 {
                     "detail": (
                         "Type de fichier non autorisé. "
-                        f'Acceptés : {", ".join(sorted(_FORUM_IMAGE_ALLOWED_TYPES))}.'
+                        f"Acceptés : {', '.join(sorted(_FORUM_IMAGE_ALLOWED_TYPES))}."
                     ),
                     "code": "invalid_type",
                 },

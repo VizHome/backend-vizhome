@@ -3,11 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from django.test import override_settings
 from unittest.mock import patch
-
-from apps.renders.models import Render
-from apps.renders.providers.base import GenerationResult
 
 
 @pytest.fixture(autouse=True)

@@ -15,13 +15,9 @@ from __future__ import annotations
 import base64
 import io
 import secrets
-import time
-from typing import Any
 
 import qrcode
-from django.conf import settings
 from django.core.cache import cache
-from django.urls import reverse
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -30,7 +26,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import User
-from .serializers import UserSerializer, build_token_pair
+from .serializers import UserSerializer
 from .throttling import LoginThrottle
 
 

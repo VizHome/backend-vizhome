@@ -14,7 +14,7 @@ from datetime import timedelta
 from typing import Any
 
 from django.contrib.auth import get_user_model
-from django.db.models import Avg, Count, Q, Sum
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
@@ -152,7 +152,7 @@ class AdminOverviewView(APIView):
         total = qs.count()
         with_scene = qs.filter(scene__isnull=False).count()
         # Avg models par projet (incl. projets vides)
-        avg_models = (
+        (
             ImportedModel.objects.values("project")
             .aggregate(avg=Count("id") / max(total, 1))
             .get("avg", 0)

@@ -45,7 +45,7 @@ class Command(BaseCommand):
             self.stdout.write(f"\n→ Plan « {plan_name} »")
             self.stdout.write(f"  Product   : {product_name}")
             self.stdout.write(f"  Lookup    : {lookup_key}")
-            self.stdout.write(f'  Prix      : {config["price_eur"] / 100:.2f} € / mois')
+            self.stdout.write(f"  Prix      : {config['price_eur'] / 100:.2f} € / mois")
 
             if dry_run:
                 self.stdout.write(
@@ -81,7 +81,7 @@ class Command(BaseCommand):
                 if price.unit_amount != config["price_eur"]:
                     self.stdout.write(
                         self.style.WARNING(
-                            f'  Montant changé ({price.unit_amount} → {config["price_eur"]} cents)'
+                            f"  Montant changé ({price.unit_amount} → {config['price_eur']} cents)"
                         )
                     )
                     stripe.Price.modify(price.id, lookup_key=f"{lookup_key}_archived")

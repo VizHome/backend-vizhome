@@ -34,7 +34,7 @@ class TestSessions:
             format="json",
             HTTP_USER_AGENT="Mozilla/5.0 Firefox Linux",
         )
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {login.data["access"]}')
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access']}")
 
         response = api_client.get("/api/v1/me/sessions")
         assert response.status_code == status.HTTP_200_OK
@@ -54,7 +54,7 @@ class TestSessions:
             },
             format="json",
         )
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {login.data["access"]}')
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access']}")
 
         response = api_client.delete(f"/api/v1/me/sessions/{target.pk}")
         assert response.status_code == status.HTTP_204_NO_CONTENT

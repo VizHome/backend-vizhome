@@ -5,9 +5,6 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
-from rest_framework import status
-
-from apps.projects.models import ImportedModel
 
 
 @pytest.mark.django_db

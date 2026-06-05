@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from apps.forum.models import Category, Reply, Topic
+from apps.forum.models import Reply, Topic
 
 API = "/api/v1/forum"
 

@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import pytest
-from rest_framework import status
-from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.projects.models import Annotation, Project, Scene
@@ -116,7 +114,7 @@ class TestDuplicate:
         from unittest.mock import patch
         from apps.projects.models import ImportedModel
 
-        m1 = ImportedModel.objects.create(
+        ImportedModel.objects.create(
             project=project,
             name="Cube",
             format="glb",
@@ -124,7 +122,7 @@ class TestDuplicate:
             file_size_bytes=1024,
             position={"x": 1, "y": 2, "z": 3},
         )
-        m2 = ImportedModel.objects.create(
+        ImportedModel.objects.create(
             project=project,
             name="Sphere",
             format="obj",

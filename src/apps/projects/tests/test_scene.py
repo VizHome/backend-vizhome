@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-from rest_framework import status
 
 
 @pytest.mark.django_db

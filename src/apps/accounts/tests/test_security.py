@@ -123,7 +123,7 @@ class TestIsCurrentSession:
         )
 
         # On consulte depuis A
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {login_a.data["access"]}')
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {login_a.data['access']}")
         response = api_client.get("/api/v1/me/sessions")
         sessions = response.data["results"]
 

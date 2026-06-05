@@ -55,7 +55,7 @@ class GitHubProvider(OAuthProvider):
         access_token = data.get("access_token")
         if not access_token:
             raise OAuthError(
-                f'GitHub a refusé le code : {data.get("error_description", "?")}'
+                f"GitHub a refusé le code : {data.get('error_description', '?')}"
             )
 
         headers = {

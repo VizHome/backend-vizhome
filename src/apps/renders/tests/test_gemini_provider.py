@@ -24,7 +24,7 @@ def _mock_gemini_response(image_bytes: bytes, mime: str = "image/png"):
 def gemini():
     with (
         patch("django.conf.settings.GEMINI_API_KEY", "fake-key"),
-        patch("apps.renders.providers.gemini.genai.Client") as mock_client_cls,
+        patch("apps.renders.providers.gemini.genai.Client"),
     ):
         provider = GeminiProvider()
         # Patch directement l'instance client pour contrôler les appels
