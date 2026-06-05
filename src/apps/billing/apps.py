@@ -7,9 +7,9 @@ class BillingConfig(AppConfig):
     verbose_name = 'Billing'
 
     def ready(self) -> None:
-        # Patch compat stripe-python ≥ 12 ↔ dj-stripe 2.10
-        # (sinon webhook process 500 avec KeyError 'get')
-        from .compat import patch_stripe_object_get
+        # Patches compat stripe-python ≥ 12 ↔ dj-stripe 2.10 (cf compat.py)
+        from .compat import patch_psycopg_json_dumps, patch_stripe_object_get
         patch_stripe_object_get()
+        patch_psycopg_json_dumps()
 
         from . import handlers  # noqa: F401  enregistre les receivers dj-stripe
