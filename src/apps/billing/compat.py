@@ -6,8 +6,16 @@ stripe-python 12+ a changé l'API publique de `StripeObject` :
   dict avant sérialisation → JSONField PostgreSQL plante avec
   `TypeError: Object of type Account is not JSON serializable`
 
-Ces deux patches restaurent la compat sans toucher au code dj-stripe.
-À retirer quand on upgrade dj-stripe à 2.11+ (qui supporte stripe 12+ nativement).
+⚠️ Pas de version dj-stripe ≥ 2.11 disponible sur PyPI (dernière = 2.10.3,
+le projet semble en pause). Ces patches sont donc **permanents** tant qu'on
+utilise stripe-python ≥ 12. Alternatives à considérer pour le futur :
+  1. Forker dj-stripe et upgrade en interne
+  2. Remplacer dj-stripe par une intégration manuelle des webhooks Stripe
+     (n'a pas besoin d'autant : un endpoint + signal handlers + sync custom
+     suffirait pour notre use case)
+  3. Surveiller https://pypi.org/project/dj-stripe/ pour une v2.11+
+
+Pour l'instant, monkey-patcher est le chemin le plus simple et stable.
 """
 from __future__ import annotations
 

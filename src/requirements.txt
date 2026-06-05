@@ -34,7 +34,7 @@ django-storages[s3]>=1.14
 boto3>=1.35
 
 #  Stripe
-dj-stripe>=2.9,<2.11
+dj-stripe>=2.10.3
 stripe>=15.2.0
 
 #  Documentation API 
