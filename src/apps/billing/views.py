@@ -38,10 +38,36 @@ def _get_or_create_customer(user) -> dj_models.Customer:
     return customer
 
 
+_ACTIVE_STATUSES = ('active', 'trialing', 'past_due')
+
+
+def _sub_field(sub, name: str, default=None):
+    """Accès défensif aux champs d'une djstripe.Subscription.
+
+    Selon la version de djstripe, `status`, `current_period_end`,
+    `cancel_at_period_end`, etc. peuvent être soit des colonnes directes,
+    soit dans `stripe_data` (JSONField). On essaie les deux.
+    """
+    val = getattr(sub, name, None)
+    if val is None:
+        stripe_data = getattr(sub, 'stripe_data', None) or {}
+        val = stripe_data.get(name)
+    return val if val is not None else default
+
+
 def _get_active_subscription(customer: dj_models.Customer) -> dj_models.Subscription | None:
-    return customer.subscriptions.filter(
-        status__in=['active', 'trialing', 'past_due']
-    ).first()
+    """Récupère la subscription active du Customer (filtre en Python).
+
+    On n'utilise pas `.filter(status__in=...)` côté SQL car selon la
+    version de djstripe, `status` n'est pas une colonne — c'est une
+    clé du JSONField `stripe_data`. Filtrer en Python évite la
+    FieldError.
+    """
+    for sub in customer.subscriptions.all():
+        status = _sub_field(sub, 'status')
+        if status in _ACTIVE_STATUSES:
+            return sub
+    return None
 
 
 # ─── Plans (public catalog) ───────────────────────────────────────────────────
@@ -91,9 +117,9 @@ class SubscriptionView(APIView):
         return Response(SubscriptionSerializer({
             'has_subscription': sub is not None,
             'plan': user.plan,
-            'status': sub.status if sub else None,
-            'current_period_end': sub.current_period_end if sub else None,
-            'cancel_at_period_end': sub.cancel_at_period_end if sub else False,
+            'status': _sub_field(sub, 'status') if sub else None,
+            'current_period_end': _sub_field(sub, 'current_period_end') if sub else None,
+            'cancel_at_period_end': _sub_field(sub, 'cancel_at_period_end', False) if sub else False,
         }).data)
 
 
