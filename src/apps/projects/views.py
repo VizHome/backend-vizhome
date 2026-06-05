@@ -6,6 +6,7 @@ import secrets
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -461,4 +462,63 @@ class SharedProjectView(APIView):
 
         return Response(
             ProjectDetailSerializer(link.project, context={'request': request}).data
+        )
+
+
+# ─── Thumbnail upload ──────────────────────────────────────────────────────
+class ProjectThumbnailView(APIView):
+    """POST /projects/{id}/thumbnail — upload une miniature pour le projet.
+
+    Reçoit une image (JPEG/PNG/WebP, max 1 Mo) au format multipart, l'écrit
+    dans `Project.thumbnail` (ImageField → MinIO/MEDIA_ROOT selon storage),
+    retourne le ProjectDetail avec l'URL mise à jour.
+
+    Le frontend appelle cet endpoint juste après le save de la scène, avec
+    un blob généré via `canvas.toDataURL('image/jpeg', 0.7)` ré-encodé en
+    400×300 sur un canvas off-screen.
+    """
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    MAX_SIZE = 1 * 1024 * 1024  # 1 Mo (largement assez pour 400×300 JPEG q=0.7)
+    ALLOWED_CONTENT_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
+
+    def post(self, request: Request, pk: int) -> Response:
+        project = get_owned_project(request.user, pk)
+
+        file = request.FILES.get('thumbnail')
+        if not file:
+            return Response(
+                {'detail': 'Le champ `thumbnail` (fichier image) est requis.',
+                 'code': 'missing_file'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if file.size > self.MAX_SIZE:
+            return Response(
+                {'detail': f'Image trop volumineuse (max {self.MAX_SIZE // 1024} Ko).',
+                 'code': 'too_large'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if file.content_type not in self.ALLOWED_CONTENT_TYPES:
+            return Response(
+                {'detail': 'Format non supporté (JPEG/PNG/WebP uniquement).',
+                 'code': 'invalid_format'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Supprime l'ancien thumbnail si présent (évite l'orphelin sur MinIO)
+        if project.thumbnail:
+            project.thumbnail.delete(save=False)
+
+        # Ré-extension propre pour MinIO
+        ext = {'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp'}[file.content_type]
+        file.name = f'thumb-{project.pk}.{ext}'
+
+        project.thumbnail = file
+        project.save(update_fields=['thumbnail', 'updated_at'])
+
+        return Response(
+            ProjectDetailSerializer(project, context={'request': request}).data,
+            status=status.HTTP_200_OK,
         )

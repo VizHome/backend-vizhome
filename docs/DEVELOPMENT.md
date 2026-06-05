@@ -219,6 +219,75 @@ cleanup, même si le post qui le référence est ensuite supprimé.
 Pour un vrai garbage collector avec ref-counting, ajouter un compteur
 sur `ForumUpload` + signal `post_save (update)` + `post_delete`.
 
+## Stripe : webhook en local (dj-stripe sync)
+
+Sans webhook, **Stripe ne notifie pas ton backend** des paiements/abonnements
+réussis → `User.plan` reste sur l'ancienne valeur, et aucune `Invoice`
+n'apparaît dans la DB. Les pages `/account/billing` et `/admin/billing`
+montrent un état figé.
+
+Le pipeline est déjà câblé côté backend (`apps/billing/handlers.py` écoute
+`customer.subscription.created/updated/deleted`). Il suffit que **Stripe CLI
+tourne** pour forwarder les events vers ton localhost.
+
+### Setup en 4 étapes
+
+```bash
+# 1. Installer Stripe CLI une fois :
+# Windows (winget) :
+winget install stripe.stripe-cli
+# Mac :
+brew install stripe/stripe-cli/stripe
+# Linux : voir https://docs.stripe.com/stripe-cli
+
+# 2. Login (ouvre un navigateur pour autoriser le CLI)
+stripe login
+
+# 3. Démarrer le forward (garde ce terminal ouvert pendant tes tests)
+stripe listen --forward-to localhost:8000/webhooks/stripe/  # ⚠️ slash FINAL obligatoire
+```
+
+Le CLI affiche au démarrage :
+
+```
+> Ready! Your webhook signing secret is whsec_xxxxxxxxxxxxxxxxx (^C to quit)
+```
+
+```bash
+# 4. Copier ce whsec_xxx dans .env :
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxx
+
+# Puis recréer le container pour que Django reload .env
+docker compose up -d --force-recreate api
+```
+
+### Vérifier que ça marche
+
+Dans le terminal `stripe listen`, chaque paiement / changement d'abonnement
+affichera une ligne `--> customer.subscription.updated [evt_xxx]` puis
+`<- [200 OK] /webhooks/stripe/`. Côté `docker compose logs api`, tu verras
+`INFO User foo@bar.com → plan pro`.
+
+Pour forcer un event de test sans passer par Stripe Checkout :
+
+```bash
+stripe trigger customer.subscription.created
+```
+
+### Pièges
+
+- **Ne réutilise pas le même `whsec_` entre deux sessions** : à chaque
+  `stripe login` puis `stripe listen`, le CLI peut régénérer le secret
+  → updater `.env` à chaque session devient pénible. Astuce : crée un
+  **webhook endpoint permanent** dans le dashboard Stripe test
+  (`https://dashboard.stripe.com/test/webhooks`) pointant vers ton ngrok/tunnel,
+  son `whsec_` ne change jamais.
+
+- **Le webhook secret du `.env.example` (`whsec_placeholder`) est invalide**
+  → Django acceptera l'event mais dj-stripe le rejettera silencieusement.
+  Si tes events `200 OK` arrivent mais `User.plan` ne change pas, vérifie
+  d'abord le secret.
+
 ## Snapshot quotidien des métriques admin (Phase 3)
 
 Le panel admin garde un historique long-terme via la table

@@ -9,6 +9,7 @@ urlpatterns = [
     path('', views.ProjectListCreateView.as_view(), name='projects-list'),
     path('<int:pk>', views.ProjectDetailView.as_view(), name='projects-detail'),
     path('<int:pk>/duplicate', views.ProjectDuplicateView.as_view(), name='projects-duplicate'),
+    path('<int:pk>/thumbnail', views.ProjectThumbnailView.as_view(), name='projects-thumbnail'),
 
     # Scene
     path('<int:pk>/scene', views.SceneView.as_view(), name='projects-scene'),

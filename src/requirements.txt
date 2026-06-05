@@ -1,5 +1,5 @@
 #  Core Django 
-Django>=5.2,<6.0
+Django>=6.0.6
 djangorestframework>=3.16
 djangorestframework-simplejwt>=5.5
 
@@ -33,9 +33,9 @@ Pillow>=11.0
 django-storages[s3]>=1.14
 boto3>=1.35
 
-#  Stripe 
-dj-stripe>=2.9
-stripe>=11.0
+#  Stripe
+dj-stripe>=2.9,<2.11
+stripe>=15.2.0
 
 #  Documentation API 
 drf-spectacular>=0.28

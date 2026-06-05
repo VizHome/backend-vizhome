@@ -35,8 +35,8 @@ class SupportMessageCreateSerializer(serializers.ModelSerializer):
         clean = (value or '').strip()
         if len(clean) < 2:
             raise serializers.ValidationError('Le message est trop court.')
-        if len(clean) > 10_000:
-            raise serializers.ValidationError('Le message est trop long (max 10 000 caractères).')
+        if len(clean) > 50_000:
+            raise serializers.ValidationError('Le message est trop long (max 50 000 caractères avec formatage).')
         return clean
 
 
@@ -76,7 +76,7 @@ class SupportTicketDetailSerializer(SupportTicketListSerializer):
 class SupportTicketCreateSerializer(serializers.ModelSerializer):
     """Création — body est le 1er message, transformé en SupportMessage."""
 
-    body = serializers.CharField(write_only=True, min_length=2, max_length=10_000)
+    body = serializers.CharField(write_only=True, min_length=2, max_length=50_000)
 
     class Meta:
         model = SupportTicket
