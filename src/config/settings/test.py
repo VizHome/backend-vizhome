@@ -2,7 +2,7 @@
 
 import tempfile
 
-from .dev import *  # noqa: F403  (re-export glob volontaire de la config dev)
+from .dev import *
 
 # Force FileSystem storage en tests (ignore USE_S3)
 STORAGES = {

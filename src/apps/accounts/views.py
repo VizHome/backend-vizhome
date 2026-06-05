@@ -18,7 +18,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .lockout import drf_lockout_response
 from .models import User, UserSession
-from .throttling import ForgotPasswordThrottle, LoginThrottle, RegisterThrottle
 from .serializers import (
     ChangePasswordSerializer,
     ForgotPasswordSerializer,
@@ -31,6 +30,7 @@ from .serializers import (
     build_token_pair,
     encode_uid,
 )
+from .throttling import ForgotPasswordThrottle, LoginThrottle, RegisterThrottle
 from .utils import get_client_ip, parse_device_name
 
 

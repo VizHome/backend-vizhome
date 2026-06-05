@@ -68,11 +68,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
     annotations = serializers.SerializerMethodField()
 
     class Meta(ProjectListSerializer.Meta):
-        fields = ProjectListSerializer.Meta.fields + (
-            "scene",
-            "imported_models",
-            "annotations",
-        )
+        fields = (*ProjectListSerializer.Meta.fields, "scene", "imported_models", "annotations")
 
     def get_scene(self, obj: Project) -> dict:
         return SceneSerializer(obj.scene).data

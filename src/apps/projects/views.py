@@ -13,7 +13,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-
 from .models import (
     Annotation,
     ImportedModel,
@@ -353,8 +352,9 @@ class PresignedUploadConfirmView(APIView):
         stats = request.user.stats
         if stats.storage_used_bytes + total > stats.storage_limit_bytes:
             # Trop tard : le fichier est déjà sur MinIO. On le supprime.
-            from .presigned import get_internal_client
             from django.conf import settings as dj_settings
+
+            from .presigned import get_internal_client
 
             client = get_internal_client()
             client.delete_object(Bucket=dj_settings.AWS_STORAGE_BUCKET_NAME, Key=key)

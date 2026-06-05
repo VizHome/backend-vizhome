@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient

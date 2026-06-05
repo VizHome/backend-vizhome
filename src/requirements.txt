@@ -1,50 +1,50 @@
 #  Core Django 
 Django>=6.0.6
-djangorestframework>=3.16
-djangorestframework-simplejwt>=5.5
+djangorestframework>=3.17.1
+djangorestframework-simplejwt>=5.5.1
 
 #  Database 
-psycopg[binary]>=3.2
+psycopg[binary]>=3.3.4
 
 #  Configuration 
-django-environ>=0.12
+django-environ>=0.13.0
 
 #  CORS 
-django-cors-headers>=4.6
+django-cors-headers>=4.9.0
 
 #  Sécurité 
-django-axes>=7.0
-django-otp>=1.5
-qrcode[pil]>=8.0
+django-axes>=8.3.1
+django-otp>=1.7.0
+qrcode[pil]>=8.2
 
 #  OAuth 
-google-auth>=2.36
-requests>=2.32
+google-auth>=2.53.0
+requests>=2.34.2
 
 #  Async tasks (étape 3) 
-celery>=5.4
-redis>=5.2
+celery>=5.6.3
+redis>=8.0.0
 
 #  Provider IA Gemini 
-google-genai>=1.0
-Pillow>=11.0
+google-genai>=2.8.0
+Pillow>=12.2.0
 
 #  Storage S3-compatible (MinIO en dev/prod self-hosted) 
-django-storages[s3]>=1.14
-boto3>=1.35
+django-storages[s3]>=1.14.6
+boto3>=1.43.24
 
 #  Stripe
 dj-stripe>=2.10.3
 stripe>=15.2.0
 
 #  Documentation API 
-drf-spectacular>=0.28
+drf-spectacular>=0.29.0
 
 #  Tâches périodiques (Celery beat) 
-django-celery-beat>=2.7
+django-celery-beat>=2.9.0
 
 #  Monitoring / observabilité 
-sentry-sdk[django]>=2.20
+sentry-sdk[django]>=2.61.1
 
 #  Production WSGI server 
-gunicorn>=23
+gunicorn>=26.0.0

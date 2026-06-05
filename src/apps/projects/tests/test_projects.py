@@ -112,6 +112,7 @@ class TestDuplicate:
 
     def test_duplicate_with_copy_assets_copies_models(self, auth_client, project, user):
         from unittest.mock import patch
+
         from apps.projects.models import ImportedModel
 
         ImportedModel.objects.create(

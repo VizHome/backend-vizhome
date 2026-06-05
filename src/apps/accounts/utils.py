@@ -33,9 +33,7 @@ def parse_device_name(user_agent: str) -> str:
         browser = "Edge"
     elif re.search(r"CriOS", user_agent):
         browser = "Chrome"
-    elif re.search(r"FxiOS", user_agent):
-        browser = "Firefox"
-    elif re.search(r"Firefox", user_agent):
+    elif re.search(r"FxiOS", user_agent) or re.search(r"Firefox", user_agent):
         browser = "Firefox"
     elif re.search(r"Chrome", user_agent):
         browser = "Chrome"

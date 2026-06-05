@@ -84,7 +84,7 @@ class SupportTicketDetailSerializer(SupportTicketListSerializer):
     messages = SupportMessageSerializer(many=True, read_only=True)
 
     class Meta(SupportTicketListSerializer.Meta):
-        fields = SupportTicketListSerializer.Meta.fields + ("messages",)
+        fields = (*SupportTicketListSerializer.Meta.fields, "messages")
 
 
 class SupportTicketCreateSerializer(serializers.ModelSerializer):

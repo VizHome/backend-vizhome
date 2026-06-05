@@ -181,7 +181,7 @@ class TicketMessageCreateView(APIView):
                 ticket.status = SupportTicket.Status.PENDING
                 updated_fields.append("status")
         if updated_fields:
-            ticket.save(update_fields=updated_fields + ["updated_at"])
+            ticket.save(update_fields=[*updated_fields, "updated_at"])
 
         # Notifie l'autre partie (fail_silently à l'intérieur).
         from .notifications import (
@@ -247,7 +247,7 @@ class AdminTicketListView(generics.ListAPIView):
 
 
 # Helper : aussi exposer ce queryset annoté plus haut sur d'autres apps (unused warning)
-_unused = Case  # noqa
-_unused2 = When  # noqa
-_unused3 = Value  # noqa
-_unused4 = BooleanField  # noqa
+_unused = Case
+_unused2 = When
+_unused3 = Value
+_unused4 = BooleanField

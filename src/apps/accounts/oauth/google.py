@@ -27,7 +27,7 @@ from .base import OAuthError, OAuthProfile, OAuthProvider
 class GoogleProvider(OAuthProvider):
     name = "google"
 
-    TOKEN_URL = "https://oauth2.googleapis.com/token"  # noqa: S105 — public URL
+    TOKEN_URL = "https://oauth2.googleapis.com/token"
 
     def exchange(self, payload: dict[str, Any]) -> OAuthProfile:
         # Branche 1 : id_token déjà reçu côté browser (One Tap / SDK SPA)

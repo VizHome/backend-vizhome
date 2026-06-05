@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 import pyotp
 import pytest
 from django_otp.plugins.otp_totp.models import TOTPDevice

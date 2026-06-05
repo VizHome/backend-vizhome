@@ -53,7 +53,7 @@ class CSVRenderer(BaseRenderer):
         # Colonnes = union des keys de toutes les lignes (préserve l'ordre du 1er)
         seen = list(rows[0].keys())
         for row in rows[1:]:
-            for key in row.keys():
+            for key in row:
                 if key not in seen:
                     seen.append(key)
 
@@ -79,7 +79,7 @@ def _flatten(value: Any) -> Any:
     """Convertit les dict/list en string JSON-like pour qu'ils tiennent dans une cellule."""
     if value is None:
         return ""
-    if isinstance(value, (dict, list)):
+    if isinstance(value, dict | list):
         import json
 
         return json.dumps(value, ensure_ascii=False)

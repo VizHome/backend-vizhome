@@ -42,7 +42,7 @@ class UserManager(BaseUserManager["User"]):
 
     def _create_user(
         self, email: str, password: str | None, **extra_fields: Any
-    ) -> "User":
+    ) -> User:
         if not email:
             raise ValueError("L'email est obligatoire.")
         email = self.normalize_email(email)
@@ -56,14 +56,14 @@ class UserManager(BaseUserManager["User"]):
 
     def create_user(
         self, email: str, password: str | None = None, **extra_fields: Any
-    ) -> "User":
+    ) -> User:
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
         return self._create_user(email, password, **extra_fields)
 
     def create_superuser(
         self, email: str, password: str | None = None, **extra_fields: Any
-    ) -> "User":
+    ) -> User:
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)

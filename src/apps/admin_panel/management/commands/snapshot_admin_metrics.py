@@ -39,9 +39,10 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options) -> None:
+        from rest_framework.test import APIRequestFactory
+
         from apps.admin_panel.models import AdminDailySnapshot
         from apps.admin_panel.views import AdminOverviewView
-        from rest_framework.test import APIRequestFactory
 
         # Date du snapshot
         date_str = options.get("date")

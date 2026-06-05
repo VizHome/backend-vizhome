@@ -31,7 +31,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         secret = getattr(settings, "DJSTRIPE_WEBHOOK_SECRET", "")
-        if not secret or secret == "whsec_placeholder":  # noqa: S105
+        if not secret or secret == "whsec_placeholder":
             raise CommandError(
                 "STRIPE_WEBHOOK_SECRET absent ou placeholder dans .env.\n"
                 "Lance d'abord `stripe listen --forward-to localhost:8000/...`\n"
