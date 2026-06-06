@@ -8,15 +8,46 @@ from .base import env
 DEBUG = False
 
 # ─── Sécurité HTTP ────────────────────────────────────────────────────────────
+# Le reverse proxy Traefik fait le TLS termination → on lui fait confiance pour
+# X-Forwarded-Proto. Configuration en couches : Traefik durcit les headers
+# globaux (cf traefik/dynamic/middlewares.yml), Django redurcit côté app pour
+# la défense en profondeur (au cas où le proxy serait contourné).
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True
-SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
+
+# HSTS : 1 an + sous-domaines + preload (à soumettre sur hstspreload.org après mise en prod)
+SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
+
+# Cookies : Secure + HttpOnly + SameSite=Lax (Strict casse OAuth redirect-back)
 SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = "Lax"
+
+# Anti-MIME sniffing + anti-clickjacking
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
+
+# Referrer policy : ne leak rien aux sites externes
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
+# Cross-Origin isolation (renforce le sandbox du navigateur)
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+
+# CSRF — origines de confiance pour les form submits cross-site (admin Django,
+# webhook tests, etc.). À renseigner via env DJANGO_CSRF_TRUSTED_ORIGINS.
+CSRF_TRUSTED_ORIGINS = env.list(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    default=[
+        "https://api.vizhome.fr",
+        "https://vizhome.fr",
+        "https://www.vizhome.fr",
+    ],
+)
 
 # ─── Email SMTP ───────────────────────────────────────────────────────────────
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

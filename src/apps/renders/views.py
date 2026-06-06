@@ -7,6 +7,8 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.core.throttling import RenderCreateThrottle
+
 from .models import Render
 from .providers.base import ProviderError
 from .serializers import (
@@ -37,6 +39,15 @@ class RenderListCreateView(generics.ListCreateAPIView):
     """GET /renders : galerie paginée. POST /renders : crée + déclenche Celery."""
 
     permission_classes = [IsAuthenticated]
+
+    def get_throttles(self):
+        """Le throttle `render-create` (20/h) ne s'applique qu'au POST.
+
+        Les GET de la galerie restent sous le throttle `user` global (120/min).
+        """
+        if self.request.method == "POST":
+            return [RenderCreateThrottle()]
+        return super().get_throttles()
 
     def get_queryset(self):
         qs = Render.objects.filter(user=self.request.user)

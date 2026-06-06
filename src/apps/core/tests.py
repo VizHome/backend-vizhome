@@ -124,3 +124,52 @@ class TestHealthcheck:
         data = response.json()
         assert data['status'] == 'degraded'
         assert 'error' in data['checks']['redis']
+
+
+# ─── Tests throttling (vérif des scopes configurés) ──────────────────────────
+
+
+class TestThrottlingConfig:
+    """Vérifie que les scopes de throttle métier sont bien déclarés.
+
+    Ces tests sont une sécurité contre les régressions : si un dev retire
+    un scope `render-create` du settings, les vues qui s'en servent lèveront
+    `ImproperlyConfigured` au runtime. Mieux vaut le détecter en CI.
+    """
+
+    def test_render_create_scope_configured(self):
+        from django.conf import settings as dj_settings
+
+        rates = dj_settings.REST_FRAMEWORK['DEFAULT_THROTTLE_RATES']
+        assert 'render-create' in rates
+        assert rates['render-create']
+
+    def test_forum_write_scope_configured(self):
+        from django.conf import settings as dj_settings
+
+        rates = dj_settings.REST_FRAMEWORK['DEFAULT_THROTTLE_RATES']
+        assert 'forum-write' in rates
+
+    def test_support_create_scope_configured(self):
+        from django.conf import settings as dj_settings
+
+        rates = dj_settings.REST_FRAMEWORK['DEFAULT_THROTTLE_RATES']
+        assert 'support-create' in rates
+
+    def test_contact_scope_configured(self):
+        from django.conf import settings as dj_settings
+
+        rates = dj_settings.REST_FRAMEWORK['DEFAULT_THROTTLE_RATES']
+        assert 'contact' in rates
+
+    def test_throttle_classes_use_correct_scope(self):
+        """Les classes de throttling lient leur `scope` au settings."""
+        from apps.core.throttling import (
+            ForumWriteThrottle,
+            RenderCreateThrottle,
+            SupportCreateThrottle,
+        )
+
+        assert RenderCreateThrottle.scope == 'render-create'
+        assert ForumWriteThrottle.scope == 'forum-write'
+        assert SupportCreateThrottle.scope == 'support-create'

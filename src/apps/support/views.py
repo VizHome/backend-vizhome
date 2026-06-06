@@ -10,6 +10,8 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core.throttling import SupportCreateThrottle
+
 from .models import SupportMessage, SupportTicket
 from .serializers import (
     SupportMessageCreateSerializer,
@@ -56,6 +58,12 @@ class TicketListCreateView(generics.ListCreateAPIView):
     """
 
     permission_classes = [IsAuthenticated]
+
+    def get_throttles(self):
+        """Limite la création à 10 tickets/h/user (anti-spam, le GET reste libre)."""
+        if self.request.method == "POST":
+            return [SupportCreateThrottle()]
+        return super().get_throttles()
 
     def get_queryset(self):
         return _annotated_qs(

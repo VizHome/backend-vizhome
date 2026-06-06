@@ -243,6 +243,41 @@ puis exec directement Gunicorn. Le verrou identifie son détenteur par
 Pour les workers Celery, on passe `BOOTSTRAP_SKIP=1` : ils ne tournent
 aucune étape (l'API s'en charge) et exec directement `celery worker`.
 
+### Hardening API : défense en profondeur
+
+Sécurité organisée en **3 couches concentriques** :
+
+1. **Traefik** (gateway) : security-headers, compression, rate-limit global
+   (100 req/s/IP), HSTS preload, TLS 1.3, redirect www→apex.
+2. **Django** (app) : `SECURE_*` settings (HSTS 1 an, COOP same-origin,
+   Referrer-Policy strict-origin-when-cross-origin), cookies Secure/HttpOnly/
+   SameSite=Lax, CSRF_TRUSTED_ORIGINS env-driven, **CSP via django-csp**
+   (allowlist explicite : self, Stripe, OAuth providers, jsdelivr pour Swagger).
+3. **DRF throttling** par scope :
+    - Auth : `register` 5/h, `forgot-password` 3/h, `login` 20/min
+    - Contact form public : `contact` 5/h
+    - **Renders IA** : `render-create` 20/h/user (coûteux)
+    - **Forum écriture** : `forum-write` 30/min/user (anti-flood)
+    - **Tickets support** : `support-create` 10/h/user
+
+Les classes de throttle sont dans `apps/core/throttling.py` et appliquées
+via `get_throttles()` qui ne s'active **que sur les méthodes POST** (les GET
+des listings restent sous le throttle `user` global à 120/min).
+
+Validation upload presigned MinIO renforcée
+(`PresignedUploadRequestSerializer`) :
+* Extension whitelist (`.glb .gltf .obj .fbx .stl`)
+* Filename sanitisé (refuse path traversal `../`, `/`, `\`, control chars,
+  fichiers cachés `.foo`)
+* Taille max **100 MB** par fichier (au-delà → multipart upload)
+* Cohérence content-type ↔ extension (refuse `text/html` ou
+  `application/javascript` sur un `.glb`, normalise les types incohérents
+  non malveillants en `application/octet-stream`)
+
+CI : **bandit** scan SAST (résultats SARIF dans GitHub Code Scanning) +
+**pip-audit** sur `requirements.txt` via le service OSV (en plus de Trivy
+sur l'image Docker et Dependency Review sur les PRs).
+
 ### Reverse proxy Traefik (prod)
 
 Traefik fait office de gateway HTTPS unique pour tout l'écosystème :
