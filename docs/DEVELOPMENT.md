@@ -40,7 +40,19 @@ docker compose exec api python manage.py createsuperuser
 # Lancer un script management custom
 docker compose exec api python manage.py setup_stripe_products
 docker compose exec api python manage.py reset_monthly_counters
+
+# Bootstrap idempotent — orchestre TOUS les setups en une commande
+# (migrate + collectstatic + Stripe + seed forum + i18n)
+docker compose exec api python manage.py bootstrap
+docker compose exec api python manage.py bootstrap --skip-stripe   # sans Stripe
+docker compose exec api python manage.py bootstrap --only migrate  # juste migrate
 ```
+
+> En prod, l'entrypoint Docker lance automatiquement `bootstrap` au
+> démarrage du container `api`. **Tu n'as donc rien à exécuter à la main**
+> après un `docker compose up -d`. En dev, c'est aussi pratique de lancer
+> `bootstrap` après un `git pull` plutôt que de te rappeler de chaque
+> commande individuelle.
 
 ## Tests
 

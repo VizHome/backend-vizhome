@@ -220,6 +220,51 @@ Un modèle 3D peut peser plusieurs Go. Le faire transiter par Django :
 Avec presigned URL, le navigateur PUT directement vers MinIO. Django ne
 voit que les métadonnées via `HEAD object`.
 
+### Bootstrap idempotent + verrou Redis (zéro-commande au deploy)
+
+L'entrypoint Docker du container `api` lance `python manage.py bootstrap`
+avant de démarrer Gunicorn. Cette commande orchestre toutes les étapes de
+boot du backend :
+
+1. `migrate` (applique les migrations en attente)
+2. `collectstatic` (si `STATIC_ROOT` défini)
+3. `compilemessages` (si dossier `locale/` présent)
+4. `seed_forum_categories` (idempotent)
+5. `setup_stripe_products` (si Stripe configuré)
+6. `setup_webhook_endpoint` (idem)
+
+**Multi-replica safety** : un verrou Redis (`vizhome:bootstrap:lock`, TTL
+5 min) garantit qu'**une seule instance** lance le bootstrap quand on scale
+horizontalement. Les autres replicas attendent (max `--wait-for-lock` sec)
+puis exec directement Gunicorn. Le verrou identifie son détenteur par
+`pid:<pid>:host:<hostname>` pour éviter de relâcher un verrou expiré qui a
+été repris par un autre process.
+
+Pour les workers Celery, on passe `BOOTSTRAP_SKIP=1` : ils ne tournent
+aucune étape (l'API s'en charge) et exec directement `celery worker`.
+
+### Reverse proxy Traefik (prod)
+
+Traefik fait office de gateway HTTPS unique pour tout l'écosystème :
+* TLS auto via Let's Encrypt (HTTP-01 + TLS-ALPN-01 challenges)
+* HTTP/3 (QUIC) en plus de HTTP/2 et HTTP/1.1
+* Redirection 80 → 443 automatique
+* Middlewares globaux appliqués via labels Docker :
+    * `security-headers` (HSTS preload, COOP, CORP, frame-deny)
+    * `compress` (Brotli + gzip négociés)
+    * `rate-limit-global` (100 req/s, burst 200)
+* Métriques Prometheus exposées sur port interne `8082`
+* Dashboard sécurisé par Basic Auth sur `traefik.vizhome.fr`
+
+Deux networks Docker :
+* `vizhome_proxy` (external) : Traefik + services exposés (api, minio,
+  frontend Nuxt qui vit dans le repo séparé)
+* `vizhome_internal` (bridge) : Postgres, Redis, Celery workers, MinIO
+  côté communication interne
+
+La config dynamique (`traefik/dynamic/*.yml`) est hot-reloadée — pas besoin
+de restart Traefik pour ajuster les middlewares ou les options TLS.
+
 ## Tests : structure et conventions
 
 - **pytest** avec `pytest-django`

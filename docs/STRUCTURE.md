@@ -80,10 +80,39 @@ core/
 ├── apps.py
 ├── views.py                      liveness + readiness
 ├── urls.py                       /health/live, /health/ready
-└── (pas de models — utilitaires uniquement)
+├── tests.py                      tests healthcheck + bootstrap command
+└── management/commands/
+    └── bootstrap.py              orchestrateur "zéro-commande" pour le deploy
 ```
 
 Endpoints `/health/*` pour Docker healthcheck + load balancer prod.
+
+**`manage.py bootstrap`** : exécuté par l'entrypoint Docker au démarrage de
+l'API. Idempotent. Étapes : `migrate` → `collectstatic` → `compilemessages`
+→ `seed_forum_categories` → `setup_stripe_products` → `setup_webhook_endpoint`.
+Sûr en multi-replica grâce à un verrou Redis (`vizhome:bootstrap:lock`, TTL
+5 min). Flags : `--skip-stripe`, `--skip-lock`, `--only <step>`,
+`--wait-for-lock <sec>`.
+
+### `apps/contact/`
+
+```
+contact/
+├── apps.py
+├── models.py                     NewsletterSubscriber (email opt-in)
+├── serializers.py                ContactMessageSerializer
+├── views.py                      POST /api/v1/contact/ (public, rate-limited 5/h)
+├── admin.py                      gestion staff des subscribers
+├── urls.py
+├── tests.py
+├── templates/contact/            email HTML + text (Reply-To direct user)
+└── migrations/0001_initial.py
+```
+
+Form de contact public marketing site. Envoie un email à
+`CONTACT_RECIPIENT_EMAIL` (défaut `contact@vizhome.fr`) via `send_mail`.
+Si `newsletter_opt_in=True`, crée/réactive un `NewsletterSubscriber`
+idempotent par email (lowercase normalisé).
 
 ### `apps/accounts/`
 

@@ -1,38 +1,70 @@
-# Production : à déployer sur un serveur self-hosted (VPS, OVH, Hetzner…).
+# =============================================================================
+# Production — Stack backend complète derrière Traefik.
+#
+# Architecture :
+#   Internet → Traefik (TLS / HTTP3 / compress / security headers)
+#     ├── api.vizhome.fr          → Django API (gunicorn)
+#     ├── cdn.vizhome.fr          → MinIO S3 (assets publics)
+#     ├── minio.vizhome.fr        → Console MinIO (admin)
+#     └── traefik.vizhome.fr      → Dashboard (basic auth)
+#
+# Le service `frontend` (Nuxt) vit dans son propre repo et rejoint le
+# network `vizhome_proxy` (external) pour être routé par ce Traefik.
 #
 # Pré-requis :
-# - Avoir un domaine pointant vers le serveur (DNS A record)
-# - Adapter les hosts (Traefik Host rules) dans les labels ci-dessous
-# - Renseigner .env.prod (cf .env.example)
+#   - DNS A records pointant vers le serveur pour : vizhome.fr, www.vizhome.fr,
+#     api.vizhome.fr, cdn.vizhome.fr, minio.vizhome.fr, traefik.vizhome.fr
+#   - Ports 80 + 443 + 443/udp (HTTP3) ouverts en firewall
+#   - .env.prod renseigné (cf .env.example)
+#   - Network `vizhome_proxy` créé : `docker network create vizhome_proxy`
 #
 # Démarrage :
+#   docker network create vizhome_proxy
 #   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 #
-# Le reverse proxy Traefik fournit automatiquement HTTPS via Let's Encrypt.
+# Cf docs/DEPLOYMENT.md pour les détails bascule DNS + backups + monitoring.
+# =============================================================================
 
 services:
+  # ─── Traefik : reverse proxy + TLS auto Let's Encrypt ──────────────────────
   traefik:
     image: traefik:v3.2
     container_name: vizhome-traefik
     command:
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.web.address=:80
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      - --entrypoints.websecure.address=:443
-      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
-      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
-      - --log.level=INFO
+      - --configFile=/etc/traefik/traefik.yml
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL}
+      TRAEFIK_DASHBOARD_HOST: ${TRAEFIK_DASHBOARD_HOST}
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"  # HTTP/3 (QUIC)
+      # Métriques Prometheus — ne pas exposer publiquement, accès via Tailscale/VPN
+      - "127.0.0.1:8082:8082"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_letsencrypt:/letsencrypt
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+    networks:
+      - vizhome_proxy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      # Le dashboard Traefik est routé via dynamic/dashboard.yml.
+      # Aucun label nécessaire sur ce service lui-même.
+      traefik.enable: "false"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
+  # ─── Postgres : pas exposé publiquement ────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: vizhome-postgres
@@ -48,12 +80,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - vizhome_internal
     restart: unless-stopped
 
+  # ─── Redis : cache + broker Celery, pas exposé publiquement ────────────────
   redis:
     image: redis:7-alpine
     container_name: vizhome-redis
-    command: redis-server --save 60 1 --loglevel warning
+    command: redis-server --save 60 1 --loglevel warning --maxmemory 512mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
     healthcheck:
@@ -61,8 +96,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - vizhome_internal
     restart: unless-stopped
 
+  # ─── MinIO : storage S3 + console admin ────────────────────────────────────
   minio:
     image: minio/minio:latest
     container_name: vizhome-minio
@@ -70,7 +108,6 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_S3_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${MINIO_S3_SECRET_KEY}
-      # Permet à MinIO de générer des URLs avec le bon hostname public
       MINIO_SERVER_URL: https://${MINIO_PUBLIC_HOST}
       MINIO_BROWSER_REDIRECT_URL: https://${MINIO_CONSOLE_HOST}
     volumes:
@@ -81,22 +118,31 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    networks:
+      - vizhome_internal
+      - vizhome_proxy
     restart: unless-stopped
     labels:
-      - traefik.enable=true
-      # API S3 sur cdn.vizhome.fr
-      - traefik.http.routers.minio-api.rule=Host(`${MINIO_PUBLIC_HOST}`)
-      - traefik.http.routers.minio-api.entrypoints=websecure
-      - traefik.http.routers.minio-api.tls.certresolver=letsencrypt
-      - traefik.http.routers.minio-api.service=minio-api
-      - traefik.http.services.minio-api.loadbalancer.server.port=9000
-      # Console MinIO sur minio.vizhome.fr (à protéger via firewall ou auth)
-      - traefik.http.routers.minio-console.rule=Host(`${MINIO_CONSOLE_HOST}`)
-      - traefik.http.routers.minio-console.entrypoints=websecure
-      - traefik.http.routers.minio-console.tls.certresolver=letsencrypt
-      - traefik.http.routers.minio-console.service=minio-console
-      - traefik.http.services.minio-console.loadbalancer.server.port=9001
+      traefik.enable: "true"
+      traefik.docker.network: "vizhome_proxy"
+      # ── API S3 publique (cdn.vizhome.fr) ────────────────────────────────
+      traefik.http.routers.minio-api.rule: "Host(`${MINIO_PUBLIC_HOST}`)"
+      traefik.http.routers.minio-api.entrypoints: "websecure"
+      traefik.http.routers.minio-api.tls.certresolver: "letsencrypt"
+      traefik.http.routers.minio-api.tls.options: "modern@file"
+      traefik.http.routers.minio-api.service: "minio-api"
+      traefik.http.routers.minio-api.middlewares: "security-headers@file,compress@file"
+      traefik.http.services.minio-api.loadbalancer.server.port: "9000"
+      # ── Console MinIO (minio.vizhome.fr, protégée par firewall ou auth) ─
+      traefik.http.routers.minio-console.rule: "Host(`${MINIO_CONSOLE_HOST}`)"
+      traefik.http.routers.minio-console.entrypoints: "websecure"
+      traefik.http.routers.minio-console.tls.certresolver: "letsencrypt"
+      traefik.http.routers.minio-console.tls.options: "modern@file"
+      traefik.http.routers.minio-console.service: "minio-console"
+      traefik.http.routers.minio-console.middlewares: "security-headers@file"
+      traefik.http.services.minio-console.loadbalancer.server.port: "9001"
 
+  # ─── MinIO init : crée le bucket au premier démarrage ──────────────────────
   minio-init:
     image: minio/mc:latest
     container_name: vizhome-minio-init
@@ -114,9 +160,12 @@ services:
       mc anonymous set download local/$${MINIO_S3_BUCKET_NAME};
       echo '✓ Bucket initialisé : '$${MINIO_S3_BUCKET_NAME};
       "
+    networks:
+      - vizhome_internal
 
+  # ─── API Django ────────────────────────────────────────────────────────────
   api:
-    image: ${VIZHOME_IMAGE:-vizhome-backend:latest}
+    image: ${VIZHOME_BACKEND_IMAGE:-ghcr.io/vizhome/vizhome-backend:latest}
     container_name: vizhome-api
     build:
       context: .
@@ -124,7 +173,9 @@ services:
     env_file:
       - .env.prod
     environment:
-      RUN_MIGRATIONS: "1"
+      # L'entrypoint lance `manage.py bootstrap` (migrate + collectstatic +
+      # setup_stripe + ...) avant le gunicorn. Pas besoin de RUN_MIGRATIONS.
+      BOOTSTRAP_SKIP: "0"
     depends_on:
       postgres:
         condition: service_healthy
@@ -132,16 +183,29 @@ services:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
+    networks:
+      - vizhome_internal
+      - vizhome_proxy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health/live"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s  # bootstrap peut prendre 30s+ (migrations + Stripe sync)
+      retries: 3
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.api.rule=Host(`${API_HOST}`)
-      - traefik.http.routers.api.entrypoints=websecure
-      - traefik.http.routers.api.tls.certresolver=letsencrypt
-      - traefik.http.services.api.loadbalancer.server.port=8000
+      traefik.enable: "true"
+      traefik.docker.network: "vizhome_proxy"
+      traefik.http.routers.api.rule: "Host(`${API_HOST}`)"
+      traefik.http.routers.api.entrypoints: "websecure"
+      traefik.http.routers.api.tls.certresolver: "letsencrypt"
+      traefik.http.routers.api.tls.options: "modern@file"
+      traefik.http.routers.api.middlewares: "security-headers@file,compress@file,rate-limit-global@file"
+      traefik.http.services.api.loadbalancer.server.port: "8000"
 
+  # ─── Celery worker : pas exposé, BOOTSTRAP_SKIP=1 ──────────────────────────
   celery:
-    image: ${VIZHOME_IMAGE:-vizhome-backend:latest}
+    image: ${VIZHOME_BACKEND_IMAGE:-ghcr.io/vizhome/vizhome-backend:latest}
     container_name: vizhome-celery
     build:
       context: .
@@ -150,16 +214,28 @@ services:
     env_file:
       - .env.prod
     environment:
-      RUN_MIGRATIONS: "0"
+      # Les workers ne tournent PAS le bootstrap (l'API s'en charge)
+      BOOTSTRAP_SKIP: "1"
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - vizhome_internal
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME || exit 1"]
+      interval: 60s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    labels:
+      traefik.enable: "false"
 
+  # ─── Celery beat : scheduler tasks périodiques ─────────────────────────────
   celery-beat:
-    image: ${VIZHOME_IMAGE:-vizhome-backend:latest}
+    image: ${VIZHOME_BACKEND_IMAGE:-ghcr.io/vizhome/vizhome-backend:latest}
     container_name: vizhome-celery-beat
     build:
       context: .
@@ -168,14 +244,19 @@ services:
     env_file:
       - .env.prod
     environment:
-      RUN_MIGRATIONS: "0"
+      BOOTSTRAP_SKIP: "1"
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - vizhome_internal
     restart: unless-stopped
+    labels:
+      traefik.enable: "false"
 
+# ─── Volumes persistants ──────────────────────────────────────────────────────
 volumes:
   postgres_data:
     name: vizhome_postgres_data_prod
@@ -185,3 +266,16 @@ volumes:
     name: vizhome_minio_data_prod
   traefik_letsencrypt:
     name: vizhome_traefik_letsencrypt
+
+# ─── Networks ────────────────────────────────────────────────────────────────
+networks:
+  # External : partagé avec frontend-vizhome (à créer manuellement avant up)
+  # `docker network create vizhome_proxy`
+  vizhome_proxy:
+    name: vizhome_proxy
+    external: true
+
+  # Interne : DB / cache / workers — pas d'accès depuis Traefik
+  vizhome_internal:
+    name: vizhome_internal
+    driver: bridge
