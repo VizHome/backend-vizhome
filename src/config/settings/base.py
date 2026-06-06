@@ -61,6 +61,7 @@ LOCAL_APPS = [
     "apps.forum",
     "apps.support",
     "apps.admin_panel",
+    "apps.contact",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -196,6 +197,8 @@ REST_FRAMEWORK = {
         "register": "5/hour",
         "forgot-password": "3/hour",
         "login": "20/min",
+        # Form de contact public — limite anti-spam par IP (5 envois/h).
+        "contact": "5/hour",
     },
 }
 

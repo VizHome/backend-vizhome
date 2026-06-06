@@ -31,6 +31,8 @@ api_v1_patterns: list = [
     path("forum/", include("apps.forum.urls")),
     path("support/", include("apps.support.urls")),
     path("admin/", include("apps.admin_panel.urls")),
+    # Endpoint public (pas d'auth) — form de contact site marketing
+    path("contact/", include(("apps.contact.urls", "contact"), namespace="contact")),
     # Endpoint public (pas d'auth) — accès à un projet via share token
     path("shared/<str:token>", SharedProjectView.as_view(), name="shared-project"),
 ]
