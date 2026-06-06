@@ -1,0 +1,41 @@
+name: OSSAR
+
+# Open Source Static Analysis Runner — wrapper Microsoft qui lance
+# plusieurs outils SAST (DevSkim, Semgrep, BinSkim…) puis agrège en SARIF.
+#
+# ⚠️ Requiert un runner Windows.
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  schedule:
+    - cron: "0 8 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: ossar-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ossar-scan:
+    name: OSSAR scan
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run OSSAR
+        id: ossar
+        uses: github/ossar-action@v1
+
+      - name: Upload OSSAR results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.ossar.outputs.sarifFile }}
+          category: ossar-backend
