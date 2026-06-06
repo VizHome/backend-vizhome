@@ -17,3 +17,7 @@ responses>=0.26.1
 # Dev tooling
 ipython>=9.14.1
 django-extensions>=4.1
+
+# Benchmarks (cf. benchmarks/README.md)
+locust>=2.31.0
+pytest-benchmark>=5.1.0

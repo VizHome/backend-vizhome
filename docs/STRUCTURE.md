@@ -40,7 +40,16 @@ backend-vizhome/
 │   └── backup_minio.sh           mirror MinIO (snapshot)
 │
 ├── .github/workflows/
-│   └── ci.yml                    lint (ruff) + tests (pytest) + build
+│   ├── ci.yml                    lint (ruff) + tests (pytest) + build
+│   └── benchmarks.yml            microbench pytest-benchmark (main only)
+│
+├── benchmarks/                   bench performance (hors src/, indep de Django)
+│   ├── README.md                 mode d'emploi local + CI
+│   ├── locustfile.py             5 scenarios load test HTTP (Locust)
+│   ├── test_perf.py              microbench Python (pytest-benchmark)
+│   └── conftest.py               injecte src/ dans sys.path
+│
+├── Makefile                      targets bench-local / bench-headless / bench-micro / bench-compare
 │
 ├── docker-compose.yml            stack dev (postgres + redis + minio + mailpit + api + celery)
 ├── docker-compose.prod.yml       stack prod (+ traefik + celery-beat)

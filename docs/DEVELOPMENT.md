@@ -81,6 +81,36 @@ docker compose exec api pytest -x
 docker compose exec api pytest --lf
 ```
 
+## Benchmarks performance
+
+Le dossier `benchmarks/` regroupe deux types de bench :
+
+- **Load tests HTTP** via Locust (`benchmarks/locustfile.py`) : simule
+  N users en parallele sur les endpoints critiques (login, list projects,
+  POST renders, etc.). 5 scenarios (`HealthCheckUser`, `AnonymousUser`,
+  `AuthenticatedUser`, `RenderingUser`, `ForumReader`).
+- **Microbenchmarks Python** via `pytest-benchmark`
+  (`benchmarks/test_perf.py`) : isole une fonction (serialisation Project,
+  generation JWT, hash password, sanitize HTML) et mesure son temps moyen
+  + p95.
+
+Lancer en local (le backend doit tourner sur `http://localhost:8000`) :
+
+```bash
+make bench-local       # Locust UI sur http://localhost:8089
+make bench-headless    # Locust 50 users, 2 min, sortie texte
+make bench-micro       # microbench pytest, sauve baseline local
+make bench-compare     # compare la run courante au dernier baseline
+```
+
+En CI : le workflow `.github/workflows/benchmarks.yml` se declenche
+manuellement (`workflow_dispatch`) ou sur push `main`. Il execute les
+microbench, upload le JSON en artifact, et garde un baseline pour
+detecter les regressions du commit suivant. Non bloquant pour l'instant
+(`continue-on-error: true`).
+
+Voir `benchmarks/README.md` pour le mode d'emploi detaille.
+
 ## Lint & format
 
 ```bash
