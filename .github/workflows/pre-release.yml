@@ -22,6 +22,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Docker registry exige des noms lowercase. GitHub Actions n'a pas de
+      # fonction `lower()` dans les expressions → on calcule l'owner LC ici.
+      - name: Compute lowercase owner
+        id: owner
+        run: echo "lc=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+
       - name: Compute version
         id: version
         run: |
@@ -51,8 +57,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/vizhome-backend:dev
-            ghcr.io/${{ github.repository_owner }}/vizhome-backend:dev-${{ steps.version.outputs.short_sha }}
+            ghcr.io/${{ steps.owner.outputs.lc }}/vizhome-backend:dev
+            ghcr.io/${{ steps.owner.outputs.lc }}/vizhome-backend:dev-${{ steps.version.outputs.short_sha }}
           labels: |
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}
@@ -64,7 +70,7 @@ jobs:
         run: |
           echo "## 🧪 Pre-release publiée" >> $GITHUB_STEP_SUMMARY
           echo "- Version : \`${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Image : \`ghcr.io/${{ github.repository_owner }}/vizhome-backend:dev-${{ steps.version.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Image : \`ghcr.io/${{ steps.owner.outputs.lc }}/vizhome-backend:dev-${{ steps.version.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
 
   # ─── Crée une GitHub Pre-Release attachée au commit dev ────────────────
   github-prerelease:
@@ -77,6 +83,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Compute lowercase owner
+        id: owner
+        run: echo "lc=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
 
       - name: Compute pre-release tag
         id: tag
@@ -111,7 +121,7 @@ jobs:
           body: |
             ## 🧪 Pre-release `dev` channel
 
-            Image Docker : `ghcr.io/${{ github.repository_owner }}/vizhome-backend:dev-${{ github.sha }}`
+            Image Docker : `ghcr.io/${{ steps.owner.outputs.lc }}/vizhome-backend:dev-${{ github.sha }}`
 
             ### Commits depuis dernière stable
             ${{ steps.changelog.outputs.changelog }}
