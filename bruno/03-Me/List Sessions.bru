@@ -1,0 +1,50 @@
+meta {
+  name: List Sessions
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/me/sessions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.body.results && res.body.results.length > 0) {
+    // Stocke la première session non-courante pour `Delete Session`
+    const nonCurrent = res.body.results.find(s => !s.is_current);
+    if (nonCurrent) {
+      bru.setEnvVar("sessionId", nonCurrent.id);
+    }
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("paginated response", function() {
+    expect(res.body).to.have.property("count");
+    expect(res.body).to.have.property("results");
+    expect(res.body.results).to.be.an("array");
+  });
+
+  test("at least 1 session (current)", function() {
+    expect(res.body.count).to.be.at.least(1);
+  });
+}
+
+docs {
+  Liste les sessions actives de l'utilisateur (paginé). Chaque session
+  contient `device_name`, `user_agent`, `ip_address`, `location`,
+  `created_at`, `last_active`, `is_current`.
+
+  Le script auto-stocke `sessionId` (première session non-courante) pour
+  pouvoir tester `Delete Session` ensuite.
+}

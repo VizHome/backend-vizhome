@@ -1,0 +1,50 @@
+meta {
+  name: Create Share Link
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/share
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "permission": "read",
+    "expires_at": "2026-12-31T23:59:59Z"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("shareId", res.body.id);
+    bru.setEnvVar("shareToken", res.body.token);
+  }
+}
+
+tests {
+  test("returns 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("returns token + share_url", function() {
+    expect(res.body).to.have.property("token");
+    expect(res.body).to.have.property("share_url");
+  });
+}
+
+docs {
+  Crée un lien public de partage. Permission : `read` (seul mode
+  supporté actuellement). `expires_at` optionnel — null = jamais.
+
+  Le `token` est généré par le backend (URL-safe, 32 chars). Le frontend
+  l'utilise pour construire `{FRONTEND_URL}/shared/{token}`.
+
+  Auto-stocke `shareId` + `shareToken` pour les deux requêtes suivantes.
+}

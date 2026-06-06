@@ -1,8 +1,8 @@
 """Serializers DRF de l'app projects."""
+
 from __future__ import annotations
 
 import os
-from typing import Any
 
 from rest_framework import serializers
 
@@ -32,13 +32,29 @@ class ProjectListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = (
-            'id', 'title', 'description', 'thumbnail_url', 'is_archived',
-            'models_count', 'created_at', 'updated_at',
+            "id",
+            "title",
+            "description",
+            "thumbnail_url",
+            "is_archived",
+            "models_count",
+            "created_at",
+            "updated_at",
         )
-        read_only_fields = ('id', 'thumbnail_url', 'models_count', 'created_at', 'updated_at')
+        read_only_fields = (
+            "id",
+            "thumbnail_url",
+            "models_count",
+            "created_at",
+            "updated_at",
+        )
 
     def get_thumbnail_url(self, obj: Project) -> str | None:
-        return _absolute(self.context.get('request'), obj.thumbnail.url) if obj.thumbnail else None
+        return (
+            _absolute(self.context.get("request"), obj.thumbnail.url)
+            if obj.thumbnail
+            else None
+        )
 
     def get_models_count(self, obj: Project) -> int:
         return obj.imported_models.count()
@@ -52,9 +68,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
     annotations = serializers.SerializerMethodField()
 
     class Meta(ProjectListSerializer.Meta):
-        fields = ProjectListSerializer.Meta.fields + (
-            'scene', 'imported_models', 'annotations',
-        )
+        fields = (*ProjectListSerializer.Meta.fields, "scene", "imported_models", "annotations")
 
     def get_scene(self, obj: Project) -> dict:
         return SceneSerializer(obj.scene).data
@@ -71,15 +85,15 @@ class ProjectDetailSerializer(ProjectListSerializer):
 class ProjectCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
-        fields = ('title', 'description', 'is_archived')
+        fields = ("title", "description", "is_archived")
 
 
 # ─── Scene ────────────────────────────────────────────────────────────────────
 class SceneSerializer(serializers.ModelSerializer):
     class Meta:
         model = Scene
-        fields = ('data', 'version', 'updated_at')
-        read_only_fields = ('version', 'updated_at')
+        fields = ("data", "version", "updated_at")
+        read_only_fields = ("version", "updated_at")
 
 
 # ─── ImportedModel ────────────────────────────────────────────────────────────
@@ -90,18 +104,36 @@ class ImportedModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = ImportedModel
         fields = (
-            'id', 'name', 'format', 'file_url', 'mtl_file_url', 'file_size_bytes',
-            'position', 'rotation', 'scale', 'created_at',
+            "id",
+            "name",
+            "format",
+            "file_url",
+            "mtl_file_url",
+            "file_size_bytes",
+            "position",
+            "rotation",
+            "scale",
+            "created_at",
         )
         read_only_fields = (
-            'id', 'file_url', 'mtl_file_url', 'file_size_bytes', 'created_at',
+            "id",
+            "file_url",
+            "mtl_file_url",
+            "file_size_bytes",
+            "created_at",
         )
 
     def get_file_url(self, obj: ImportedModel) -> str | None:
-        return _absolute(self.context.get('request'), obj.file.url) if obj.file else None
+        return (
+            _absolute(self.context.get("request"), obj.file.url) if obj.file else None
+        )
 
     def get_mtl_file_url(self, obj: ImportedModel) -> str | None:
-        return _absolute(self.context.get('request'), obj.mtl_file.url) if obj.mtl_file else None
+        return (
+            _absolute(self.context.get("request"), obj.mtl_file.url)
+            if obj.mtl_file
+            else None
+        )
 
 
 class ImportedModelUploadSerializer(serializers.Serializer):
@@ -112,7 +144,7 @@ class ImportedModelUploadSerializer(serializers.Serializer):
     mtl_file = serializers.FileField(required=False)
 
     def validate_file(self, value):
-        ext = os.path.splitext(value.name)[1].lstrip('.').lower()
+        ext = os.path.splitext(value.name)[1].lstrip(".").lower()
         if ext not in {choice.value for choice in ImportedModel.Format}:
             raise serializers.ValidationError(
                 f"Format non supporté : .{ext}. "
@@ -127,10 +159,12 @@ class PresignedUploadRequestSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200)
     file_name = serializers.CharField(max_length=200)
     file_size_bytes = serializers.IntegerField(min_value=1)
-    content_type = serializers.CharField(max_length=100, required=False, default='application/octet-stream')
+    content_type = serializers.CharField(
+        max_length=100, required=False, default="application/octet-stream"
+    )
 
     def validate_file_name(self, value):
-        ext = os.path.splitext(value)[1].lstrip('.').lower()
+        ext = os.path.splitext(value)[1].lstrip(".").lower()
         if ext not in {choice.value for choice in ImportedModel.Format}:
             raise serializers.ValidationError(
                 f"Format non supporté : .{ext}. "
@@ -152,15 +186,23 @@ class ImportedModelUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ImportedModel
-        fields = ('name', 'position', 'rotation', 'scale')
+        fields = ("name", "position", "rotation", "scale")
 
 
 # ─── Annotation ───────────────────────────────────────────────────────────────
 class AnnotationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Annotation
-        fields = ('id', 'type', 'position', 'content', 'color', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'created_at', 'updated_at')
+        fields = (
+            "id",
+            "type",
+            "position",
+            "content",
+            "color",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_at", "updated_at")
 
 
 # ─── ShareLink ────────────────────────────────────────────────────────────────
@@ -171,19 +213,31 @@ class ShareLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShareLink
         fields = (
-            'id', 'token', 'share_url', 'permission', 'expires_at',
-            'last_used_at', 'created_at', 'is_expired',
+            "id",
+            "token",
+            "share_url",
+            "permission",
+            "expires_at",
+            "last_used_at",
+            "created_at",
+            "is_expired",
         )
         read_only_fields = (
-            'id', 'token', 'share_url', 'last_used_at', 'created_at', 'is_expired',
+            "id",
+            "token",
+            "share_url",
+            "last_used_at",
+            "created_at",
+            "is_expired",
         )
 
     def get_share_url(self, obj: ShareLink) -> str:
         from django.conf import settings
-        return f'{settings.FRONTEND_URL}/shared/{obj.token}'
+
+        return f"{settings.FRONTEND_URL}/shared/{obj.token}"
 
 
 class ShareLinkCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShareLink
-        fields = ('permission', 'expires_at')
+        fields = ("permission", "expires_at")

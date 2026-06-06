@@ -1,0 +1,39 @@
+meta {
+  name: Export Renders CSV
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/admin/renders?format=csv
+  body: none
+  auth: bearer
+}
+
+params:query {
+  format: csv
+  ~status: done
+  ~source: prompt
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 403 if not staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+
+  test("Content-Type is text/csv", function() {
+    if (res.getStatus() === 200) {
+      expect(res.getHeader("content-type") || "").to.include("text/csv");
+    }
+  });
+}
+
+docs {
+  GET /api/v1/admin/renders?format=csv — export CSV des renders (staff-only).
+
+  Mêmes filtres que la version JSON : `status`, `source`.
+}

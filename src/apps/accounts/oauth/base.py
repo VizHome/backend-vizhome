@@ -4,6 +4,7 @@ Chaque provider doit exposer une méthode `exchange(payload)` qui prend les
 données envoyées par le frontend (id_token, code, redirect_uri…) et retourne
 un OAuthProfile normalisé.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -23,9 +24,9 @@ class OAuthProfile:
     provider_user_id: str  # id unique côté provider
     email: str
     email_verified: bool
-    first_name: str = ''
-    last_name: str = ''
-    avatar_url: str = ''
+    first_name: str = ""
+    last_name: str = ""
+    avatar_url: str = ""
 
 
 class OAuthProvider(ABC):

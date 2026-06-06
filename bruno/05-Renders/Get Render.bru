@@ -1,0 +1,40 @@
+meta {
+  name: Get Render
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/renders/{{renderId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns render with status field", function() {
+    expect(res.body).to.have.property("status");
+    expect(["pending", "processing", "done", "failed"]).to.include(res.body.status);
+  });
+}
+
+docs {
+  Récupère un render individuel. **À utiliser en polling** après
+  `Create Render` jusqu'à atteindre un terminal state.
+
+  Statuts :
+  - `pending` — en file d'attente Celery
+  - `processing` — worker en train d'appeler Gemini
+  - `done` — `result_url` disponible
+  - `failed` — `error_message` explicite
+
+  Champ `is_terminal: true` quand status ∈ {done, failed} — pratique
+  pour le frontend qui arrête le polling.
+}

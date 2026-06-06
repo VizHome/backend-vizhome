@@ -1,0 +1,26 @@
+meta {
+  name: Liveness
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/health/live
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("status is ok", function() {
+    expect(res.body.status).to.equal("ok");
+  });
+}
+
+docs {
+  Liveness probe — confirme que le process Django répond. Toujours `ok`
+  tant que le serveur est up, même si Postgres ou Redis sont down.
+}

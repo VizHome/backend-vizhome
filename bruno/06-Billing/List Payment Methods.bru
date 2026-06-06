@@ -1,0 +1,36 @@
+meta {
+  name: List Payment Methods
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/me/payment-methods
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns array", function() {
+    expect(res.body).to.be.an("array");
+  });
+}
+
+docs {
+  Liste les méthodes de paiement (cartes) enregistrées par l'utilisateur
+  sur Stripe.
+
+  Chaque entrée : `id`, `brand` (visa/mastercard/...), `last4`,
+  `exp_month`, `exp_year`. Pas de PAN complet (jamais accessible
+  côté serveur).
+
+  APIView plain → array non paginé.
+}

@@ -1,0 +1,39 @@
+meta {
+  name: Logout
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/auth/logout
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "refresh": "{{refreshToken}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 204) {
+    bru.setEnvVar("accessToken", "");
+    bru.setEnvVar("refreshToken", "");
+  }
+}
+
+tests {
+  test("returns 204", function() {
+    expect(res.getStatus()).to.equal(204);
+  });
+}
+
+docs {
+  Logout — blackliste le refresh token et marque la session révoquée.
+  Vide les tokens de l'env si succès.
+}

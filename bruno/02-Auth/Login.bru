@@ -1,0 +1,60 @@
+meta {
+  name: Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{userEmail}}",
+    "password": "{{userPassword}}"
+  }
+}
+
+vars:pre-request {
+  apiPrefix: api/v1
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    if (res.body.require_2fa) {
+      // L'user a la 2FA activée — passer par `2FA Verify Login`
+      bru.setEnvVar("challengeToken", res.body.challenge_token);
+    } else {
+      bru.setEnvVar("accessToken", res.body.access);
+      bru.setEnvVar("refreshToken", res.body.refresh);
+      bru.setEnvVar("userId", res.body.user.id);
+    }
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("returns tokens OR 2FA challenge", function() {
+    if (res.body.require_2fa) {
+      expect(res.body).to.have.property("challenge_token");
+    } else {
+      expect(res.body).to.have.property("access");
+    }
+  });
+}
+
+docs {
+  Login avec email + password.
+  
+  **Deux réponses possibles** :
+  - `{user, access, refresh}` — pas de 2FA
+  - `{require_2fa: true, challenge_token, expires_in: 300}` — l'user a
+    activé la 2FA → utilise ensuite `2FA Verify Login`
+  
+  Le script post-response gère automatiquement les deux cas.
+}

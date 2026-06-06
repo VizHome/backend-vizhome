@@ -29,6 +29,41 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # pgweb — UI web légère pour browse/query la DB Postgres en dev.
+  # Accessible sur http://localhost:8081 (sessions auto-connectées via env vars).
+  # Aucune auth → exposé uniquement en local, jamais en prod.
+  #
+  # ⚠️ Si `docker compose up -d pgweb` échoue avec une erreur Docker Hub CDN
+  # (EOF sur cloudfront), retry après quelques minutes — c'est un glitch
+  # transient du registre. Fallback : commenter pgweb ci-dessous et
+  # décommenter le service `adminer` plus bas.
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: vizhome-pgweb
+    environment:
+      PGWEB_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      PGWEB_SESSIONS: "1"
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Fallback DB admin si pgweb ne pull pas (image tiny + très fiable).
+  # Décommenter ce bloc + commenter pgweb ci-dessus si besoin.
+  # Accessible sur http://localhost:8082 → System: PostgreSQL,
+  # Server: postgres, User/Password/Database = .env.
+  # adminer:
+  #   image: adminer:latest
+  #   container_name: vizhome-adminer
+  #   ports:
+  #     - "8082:8080"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+
   minio:
     image: minio/minio:latest
     container_name: vizhome-minio
@@ -67,6 +102,23 @@ services:
       mc anonymous set download local/$${MINIO_S3_BUCKET_NAME};
       echo '✓ Bucket initialisé : '$${MINIO_S3_BUCKET_NAME};
       "
+
+  mailpit:
+    # Fake SMTP en dev — catch tous les emails, UI web sur :8025
+    # https://mailpit.axllent.org/
+    image: axllent/mailpit:latest
+    container_name: vizhome-mailpit
+    ports:
+      - "1025:1025"   # SMTP (utilisé par Django)
+      - "8025:8025"   # Web UI (http://localhost:8025)
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    volumes:
+      - mailpit_data:/data
+    restart: unless-stopped
 
   api:
     container_name: vizhome-api
@@ -119,3 +171,5 @@ volumes:
     name: vizhome_postgres_data
   minio_data:
     name: vizhome_minio_data
+  mailpit_data:
+    name: vizhome_mailpit_data

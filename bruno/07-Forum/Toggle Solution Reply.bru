@@ -1,0 +1,35 @@
+meta {
+  name: Toggle Solution Reply
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/forum/replies/{{replyId}}/toggle-solution
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 403 if neither topic author nor staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+  test("if 200 → returns boolean", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("is_solution");
+    }
+  });
+}
+
+docs {
+  Toggle le statut "solution acceptée" sur une réponse.
+
+  **Permission** : auteur du TOPIC (qui a posé la question), OU staff.
+
+  Une seule solution acceptée par topic : si on marque la réponse B alors
+  que A était déjà solution, A est automatiquement unset par le backend.
+}

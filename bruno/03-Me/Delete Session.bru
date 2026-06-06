@@ -1,0 +1,29 @@
+meta {
+  name: Delete Session
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}{{apiPrefix}}/me/sessions/{{sessionId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 204", function() {
+    expect(res.getStatus()).to.equal(204);
+  });
+}
+
+docs {
+  Révoque une session active (signe out le device correspondant).
+
+  Requiert `sessionId` (auto-stocké par `List Sessions` — première
+  session non-courante). Tu ne peux pas révoquer ta session courante par
+  cet endpoint (utilise `Logout` à la place).
+}

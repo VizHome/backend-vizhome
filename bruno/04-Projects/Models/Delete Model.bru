@@ -1,0 +1,28 @@
+meta {
+  name: Delete Model
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/models/{{modelId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 204", function() {
+    expect(res.getStatus()).to.equal(204);
+  });
+}
+
+docs {
+  Supprime un modèle 3D du projet. Le fichier MinIO associé n'est PAS
+  supprimé automatiquement (lifecycle policy à configurer dans MinIO).
+
+  `UserStats.storage_used_bytes` est décrémenté via signal `post_delete`.
+}

@@ -1,0 +1,60 @@
+meta {
+  name: Create Topic
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/forum/topics
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "category": 3,
+    "title": "Comment importer un fichier GLB ?",
+    "content": "Bonjour, j'ai un modèle 3D au format .glb mais je ne trouve pas où l'importer dans l'éditeur. Quelqu'un peut m'aider ?"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("topicId", res.body.id);
+  }
+}
+
+tests {
+  test("returns 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("slug includes id prefix", function() {
+    expect(res.body.slug).to.match(new RegExp(`^${res.body.id}-`));
+  });
+
+  test("author info filled", function() {
+    expect(res.body.author).to.have.property("id");
+    expect(res.body.author).to.have.property("name");
+  });
+}
+
+docs {
+  Crée un nouveau topic dans une catégorie. Requiert auth.
+
+  Tu dois renseigner `category` = ID numérique de la catégorie (pas le
+  slug). Récupère l'ID via `List Categories`.
+
+  Si la catégorie est `is_admin_only` (ex: "Annonces"), un user normal
+  reçoit 403 + `code: 'category_locked'`.
+
+  Validations :
+  - `title` : 5 caractères min
+  - `content` : 10 caractères min
+
+  Le slug est auto-généré au format `{id}-{slugified-title}`.
+}

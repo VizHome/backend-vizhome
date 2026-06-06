@@ -1,0 +1,29 @@
+meta {
+  name: Delete Render
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}{{apiPrefix}}/renders/{{renderId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 204", function() {
+    expect(res.getStatus()).to.equal(204);
+  });
+}
+
+docs {
+  Supprime un render. Le fichier MinIO résultat n'est pas auto-supprimé
+  (lifecycle policy MinIO).
+
+  Le compteur `UserStats.renders_this_month` n'est PAS décrémenté
+  (quota basé sur la création, pas sur la rétention).
+}

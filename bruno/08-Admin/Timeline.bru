@@ -1,0 +1,56 @@
+meta {
+  name: Timeline
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/admin/timeline?days=30
+  body: none
+  auth: bearer
+}
+
+params:query {
+  days: 30
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 403 if not staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+
+  test("if 200 → all series present", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("days");
+      expect(res.body).to.have.property("users_per_day");
+      expect(res.body).to.have.property("renders_per_day");
+      expect(res.body).to.have.property("renders_status_breakdown");
+      expect(res.body).to.have.property("forum_activity_per_day");
+    }
+  });
+
+  test("series length matches days param", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body.users_per_day.length).to.equal(res.body.days);
+      expect(res.body.renders_per_day.length).to.equal(res.body.days);
+    }
+  });
+}
+
+docs {
+  GET /api/v1/admin/timeline?days=N — séries temporelles pour graphiques.
+
+  Query param `days` : 1 à 365 (défaut 30).
+
+  Réponse :
+  - `users_per_day` : [{date, count}] — nouvelles inscriptions par jour
+  - `renders_per_day` : [{date, pending, processing, done, failed}] — renders par jour groupés par status
+  - `renders_status_breakdown` : {status: count} — distribution globale actuelle (donut)
+  - `forum_activity_per_day` : [{date, topics, replies}] — activité forum par jour
+
+  Utilisé par `/admin/analytics` côté frontend.
+}

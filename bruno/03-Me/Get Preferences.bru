@@ -1,0 +1,35 @@
+meta {
+  name: Get Preferences
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/me/preferences
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns preferences with theme + render fields", function() {
+    expect(res.body).to.have.property("theme");
+    expect(res.body).to.have.property("language");
+    expect(res.body).to.have.property("render_quality");
+    expect(res.body).to.have.property("render_format");
+  });
+}
+
+docs {
+  Récupère les préférences utilisateur. 15 champs au total :
+  apparence (theme, language), notifications (4 toggles),
+  qualité/format de rendu, accessibilité (reduced_motion, high_contrast,
+  font_size), et flags analytics/marketing.
+}

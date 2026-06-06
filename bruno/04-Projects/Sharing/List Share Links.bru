@@ -1,0 +1,40 @@
+meta {
+  name: List Share Links
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/share
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.body.results && res.body.results.length > 0) {
+    bru.setEnvVar("shareId", res.body.results[0].id);
+    bru.setEnvVar("shareToken", res.body.results[0].token);
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("paginated response", function() {
+    expect(res.body).to.have.property("results");
+  });
+}
+
+docs {
+  Liste les liens publics de partage d'un projet (paginé). Chaque lien
+  a un `token` URL-safe et un champ `share_url` calculé pour l'accès
+  public direct.
+
+  Auto-stocke `shareId` + `shareToken`.
+}

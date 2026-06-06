@@ -1,0 +1,37 @@
+meta {
+  name: List Categories
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/forum/categories
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  apiPrefix: api/v1
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("returns array (not paginated)", function() {
+    expect(res.body).to.be.an("array");
+  });
+}
+
+docs {
+  Liste publique des catégories du forum (pas d'auth requise). Pas paginé
+  — typiquement 5-10 catégories max.
+  
+  Catégories par défaut après `seed_forum_categories` :
+  - Annonces (admin only)
+  - Idées & suggestions
+  - Support
+  - Bug reports
+  - Discussions générales
+}

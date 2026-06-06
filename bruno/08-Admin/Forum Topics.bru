@@ -1,0 +1,55 @@
+meta {
+  name: Forum Topics (moderation)
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/admin/forum/topics?page=1&page_size=25
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  page_size: 25
+  ~search: bug
+  ~category: 1
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 403 if not staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+
+  test("if 200 → paginated topics shape", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("count");
+      expect(res.body).to.have.property("results");
+      if (res.body.results.length > 0) {
+        const t = res.body.results[0];
+        expect(t).to.have.property("id");
+        expect(t).to.have.property("title");
+        expect(t).to.have.property("is_pinned");
+        expect(t).to.have.property("is_locked");
+      }
+    }
+  });
+}
+
+docs {
+  GET /api/v1/admin/forum/topics — liste paginée des topics pour modération (staff-only).
+
+  Réutilise le `TopicListSerializer` standard du forum. Les actions
+  pin/unpin/lock/unlock/delete passent par les endpoints existants
+  `/forum/topics/{id}/...` qui auditent automatiquement les actions staff
+  via `log_admin_action`.
+
+  **Query params** :
+  - `search` : `icontains` sur titre
+  - `category` : ID catégorie
+}

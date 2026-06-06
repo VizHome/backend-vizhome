@@ -1,0 +1,120 @@
+name: Pre-release (dev)
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: pre-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── Build & push image dev avec tag dev-<sha> + dev-latest ────────────
+  docker-dev:
+    name: Publish dev image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute version
+        id: version
+        run: |
+          # Récupère la dernière release (tag) et calcule un pré-release
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          COMMITS_SINCE=$(git rev-list "${LAST_TAG}..HEAD" --count)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          PRE_VERSION="${LAST_TAG#v}-dev.${COMMITS_SINCE}+${SHORT_SHA}"
+          echo "version=$PRE_VERSION" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_PAT }}
+
+      - name: Build & push dev image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/vizhome-backend:dev
+            ghcr.io/${{ github.repository_owner }}/vizhome-backend:dev-${{ steps.version.outputs.short_sha }}
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          echo "## 🧪 Pre-release publiée" >> $GITHUB_STEP_SUMMARY
+          echo "- Version : \`${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Image : \`ghcr.io/${{ github.repository_owner }}/vizhome-backend:dev-${{ steps.version.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+  # ─── Crée une GitHub Pre-Release attachée au commit dev ────────────────
+  github-prerelease:
+    name: GitHub pre-release
+    needs: docker-dev
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute pre-release tag
+        id: tag
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          COMMITS_SINCE=$(git rev-list "${LAST_TAG}..HEAD" --count)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          TAG="${LAST_TAG}-dev.${COMMITS_SINCE}+${SHORT_SHA}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog since last stable
+        id: changelog
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            CHANGELOG=$(git log "${LAST_TAG}..HEAD" --pretty=format:"- %s (%h)" --no-merges | head -50)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges | head -50)
+          fi
+          {
+            echo "changelog<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Create pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GH_PAT }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "Pre-release ${{ steps.tag.outputs.tag }}"
+          body: |
+            ## 🧪 Pre-release `dev` channel
+
+            Image Docker : `ghcr.io/${{ github.repository_owner }}/vizhome-backend:dev-${{ github.sha }}`
+
+            ### Commits depuis dernière stable
+            ${{ steps.changelog.outputs.changelog }}
+          prerelease: true
+          target_commitish: ${{ github.sha }}
+          make_latest: "false"

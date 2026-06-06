@@ -1,0 +1,34 @@
+meta {
+  name: Update Topic
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}{{apiPrefix}}/forum/topics/{{topicId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "content": "Contenu édité après réflexion."
+  }
+}
+
+tests {
+  test("returns 200 (owner) or 403 (other)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+}
+
+docs {
+  Modifie un topic. Seul l'auteur OU un staff peut éditer.
+
+  Champs modifiables : `title`, `content`. Les méta (pinned, locked,
+  compteurs) sont read-only via cet endpoint.
+}

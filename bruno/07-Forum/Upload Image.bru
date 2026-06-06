@@ -1,0 +1,72 @@
+meta {
+  name: Upload Image
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/forum/upload-image
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:multipart-form {
+  file: @file()
+}
+
+tests {
+  test("returns 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("returns url + metadata", function() {
+    expect(res.body).to.have.property("url");
+    expect(res.body).to.have.property("filename");
+    expect(res.body).to.have.property("size_bytes");
+    expect(res.body).to.have.property("content_type");
+  });
+
+  test("url points to MinIO public domain", function() {
+    expect(res.body.url).to.match(/^https?:\/\/.+\/forum\/uploads\//);
+  });
+}
+
+docs {
+  Upload une image pour insertion dans un post (topic ou reply) du forum.
+
+  **Auth requise** (Bearer JWT).
+
+  **Body** : multipart/form-data avec un champ `file` contenant un fichier
+  image. Dans Bruno desktop, clique sur le bouton "select file" à côté du
+  champ `file` et choisis un PNG/JPG/GIF/WEBP de < 5 MB.
+
+  **Validation côté backend** :
+  - Types acceptés : `image/png`, `image/jpeg`, `image/gif`, `image/webp`
+  - Taille max : 5 MB
+  - Réponses d'erreur : 400 avec `code: "no_file" | "invalid_type" | "too_large"`
+
+  **Storage** : MinIO via django-storages.
+  Clé : `forum/uploads/{user_id}/{YYYY}/{MM}/{uuid}.{ext}`
+
+  **Réponse 201** :
+  ```json
+  {
+    "url": "http://localhost:9000/vizhome-media/forum/uploads/4/2026/05/abc.png",
+    "filename": "abc.png",
+    "size_bytes": 70,
+    "content_type": "image/png"
+  }
+  ```
+
+  Côté frontend, `ForumEditor.vue` appelle cet endpoint quand l'user :
+  - clique sur le bouton image de la toolbar (file picker)
+  - colle une image depuis le clipboard (Ctrl+V d'un screenshot)
+  - glisse-dépose une image dans la zone d'édition
+
+  L'URL retournée est ensuite insérée dans le contenu HTML du post via
+  `editor.chain().setImage({ src, alt }).run()`.
+}

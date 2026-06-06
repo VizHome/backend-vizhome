@@ -1,0 +1,36 @@
+meta {
+  name: Get Model
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/models/{{modelId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns model detail", function() {
+    expect(res.body).to.have.property("file_url");
+    expect(res.body).to.have.property("position");
+    expect(res.body).to.have.property("rotation");
+    expect(res.body).to.have.property("scale");
+  });
+}
+
+docs {
+  Récupère un modèle 3D individuel avec ses transforms (position,
+  rotation, scale) et son URL signée (`file_url`) pour téléchargement.
+
+  L'URL `file_url` est aussi signée et expire (durée configurable
+  côté backend, défaut 1h).
+}

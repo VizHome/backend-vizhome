@@ -1,0 +1,48 @@
+meta {
+  name: 2FA Setup
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/me/2fa/setup
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.setEnvVar("twoFactorSecret", res.body.secret);
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns secret + QR code + otpauth URI", function() {
+    expect(res.body).to.have.property("secret");
+    expect(res.body).to.have.property("qr_code");
+    expect(res.body).to.have.property("otpauth_uri");
+  });
+}
+
+docs {
+  Démarre l'enrôlement 2FA. Retourne :
+  - `secret` — le secret base32 (16 chars)
+  - `qr_code` — image data URI scannable par Google Authenticator / Authy
+  - `otpauth_uri` — l'URI standard `otpauth://totp/...`
+
+  **Étapes** :
+  1. Scanne le QR code dans ton app TOTP (ou copie le secret manuellement)
+  2. Génère un code à 6 chiffres
+  3. Confirme avec `2FA Verify Setup`
+
+  Le secret n'est PAS encore activé après cet appel — il faut absolument
+  passer par `Verify Setup` pour finaliser.
+}

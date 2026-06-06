@@ -1,0 +1,61 @@
+meta {
+  name: Support Tickets (staff)
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/admin/support/tickets?page=1&page_size=25
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  page_size: 25
+  ~status: open
+  ~priority: high
+  ~category: technical
+  ~unassigned: true
+  ~search: rendu
+  ~ordering: -updated_at
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 403 if not staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+
+  test("if 200 → paginated tickets shape", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("count");
+      expect(res.body).to.have.property("results");
+      if (res.body.results.length > 0) {
+        const t = res.body.results[0];
+        expect(t).to.have.property("subject");
+        expect(t).to.have.property("status");
+        expect(t).to.have.property("user_pseudo");
+        expect(t).to.have.property("messages_count");
+      }
+    }
+  });
+}
+
+docs {
+  GET /api/v1/admin/support/tickets — liste paginée tous tickets (staff-only).
+
+  **Query params** (tous optionnels) :
+  - `status` : open | pending | resolved | closed
+  - `priority` : low | medium | high | urgent
+  - `category` : technical | billing | account | feature | other
+  - `assignee` : ID staff qui gère
+  - `unassigned=true` : sans assignee (file d'attente)
+  - `search` : `icontains` sur subject + user.email + user.pseudo
+  - `ordering` : défaut `-updated_at`
+
+  Réutilise le `SupportTicketListSerializer` avec annotations.
+}

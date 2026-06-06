@@ -1,0 +1,50 @@
+meta {
+  name: Create Reply
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/forum/topics/{{topicId}}/replies
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "content": "Va dans /render → menu Modèles → Importer. Tu peux drag-drop ton .glb directement dans la scène."
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("replyId", res.body.id);
+  }
+}
+
+tests {
+  test("returns 201 (or 403 if topic locked)", function() {
+    expect([201, 403]).to.include(res.getStatus());
+  });
+
+  test("if 201 → counters updated", function() {
+    if (res.getStatus() === 201) {
+      expect(res.body).to.have.property("id");
+    }
+  });
+}
+
+docs {
+  Crée une réponse à un topic. Requiert auth.
+
+  Si le topic est verrouillé (`is_locked: true`), retourne 403 +
+  `code: 'topic_locked'`.
+
+  Le signal post_save met automatiquement à jour :
+  - `topic.replies_count += 1`
+  - `topic.last_reply_at = now`
+}

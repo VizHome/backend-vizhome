@@ -1,20 +1,22 @@
 """Réponses personnalisées pour le verrouillage django-axes."""
+
 from __future__ import annotations
 
 from django.http import HttpRequest, JsonResponse
 from rest_framework.response import Response
 
-
 _LOCKOUT_PAYLOAD = {
-    'detail': (
-        'Trop de tentatives échouées. Compte temporairement verrouillé. '
-        'Réessayez dans quelques minutes.'
+    "detail": (
+        "Trop de tentatives échouées. Compte temporairement verrouillé. "
+        "Réessayez dans quelques minutes."
     ),
-    'code': 'account_locked',
+    "code": "account_locked",
 }
 
 
-def api_lockout_response(request: HttpRequest, credentials: dict | None = None) -> JsonResponse:
+def api_lockout_response(
+    request: HttpRequest, credentials: dict | None = None
+) -> JsonResponse:
     """Callable utilisé par django-axes (AXES_LOCKOUT_CALLABLE).
 
     Retourne un JsonResponse car axes appelle ce hook depuis son middleware,

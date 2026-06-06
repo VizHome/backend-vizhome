@@ -1,0 +1,66 @@
+meta {
+  name: List Users
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/admin/users?page=1&page_size=25
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  page_size: 25
+  ~search:
+  ~plan: pro
+  ~is_staff: true
+  ~is_active: true
+  ~ordering: -date_joined
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 403 if not staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+
+  test("if 200 → paginated shape", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("count");
+      expect(res.body).to.have.property("results");
+      expect(res.body.results).to.be.an("array");
+    }
+  });
+
+  test("each user has stats nested", function() {
+    if (res.getStatus() === 200 && res.body.results.length > 0) {
+      const u = res.body.results[0];
+      expect(u).to.have.property("id");
+      expect(u).to.have.property("email");
+      expect(u).to.have.property("plan");
+      expect(u).to.have.property("is_active");
+      expect(u).to.have.property("is_staff");
+      expect(u).to.have.property("storage_used_bytes");
+      expect(u).to.have.property("renders_this_month");
+    }
+  });
+}
+
+docs {
+  GET /api/v1/admin/users — liste paginée des users (staff-only).
+
+  **Query params** (tous optionnels, commenter pour activer dans Bruno) :
+  - `search` : recherche `icontains` sur email / first_name / last_name
+  - `plan` : `free` | `pro` | `enterprise`
+  - `is_staff` : `true` | `false`
+  - `is_active` : `true` | `false` (bannis)
+  - `ordering` : `-date_joined` (défaut), `email`, `plan`, `last_login`
+
+  **Réponse** : pagination DRF standard `{count, next, previous, results[]}`.
+  Chaque user inclut email/plan/flags + stats nested (storage, renders).
+}
