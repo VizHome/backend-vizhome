@@ -82,7 +82,7 @@ def generate_render(self, render_id: int) -> None:
     except Exception as e:
         logger.exception('Render %s : erreur inattendue', render.pk)
         if self.request.retries < self.max_retries:
-            raise self.retry(exc=e)
+            raise self.retry(exc=e) from e
         render.status = Render.Status.FAILED
         render.error_message = f'Erreur interne après {self.max_retries} retries : {e}'
         render.completed_at = timezone.now()

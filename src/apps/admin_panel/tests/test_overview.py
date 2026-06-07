@@ -133,7 +133,7 @@ class TestOverviewShape:
             'google_oauth_configured',
             'github_oauth_configured',
             'minio_configured',
-            'sentry_configured',
+            'otel_configured',
         ):
             assert key in s
             assert isinstance(s[key], bool)

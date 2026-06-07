@@ -10,6 +10,7 @@ Architecture :
 
 from __future__ import annotations
 
+import os
 from datetime import timedelta
 from typing import Any
 
@@ -246,7 +247,9 @@ class AdminOverviewView(APIView):
                 getattr(settings, 'AWS_ACCESS_KEY_ID', '')
                 and getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', '')
             ),
-            'sentry_configured': bool(getattr(settings, 'SENTRY_DSN', '')),
+            # OTel s'active via env var lue directement par `config/otel.py`
+            # (pas exposée comme setting Django), donc on check l'env ici.
+            'otel_configured': bool(os.environ.get('OTEL_EXPORTER_OTLP_ENDPOINT', '').strip()),
             'render_provider': getattr(settings, 'RENDERS_DEFAULT_PROVIDER', 'gemini'),
         }
 

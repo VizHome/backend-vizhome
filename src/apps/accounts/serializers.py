@@ -163,8 +163,8 @@ class ResetPasswordSerializer(serializers.Serializer):
         try:
             uid = force_str(urlsafe_base64_decode(attrs['uid']))
             user = User.objects.get(pk=uid)
-        except (User.DoesNotExist, ValueError, TypeError):
-            raise serializers.ValidationError({'uid': 'Lien invalide.'})
+        except (User.DoesNotExist, ValueError, TypeError) as exc:
+            raise serializers.ValidationError({'uid': 'Lien invalide.'}) from exc
 
         if not default_token_generator.check_token(user, attrs['token']):
             raise serializers.ValidationError({'token': 'Token invalide ou expiré.'})

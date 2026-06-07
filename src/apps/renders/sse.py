@@ -23,6 +23,7 @@ import json
 import logging
 import time
 from collections.abc import Iterator
+from typing import ClassVar
 
 from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
 from django.views import View
@@ -75,7 +76,7 @@ class RenderSSEView(View):
     concurrentes par instance.
     """
 
-    http_method_names = ['get']
+    http_method_names: ClassVar[list[str]] = ['get']
 
     def get(self, request: HttpRequest, pk: int) -> HttpResponse:
         # ─── Auth Bearer manuelle (View, pas DRF) ───────────────────────────

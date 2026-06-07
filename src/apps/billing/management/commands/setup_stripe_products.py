@@ -29,7 +29,7 @@ class Command(BaseCommand):
         try:
             stripe = get_stripe_client()
         except StripeNotConfigured as e:
-            raise CommandError(str(e))
+            raise CommandError(str(e)) from e
 
         billable = get_billable_plans()
         if not billable:

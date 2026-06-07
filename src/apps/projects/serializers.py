@@ -183,11 +183,17 @@ class PresignedUploadRequestSerializer(serializers.Serializer):
     def validate_file_name(self, value: str) -> str:
         # Sanitisation contre path traversal et caractères dangereux.
         # On garde uniquement le basename — pas de dossier dans le filename.
-        sanitized = os.path.basename(value).strip()
+        # Sanitisation : on REFUSE tout filename qui ressemble à un chemin.
+        # Pas de `basename()` ici : ça masquerait un path traversal (`../x.glb`
+        # deviendrait `x.glb` qui passerait la check). On valide sur la valeur
+        # brute pour rejeter explicitement les filenames contenant `/`, `\`,
+        # `..`, des null bytes ou des chars de contrôle.
+        sanitized = value.strip()
         if not sanitized or sanitized.startswith('.'):
             raise serializers.ValidationError('Nom de fichier invalide.')
-        # Caractères dangereux pour S3 / shell : null byte, contrôles
-        if any(c in sanitized for c in ('\x00', '\n', '\r', '\\', '/', '..')):
+        # Caractères dangereux pour S3 / shell / path traversal
+        forbidden_chars = ('\x00', '\n', '\r', '\\', '/')
+        if any(c in sanitized for c in forbidden_chars) or '..' in sanitized:
             raise serializers.ValidationError('Nom de fichier contient des caractères interdits.')
         # Extension whitelist
         ext = os.path.splitext(sanitized)[1].lstrip('.').lower()

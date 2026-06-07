@@ -26,15 +26,22 @@ jobs:
     name: OSSAR scan
     runs-on: windows-latest
     timeout-minutes: 30
+    # OSSAR (Microsoft Guardian) est régulièrement instable sur les runners
+    # GitHub-hosted (`guardian.cmd failed with exit code 1` aléatoires). Le
+    # scan reste utile pour les findings positifs mais on évite de bloquer
+    # le merge sur un échec d'infra.
+    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Run OSSAR
         id: ossar
+        continue-on-error: true
         uses: github/ossar-action@v1
 
       - name: Upload OSSAR results
+        if: ${{ steps.ossar.outputs.sarifFile != '' }}
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ steps.ossar.outputs.sarifFile }}

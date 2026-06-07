@@ -34,9 +34,11 @@ def gemini():
 
 class TestGeminiProvider:
     def test_requires_api_key(self):
-        with patch('django.conf.settings.GEMINI_API_KEY', ''):
-            with pytest.raises(ProviderError, match='GEMINI_API_KEY'):
-                GeminiProvider()
+        with (
+            patch('django.conf.settings.GEMINI_API_KEY', ''),
+            pytest.raises(ProviderError, match='GEMINI_API_KEY'),
+        ):
+            GeminiProvider()
 
     def test_rejects_3d_output_type(self, gemini, fake_gemini_result):
         with pytest.raises(ProviderError, match="output_type='3d'"):

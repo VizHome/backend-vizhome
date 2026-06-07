@@ -45,9 +45,6 @@ drf-spectacular>=0.29.0
 #  Tâches périodiques (Celery beat) 
 django-celery-beat>=2.9.0
 
-#  Monitoring / observabilité
-sentry-sdk[django]>=2.61.1
-
 #  Production WSGI server
 gunicorn>=26.0.0
 

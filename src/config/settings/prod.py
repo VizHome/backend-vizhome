@@ -85,29 +85,6 @@ LOGGING = {
     },
 }
 
-# ─── Sentry (error tracking) ──────────────────────────────────────────────────
-SENTRY_DSN = env('SENTRY_DSN', default='')
-SENTRY_ENVIRONMENT = env('SENTRY_ENVIRONMENT', default='production')
-
-if SENTRY_DSN:
-    import sentry_sdk
-    from sentry_sdk.integrations.celery import CeleryIntegration
-    from sentry_sdk.integrations.django import DjangoIntegration
-    from sentry_sdk.integrations.redis import RedisIntegration
-
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        environment=SENTRY_ENVIRONMENT,
-        integrations=[
-            DjangoIntegration(),
-            CeleryIntegration(),
-            RedisIntegration(),
-        ],
-        send_default_pii=False,
-        traces_sample_rate=env.float('SENTRY_TRACES_SAMPLE_RATE', default=0.1),
-        profiles_sample_rate=env.float('SENTRY_PROFILES_SAMPLE_RATE', default=0.0),
-    )
-
 # ─── OpenTelemetry tracing ────────────────────────────────────────────────────
 # No-op si OTEL_EXPORTER_OTLP_ENDPOINT n'est pas défini. Voir config/otel.py
 # pour la liste des auto-instrumentations activées.
