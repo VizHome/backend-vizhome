@@ -173,3 +173,32 @@ class TestThrottlingConfig:
         assert RenderCreateThrottle.scope == 'render-create'
         assert ForumWriteThrottle.scope == 'forum-write'
         assert SupportCreateThrottle.scope == 'support-create'
+
+
+# ─── Tests OpenTelemetry init ────────────────────────────────────────────────
+
+
+class TestOTelInit:
+    """Vérifie que `init_otel()` est un no-op safe sans configuration.
+
+    On ne teste pas l'activation effective : ça demanderait un collector
+    de test, et les instrumenteurs mutent l'état global du process (donc
+    s'instrument-désinstrumenter à chaque test casserait Django pour les
+    suivants). Ce test garantit juste que l'absence d'endpoint n'a aucun
+    effet de bord (pas d'exception, pas de mutation globale).
+    """
+
+    def test_init_otel_noop_without_endpoint(self, monkeypatch):
+        """`init_otel()` ne fait rien si `OTEL_EXPORTER_OTLP_ENDPOINT` est vide."""
+        monkeypatch.delenv('OTEL_EXPORTER_OTLP_ENDPOINT', raising=False)
+        from config.otel import init_otel
+
+        # Ne doit pas lever, ni essayer d'importer/instrumenter quoi que ce soit.
+        init_otel()
+
+    def test_init_otel_noop_with_whitespace_endpoint(self, monkeypatch):
+        """Endpoint vide-mais-whitespace est traité comme désactivé."""
+        monkeypatch.setenv('OTEL_EXPORTER_OTLP_ENDPOINT', '   ')
+        from config.otel import init_otel
+
+        init_otel()

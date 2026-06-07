@@ -45,8 +45,18 @@ drf-spectacular>=0.29.0
 #  Tâches périodiques (Celery beat) 
 django-celery-beat>=2.9.0
 
-#  Monitoring / observabilité 
+#  Monitoring / observabilité
 sentry-sdk[django]>=2.61.1
 
-#  Production WSGI server 
+#  Production WSGI server
 gunicorn>=26.0.0
+
+#  OpenTelemetry tracing distribué (auto-instrument Django/Celery/Psycopg/Redis/HTTP)
+opentelemetry-distro>=0.50b0
+opentelemetry-exporter-otlp>=1.30.0
+opentelemetry-instrumentation-django>=0.50b0
+opentelemetry-instrumentation-celery>=0.50b0
+opentelemetry-instrumentation-psycopg>=0.50b0
+opentelemetry-instrumentation-redis>=0.50b0
+opentelemetry-instrumentation-requests>=0.50b0
+

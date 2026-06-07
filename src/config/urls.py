@@ -17,10 +17,12 @@ from drf_spectacular.views import (
 from apps.accounts.urls import auth_patterns, me_patterns
 from apps.billing.urls import me_patterns as billing_me_patterns
 from apps.billing.urls import public_patterns as billing_public_patterns
+from apps.gdpr.urls import me_patterns as gdpr_me_patterns
 from apps.projects.views import SharedProjectView
 
-# Merge billing endpoints dans /me/ pour rester cohérent avec le frontend
-all_me_patterns = me_patterns + billing_me_patterns
+# Merge billing + GDPR endpoints dans /me/ pour rester cohérent avec le
+# frontend (un seul namespace pour tout ce qui touche au user connecté).
+all_me_patterns = me_patterns + billing_me_patterns + gdpr_me_patterns
 
 api_v1_patterns: list = [
     path("auth/", include((auth_patterns, "auth"))),

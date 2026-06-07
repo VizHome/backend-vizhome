@@ -107,3 +107,10 @@ if SENTRY_DSN:
         traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.1),
         profiles_sample_rate=env.float("SENTRY_PROFILES_SAMPLE_RATE", default=0.0),
     )
+
+# ─── OpenTelemetry tracing ────────────────────────────────────────────────────
+# No-op si OTEL_EXPORTER_OTLP_ENDPOINT n'est pas défini. Voir config/otel.py
+# pour la liste des auto-instrumentations activées.
+from config.otel import init_otel  # noqa: E402
+
+init_otel()
