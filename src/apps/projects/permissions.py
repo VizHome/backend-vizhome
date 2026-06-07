@@ -12,5 +12,5 @@ class IsProjectOwner(BasePermission):
 
     def has_object_permission(self, request: Request, view: APIView, obj) -> bool:
         # obj peut être un Project, ou un objet lié (Scene, ImportedModel, …)
-        project = obj if hasattr(obj, "user") else obj.project
+        project = obj if hasattr(obj, 'user') else obj.project
         return project.user_id == request.user.id

@@ -24,7 +24,7 @@ class IsAuthorOrReadOnly(BasePermission):
     def has_object_permission(self, request: Request, view: APIView, obj) -> bool:
         if request.method in SAFE_METHODS:
             return True
-        return getattr(obj, "author_id", None) == request.user.id
+        return getattr(obj, 'author_id', None) == request.user.id
 
 
 class IsAuthorOrStaff(BasePermission):
@@ -35,7 +35,7 @@ class IsAuthorOrStaff(BasePermission):
             return True
         if request.user.is_staff:
             return True
-        return getattr(obj, "author_id", None) == request.user.id
+        return getattr(obj, 'author_id', None) == request.user.id
 
 
 class IsNotForumBanned(BasePermission):
@@ -47,8 +47,8 @@ class IsNotForumBanned(BasePermission):
     """
 
     message = (
-        "Tu as été banni du forum par un modérateur — "
-        "tu peux toujours lire mais pas créer ni répondre."
+        'Tu as été banni du forum par un modérateur — '
+        'tu peux toujours lire mais pas créer ni répondre.'
     )
 
     def has_permission(self, request: Request, view: APIView) -> bool:
@@ -60,7 +60,7 @@ class IsNotForumBanned(BasePermission):
             return True
         if user.is_staff:
             return True
-        return not getattr(user, "is_banned_from_forum", False)
+        return not getattr(user, 'is_banned_from_forum', False)
 
 
 class IsAuthorWithinTimeWindowOrStaff(BasePermission):
@@ -76,7 +76,7 @@ class IsAuthorWithinTimeWindowOrStaff(BasePermission):
 
     message = (
         "La fenêtre d'édition (15 minutes après publication) est dépassée. "
-        "Seul le staff peut maintenant modifier ce message."
+        'Seul le staff peut maintenant modifier ce message.'
     )
 
     def has_object_permission(self, request: Request, view: APIView, obj) -> bool:
@@ -84,9 +84,9 @@ class IsAuthorWithinTimeWindowOrStaff(BasePermission):
             return True
         if request.user.is_staff:
             return True
-        if getattr(obj, "author_id", None) != request.user.id:
+        if getattr(obj, 'author_id', None) != request.user.id:
             return False
         # Author : check fenêtre temporelle
-        window_min = getattr(view, "EDIT_WINDOW_MINUTES", 15)
+        window_min = getattr(view, 'EDIT_WINDOW_MINUTES', 15)
         deadline = obj.created_at + timedelta(minutes=window_min)
         return timezone.now() <= deadline

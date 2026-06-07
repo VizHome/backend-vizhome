@@ -18,18 +18,16 @@ User = get_user_model()
 
 def _frontend_ticket_url(ticket_id: int, *, admin: bool = False) -> str:
     """Lien profond vers la page du ticket dans le frontend Nuxt."""
-    base = getattr(settings, "FRONTEND_URL", "http://localhost:3000").rstrip("/")
+    base = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000').rstrip('/')
     if admin:
-        return f"{base}/admin/support"  # liste admin, le staff cliquera sur le ticket
-    return f"{base}/support/{ticket_id}"
+        return f'{base}/admin/support'  # liste admin, le staff cliquera sur le ticket
+    return f'{base}/support/{ticket_id}'
 
 
 def _staff_emails() -> list[str]:
     """Liste des emails staff actifs à notifier des nouveaux tickets."""
     return list(
-        User.objects.filter(is_staff=True, is_active=True).values_list(
-            "email", flat=True
-        ),
+        User.objects.filter(is_staff=True, is_active=True).values_list('email', flat=True),
     )
 
 
@@ -43,23 +41,23 @@ def notify_staff_new_ticket(ticket: SupportTicket) -> None:
         return
 
     url = _frontend_ticket_url(ticket.pk, admin=True)
-    first_msg = ticket.messages.order_by("created_at").first()
+    first_msg = ticket.messages.order_by('created_at').first()
     body_preview = (
-        (first_msg.body[:300] + "…")
+        (first_msg.body[:300] + '…')
         if first_msg and len(first_msg.body) > 300
-        else (first_msg.body if first_msg else "")
+        else (first_msg.body if first_msg else '')
     )
 
     send_mail(
-        subject=f"[Support #{ticket.pk}] {ticket.subject}",
+        subject=f'[Support #{ticket.pk}] {ticket.subject}',
         message=(
-            f"Nouveau ticket de support ouvert par @{ticket.user.pseudo} "
-            f"({ticket.user.email})\n\n"
-            f"Catégorie : {ticket.get_category_display()}\n"
-            f"Priorité  : {ticket.get_priority_display()}\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"{body_preview}\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f'Nouveau ticket de support ouvert par @{ticket.user.pseudo} '
+            f'({ticket.user.email})\n\n'
+            f'Catégorie : {ticket.get_category_display()}\n'
+            f'Priorité  : {ticket.get_priority_display()}\n\n'
+            f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+            f'{body_preview}\n'
+            f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
             f"Ouvrir le ticket dans l'admin : {url}\n"
         ),
         from_email=settings.DEFAULT_FROM_EMAIL,
@@ -76,19 +74,17 @@ def notify_user_staff_replied(message: SupportMessage) -> None:
         return
 
     url = _frontend_ticket_url(ticket.pk)
-    body_preview = (
-        (message.body[:400] + "…") if len(message.body) > 400 else message.body
-    )
+    body_preview = (message.body[:400] + '…') if len(message.body) > 400 else message.body
 
     send_mail(
         subject=f"[Support #{ticket.pk}] Nouvelle réponse de l'équipe VizHome",
         message=(
-            f"Bonjour @{user.pseudo},\n\n"
+            f'Bonjour @{user.pseudo},\n\n'
             f'Tu as reçu une nouvelle réponse sur ton ticket "{ticket.subject}" :\n\n'
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"{body_preview}\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            f"Voir la conversation : {url}\n\n"
+            f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+            f'{body_preview}\n'
+            f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
+            f'Voir la conversation : {url}\n\n'
             f"— L'équipe VizHome"
         ),
         from_email=settings.DEFAULT_FROM_EMAIL,
@@ -108,18 +104,16 @@ def notify_staff_user_replied(message: SupportMessage) -> None:
         return
 
     url = _frontend_ticket_url(ticket.pk, admin=True)
-    body_preview = (
-        (message.body[:300] + "…") if len(message.body) > 300 else message.body
-    )
+    body_preview = (message.body[:300] + '…') if len(message.body) > 300 else message.body
 
     send_mail(
-        subject=f"[Support #{ticket.pk}] @{ticket.user.pseudo} a répondu",
+        subject=f'[Support #{ticket.pk}] @{ticket.user.pseudo} a répondu',
         message=(
             f'@{ticket.user.pseudo} a répondu sur "{ticket.subject}" :\n\n'
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"{body_preview}\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            f"Ouvrir le ticket : {url}\n"
+            f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+            f'{body_preview}\n'
+            f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
+            f'Ouvrir le ticket : {url}\n'
         ),
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[ticket.assignee.email],

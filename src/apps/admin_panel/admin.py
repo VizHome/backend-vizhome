@@ -10,28 +10,28 @@ from .models import AdminAuditLog, AdminDailySnapshot
 @admin.register(AdminAuditLog)
 class AdminAuditLogAdmin(admin.ModelAdmin):
     list_display = (
-        "created_at",
-        "actor_email",
-        "action",
-        "target_type",
-        "target_id",
-        "target_repr",
-        "ip_address",
+        'created_at',
+        'actor_email',
+        'action',
+        'target_type',
+        'target_id',
+        'target_repr',
+        'ip_address',
     )
-    list_filter = ("action", "target_type", "created_at")
-    search_fields = ("actor_email", "target_repr", "ip_address")
-    date_hierarchy = "created_at"
+    list_filter = ('action', 'target_type', 'created_at')
+    search_fields = ('actor_email', 'target_repr', 'ip_address')
+    date_hierarchy = 'created_at'
     readonly_fields = (
-        "actor",
-        "actor_email",
-        "action",
-        "target_type",
-        "target_id",
-        "target_repr",
-        "payload",
-        "ip_address",
-        "user_agent",
-        "created_at",
+        'actor',
+        'actor_email',
+        'action',
+        'target_type',
+        'target_id',
+        'target_repr',
+        'payload',
+        'ip_address',
+        'user_agent',
+        'created_at',
     )
 
     def has_add_permission(self, request) -> bool:
@@ -43,9 +43,9 @@ class AdminAuditLogAdmin(admin.ModelAdmin):
 
 @admin.register(AdminDailySnapshot)
 class AdminDailySnapshotAdmin(admin.ModelAdmin):
-    list_display = ("date", "created_at")
-    date_hierarchy = "date"
-    readonly_fields = ("date", "payload", "created_at")
+    list_display = ('date', 'created_at')
+    date_hierarchy = 'date'
+    readonly_fields = ('date', 'payload', 'created_at')
 
     def has_add_permission(self, request) -> bool:
         return False

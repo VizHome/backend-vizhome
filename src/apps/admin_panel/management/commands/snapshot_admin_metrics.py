@@ -25,14 +25,11 @@ from django.utils import timezone
 
 
 class Command(BaseCommand):
-    help = (
-        "Capture un snapshot quotidien de l'overview admin "
-        "(stocké dans AdminDailySnapshot)."
-    )
+    help = "Capture un snapshot quotidien de l'overview admin (stocké dans AdminDailySnapshot)."
 
     def add_arguments(self, parser) -> None:
         parser.add_argument(
-            "--date",
+            '--date',
             type=str,
             default=None,
             help="Date du snapshot (YYYY-MM-DD). Défaut : aujourd'hui.",
@@ -45,17 +42,15 @@ class Command(BaseCommand):
         from apps.admin_panel.views import AdminOverviewView
 
         # Date du snapshot
-        date_str = options.get("date")
+        date_str = options.get('date')
         snapshot_date = (
-            datetime.strptime(date_str, "%Y-%m-%d").date()
-            if date_str
-            else timezone.now().date()
+            datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else timezone.now().date()
         )
 
         # Construit une fausse request pour appeler AdminOverviewView en interne
         # (le request.user n'est pas utilisé dans les agrégations)
         factory = APIRequestFactory()
-        request = factory.get("/api/v1/admin/overview")
+        request = factory.get('/api/v1/admin/overview')
 
         view = AdminOverviewView()
         response = view.get(request)
@@ -68,12 +63,11 @@ class Command(BaseCommand):
 
         obj, created = AdminDailySnapshot.objects.update_or_create(
             date=snapshot_date,
-            defaults={"payload": payload},
+            defaults={'payload': payload},
         )
-        verb = "créé" if created else "mis à jour"
+        verb = 'créé' if created else 'mis à jour'
         self.stdout.write(
             self.style.SUCCESS(
-                f"✓ Snapshot {snapshot_date} {verb} "
-                f"({len(payload)} sections capturées)."
+                f'✓ Snapshot {snapshot_date} {verb} ({len(payload)} sections capturées).'
             )
         )

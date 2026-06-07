@@ -1,6 +1,6 @@
 # Makefile : raccourcis pour les benchmarks performance VizHome backend.
 #
-# Le projet tourne en Docker (cf. CLAUDE.md), mais les benchmarks se lancent
+# Le projet tourne en Docker , mais les benchmarks se lancent
 # en local sur la machine du dev (Locust UI a besoin d'un browser ouvert,
 # pytest-benchmark veut un environnement stable, pas un container ephemere).
 #

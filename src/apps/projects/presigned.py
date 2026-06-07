@@ -21,21 +21,21 @@ from django.conf import settings
 
 def _public_endpoint_url() -> str:
     """Construit l'URL publique de MinIO depuis CUSTOM_DOMAIN (sans bucket suffix)."""
-    host = (settings.AWS_S3_CUSTOM_DOMAIN or "").split("/")[0]
-    protocol = settings.AWS_S3_URL_PROTOCOL or "http:"
-    return f"{protocol}//{host}"
+    host = (settings.AWS_S3_CUSTOM_DOMAIN or '').split('/')[0]
+    protocol = settings.AWS_S3_URL_PROTOCOL or 'http:'
+    return f'{protocol}//{host}'
 
 
 def _make_client(endpoint_url: str):
     return boto3.client(
-        "s3",
+        's3',
         endpoint_url=endpoint_url,
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         region_name=settings.AWS_S3_REGION_NAME,
         config=Config(
-            signature_version="s3v4",
-            s3={"addressing_style": "path"},
+            signature_version='s3v4',
+            s3={'addressing_style': 'path'},
         ),
     )
 
@@ -52,7 +52,7 @@ def get_public_client():
 
 def generate_upload_url(
     key: str,
-    content_type: str = "application/octet-stream",
+    content_type: str = 'application/octet-stream',
     expires_in: int = 3600,
 ) -> str:
     """Génère une URL pré-signée PUT pour upload direct par le frontend.
@@ -62,11 +62,11 @@ def generate_upload_url(
     """
     client = get_public_client()
     return client.generate_presigned_url(
-        "put_object",
+        'put_object',
         Params={
-            "Bucket": settings.AWS_STORAGE_BUCKET_NAME,
-            "Key": key,
-            "ContentType": content_type,
+            'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
+            'Key': key,
+            'ContentType': content_type,
         },
         ExpiresIn=expires_in,
     )
@@ -94,6 +94,6 @@ def copy_object(source_key: str, dest_key: str) -> None:
     client = get_internal_client()
     client.copy_object(
         Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-        CopySource={"Bucket": settings.AWS_STORAGE_BUCKET_NAME, "Key": source_key},
+        CopySource={'Bucket': settings.AWS_STORAGE_BUCKET_NAME, 'Key': source_key},
         Key=dest_key,
     )

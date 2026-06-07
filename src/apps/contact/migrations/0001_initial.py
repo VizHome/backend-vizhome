@@ -23,7 +23,10 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("email", models.EmailField(db_index=True, max_length=254, unique=True)),
+                (
+                    "email",
+                    models.EmailField(db_index=True, max_length=254, unique=True),
+                ),
                 (
                     "source",
                     models.CharField(

@@ -13,22 +13,22 @@ User = get_user_model()
 class AdminAuditLogSerializer(serializers.ModelSerializer):
     """Sérialise un log d'action admin pour la page d'audit."""
 
-    action_label = serializers.CharField(source="get_action_display", read_only=True)
+    action_label = serializers.CharField(source='get_action_display', read_only=True)
 
     class Meta:
         model = AdminAuditLog
         fields = (
-            "id",
-            "actor",
-            "actor_email",
-            "action",
-            "action_label",
-            "target_type",
-            "target_id",
-            "target_repr",
-            "payload",
-            "ip_address",
-            "created_at",
+            'id',
+            'actor',
+            'actor_email',
+            'action',
+            'action_label',
+            'target_type',
+            'target_id',
+            'target_repr',
+            'payload',
+            'ip_address',
+            'created_at',
         )
         read_only_fields = fields
 
@@ -36,7 +36,7 @@ class AdminAuditLogSerializer(serializers.ModelSerializer):
 class AdminDailySnapshotSerializer(serializers.ModelSerializer):
     class Meta:
         model = AdminDailySnapshot
-        fields = ("id", "date", "payload", "created_at")
+        fields = ('id', 'date', 'payload', 'created_at')
         read_only_fields = fields
 
 
@@ -44,17 +44,17 @@ class AdminUserSerializer(serializers.ModelSerializer):
     """User avec champs supplémentaires utiles à la modération."""
 
     storage_used_bytes = serializers.IntegerField(
-        source="stats.storage_used_bytes",
+        source='stats.storage_used_bytes',
         read_only=True,
         default=0,
     )
     renders_this_month = serializers.IntegerField(
-        source="stats.renders_this_month",
+        source='stats.renders_this_month',
         read_only=True,
         default=0,
     )
     total_projects = serializers.IntegerField(
-        source="stats.total_projects",
+        source='stats.total_projects',
         read_only=True,
         default=0,
     )
@@ -62,22 +62,22 @@ class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            "id",
-            "email",
-            "pseudo",
-            "first_name",
-            "last_name",
-            "plan",
-            "is_active",
-            "is_staff",
-            "is_banned_from_forum",
-            "date_joined",
-            "last_login",
-            "storage_used_bytes",
-            "renders_this_month",
-            "total_projects",
+            'id',
+            'email',
+            'pseudo',
+            'first_name',
+            'last_name',
+            'plan',
+            'is_active',
+            'is_staff',
+            'is_banned_from_forum',
+            'date_joined',
+            'last_login',
+            'storage_used_bytes',
+            'renders_this_month',
+            'total_projects',
         )
-        read_only_fields = ("id", "email", "date_joined", "last_login")
+        read_only_fields = ('id', 'email', 'date_joined', 'last_login')
 
 
 class AdminUserUpdateSerializer(serializers.ModelSerializer):
@@ -89,7 +89,7 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("is_active", "is_staff", "is_banned_from_forum", "pseudo")
+        fields = ('is_active', 'is_staff', 'is_banned_from_forum', 'pseudo')
 
     def validate_pseudo(self, value: str) -> str:
         instance = self.instance
@@ -97,32 +97,32 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
         if instance:
             qs = qs.exclude(pk=instance.pk)
         if qs.exists():
-            raise serializers.ValidationError("Ce pseudo est déjà pris.")
+            raise serializers.ValidationError('Ce pseudo est déjà pris.')
         return value
 
 
 class AdminRenderSerializer(serializers.ModelSerializer):
     """Render avec email de l'auteur (pas seulement l'id)."""
 
-    user_email = serializers.CharField(source="user.email", read_only=True)
-    user_id = serializers.IntegerField(source="user.id", read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
 
     class Meta:
         model = None  # rempli au runtime — voir __init__
         fields = (
-            "id",
-            "user_id",
-            "user_email",
-            "source",
-            "output_type",
-            "status",
-            "provider",
-            "prompt",
-            "title",
-            "error_message",
-            "created_at",
-            "updated_at",
-            "completed_at",
+            'id',
+            'user_id',
+            'user_email',
+            'source',
+            'output_type',
+            'status',
+            'provider',
+            'prompt',
+            'title',
+            'error_message',
+            'created_at',
+            'updated_at',
+            'completed_at',
         )
 
 

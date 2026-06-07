@@ -8,24 +8,22 @@ from . import views
 
 # Liste publique des plans (pas d'auth)
 public_patterns = [
-    path("plans", views.PlansListView.as_view(), name="plans"),
+    path('plans', views.PlansListView.as_view(), name='plans'),
 ]
 
 # Endpoints liés à l'utilisateur connecté
 me_patterns = [
-    path("subscription", views.SubscriptionView.as_view(), name="subscription"),
+    path('subscription', views.SubscriptionView.as_view(), name='subscription'),
     path(
-        "subscription/checkout",
+        'subscription/checkout',
         views.CheckoutView.as_view(),
-        name="subscription-checkout",
+        name='subscription-checkout',
     ),
     path(
-        "subscription/cancel",
+        'subscription/cancel',
         views.CancelSubscriptionView.as_view(),
-        name="subscription-cancel",
+        name='subscription-cancel',
     ),
-    path("invoices", views.InvoiceListView.as_view(), name="invoices"),
-    path(
-        "payment-methods", views.PaymentMethodListView.as_view(), name="payment-methods"
-    ),
+    path('invoices', views.InvoiceListView.as_view(), name='invoices'),
+    path('payment-methods', views.PaymentMethodListView.as_view(), name='payment-methods'),
 ]

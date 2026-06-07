@@ -6,21 +6,21 @@ from .dev import *
 
 # Force FileSystem storage en tests (ignore USE_S3)
 STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
     },
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
     },
 }
 
 # Storage temporaire dans /tmp pour ne pas polluer media/
-MEDIA_ROOT = tempfile.mkdtemp(prefix="vizhome_test_")
+MEDIA_ROOT = tempfile.mkdtemp(prefix='vizhome_test_')
 
 # Cache local (évite Redis en tests, pour éviter les fuites entre runs)
 CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     }
 }
 

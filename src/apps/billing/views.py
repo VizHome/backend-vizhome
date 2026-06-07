@@ -26,8 +26,8 @@ from .stripe_client import StripeNotConfigured, get_stripe_client, is_configured
 def _stripe_unavailable_response() -> Response:
     return Response(
         {
-            "detail": "Stripe n'est pas configuré sur ce serveur.",
-            "code": "stripe_unavailable",
+            'detail': "Stripe n'est pas configuré sur ce serveur.",
+            'code': 'stripe_unavailable',
         },
         status=status.HTTP_503_SERVICE_UNAVAILABLE,
     )
@@ -39,7 +39,7 @@ def _get_or_create_customer(user) -> dj_models.Customer:
     return customer
 
 
-_ACTIVE_STATUSES = ("active", "trialing", "past_due")
+_ACTIVE_STATUSES = ('active', 'trialing', 'past_due')
 
 
 def _sub_field(sub, name: str, default=None):
@@ -51,7 +51,7 @@ def _sub_field(sub, name: str, default=None):
     """
     val = getattr(sub, name, None)
     if val is None:
-        stripe_data = getattr(sub, "stripe_data", None) or {}
+        stripe_data = getattr(sub, 'stripe_data', None) or {}
         val = stripe_data.get(name)
     return val if val is not None else default
 
@@ -67,7 +67,7 @@ def _get_active_subscription(
     FieldError.
     """
     for sub in customer.subscriptions.all():
-        status = _sub_field(sub, "status")
+        status = _sub_field(sub, 'status')
         if status in _ACTIVE_STATUSES:
             return sub
     return None
@@ -83,13 +83,13 @@ class PlansListView(APIView):
     def get(self, request: Request) -> Response:
         plans = [
             {
-                "name": name,
-                "label": cfg["label"],
-                "description": cfg["description"],
-                "price_eur": cfg["price_eur"],
-                "renders_limit": cfg["renders_limit"],
-                "storage_limit_bytes": cfg["storage_limit_bytes"],
-                "is_billable": cfg["stripe_lookup_key"] is not None,
+                'name': name,
+                'label': cfg['label'],
+                'description': cfg['description'],
+                'price_eur': cfg['price_eur'],
+                'renders_limit': cfg['renders_limit'],
+                'storage_limit_bytes': cfg['storage_limit_bytes'],
+                'is_billable': cfg['stripe_lookup_key'] is not None,
             }
             for name, cfg in PLAN_CONFIG.items()
         ]
@@ -109,11 +109,11 @@ class SubscriptionView(APIView):
             return Response(
                 SubscriptionSerializer(
                     {
-                        "has_subscription": False,
-                        "plan": user.plan,
-                        "status": None,
-                        "current_period_end": None,
-                        "cancel_at_period_end": False,
+                        'has_subscription': False,
+                        'plan': user.plan,
+                        'status': None,
+                        'current_period_end': None,
+                        'cancel_at_period_end': False,
                     }
                 ).data
             )
@@ -124,14 +124,12 @@ class SubscriptionView(APIView):
         return Response(
             SubscriptionSerializer(
                 {
-                    "has_subscription": sub is not None,
-                    "plan": user.plan,
-                    "status": _sub_field(sub, "status") if sub else None,
-                    "current_period_end": (
-                        _sub_field(sub, "current_period_end") if sub else None
-                    ),
-                    "cancel_at_period_end": (
-                        _sub_field(sub, "cancel_at_period_end", False) if sub else False
+                    'has_subscription': sub is not None,
+                    'plan': user.plan,
+                    'status': _sub_field(sub, 'status') if sub else None,
+                    'current_period_end': (_sub_field(sub, 'current_period_end') if sub else None),
+                    'cancel_at_period_end': (
+                        _sub_field(sub, 'cancel_at_period_end', False) if sub else False
                     ),
                 }
             ).data
@@ -149,9 +147,9 @@ class CheckoutView(APIView):
 
         serializer = CheckoutRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        plan_name = serializer.validated_data["plan"]
+        plan_name = serializer.validated_data['plan']
         plan = PLAN_CONFIG[plan_name]
-        lookup_key = plan["stripe_lookup_key"]
+        lookup_key = plan['stripe_lookup_key']
 
         try:
             stripe = get_stripe_client()
@@ -160,7 +158,7 @@ class CheckoutView(APIView):
             if not prices.data:
                 return Response(
                     {
-                        "detail": (
+                        'detail': (
                             f"Aucune Price Stripe pour le plan '{plan_name}'. "
                             f"Lance `manage.py setup_stripe_products` d'abord."
                         ),
@@ -173,13 +171,13 @@ class CheckoutView(APIView):
 
             session = stripe.checkout.Session.create(
                 customer=customer.id,
-                payment_method_types=["card"],
-                line_items=[{"price": price_id, "quantity": 1}],
-                mode="subscription",
-                success_url=f"{settings.FRONTEND_URL}/account/billing?checkout=success",
-                cancel_url=f"{settings.FRONTEND_URL}/account/billing?checkout=cancel",
+                payment_method_types=['card'],
+                line_items=[{'price': price_id, 'quantity': 1}],
+                mode='subscription',
+                success_url=f'{settings.FRONTEND_URL}/account/billing?checkout=success',
+                cancel_url=f'{settings.FRONTEND_URL}/account/billing?checkout=cancel',
                 allow_promotion_codes=True,
-                metadata={"plan": plan_name, "user_id": str(request.user.pk)},
+                metadata={'plan': plan_name, 'user_id': str(request.user.pk)},
             )
         except StripeNotConfigured:
             return _stripe_unavailable_response()
@@ -187,8 +185,8 @@ class CheckoutView(APIView):
         return Response(
             CheckoutResponseSerializer(
                 {
-                    "checkout_url": session.url,
-                    "session_id": session.id,
+                    'checkout_url': session.url,
+                    'session_id': session.id,
                 }
             ).data
         )
@@ -207,7 +205,7 @@ class CancelSubscriptionView(APIView):
         sub = _get_active_subscription(customer) if customer else None
         if not sub:
             return Response(
-                {"detail": "Aucune subscription active à annuler."},
+                {'detail': 'Aucune subscription active à annuler.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -216,8 +214,8 @@ class CancelSubscriptionView(APIView):
 
         return Response(
             {
-                "detail": "L'abonnement sera annulé à la fin de la période en cours.",
-                "cancel_at_period_end": True,
+                'detail': "L'abonnement sera annulé à la fin de la période en cours.",
+                'cancel_at_period_end': True,
             }
         )
 
@@ -233,17 +231,17 @@ class InvoiceListView(APIView):
         if not customer:
             return Response([])
 
-        invoices = customer.invoices.all().order_by("-created")[:50]
+        invoices = customer.invoices.all().order_by('-created')[:50]
         data = [
             {
-                "id": inv.id,
-                "number": inv.number,
-                "amount_paid": inv.amount_paid,
-                "currency": inv.currency,
-                "status": inv.status,
-                "created": inv.created,
-                "hosted_invoice_url": inv.hosted_invoice_url,
-                "invoice_pdf": inv.invoice_pdf,
+                'id': inv.id,
+                'number': inv.number,
+                'amount_paid': inv.amount_paid,
+                'currency': inv.currency,
+                'status': inv.status,
+                'created': inv.created,
+                'hosted_invoice_url': inv.hosted_invoice_url,
+                'invoice_pdf': inv.invoice_pdf,
             }
             for inv in invoices
         ]
@@ -267,11 +265,11 @@ class PaymentMethodListView(APIView):
             card = pm.card or {}
             data.append(
                 {
-                    "id": pm.id,
-                    "brand": card.get("brand", "?"),
-                    "last4": card.get("last4", "????"),
-                    "exp_month": card.get("exp_month", 0),
-                    "exp_year": card.get("exp_year", 0),
+                    'id': pm.id,
+                    'brand': card.get('brand', '?'),
+                    'last4': card.get('last4', '????'),
+                    'exp_month': card.get('exp_month', 0),
+                    'exp_year': card.get('exp_year', 0),
                 }
             )
         return Response(PaymentMethodSerializer(data, many=True).data)

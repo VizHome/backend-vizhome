@@ -10,22 +10,22 @@ class Render(models.Model):
     """Une demande de génération IA — du prompt brut jusqu'au résultat stocké."""
 
     class Source(models.TextChoices):
-        PROMPT = "prompt", "Prompt textuel"
-        SKETCH = "sketch", "Croquis 2D"
-        SCREENSHOT = "screenshot", "Capture 3D"
+        PROMPT = 'prompt', 'Prompt textuel'
+        SKETCH = 'sketch', 'Croquis 2D'
+        SCREENSHOT = 'screenshot', 'Capture 3D'
 
     class OutputType(models.TextChoices):
-        IMAGE_2D = "2d", "Image 2D"
-        MODEL_3D = "3d", "Modèle 3D"
+        IMAGE_2D = '2d', 'Image 2D'
+        MODEL_3D = '3d', 'Modèle 3D'
 
     class Status(models.TextChoices):
-        PENDING = "pending", "En attente"
-        PROCESSING = "processing", "En cours"
-        DONE = "done", "Terminé"
-        FAILED = "failed", "Échoué"
+        PENDING = 'pending', 'En attente'
+        PROCESSING = 'processing', 'En cours'
+        DONE = 'done', 'Terminé'
+        FAILED = 'failed', 'Échoué'
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="renders"
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='renders'
     )
 
     # ─── Input ────────────────────────────────────────────────────────────────
@@ -35,14 +35,10 @@ class Render(models.Model):
     )
     prompt = models.TextField(blank=True)
     style_hint = models.CharField(max_length=200, blank=True)
-    input_image = models.ImageField(
-        upload_to="renders/inputs/%Y/%m/", blank=True, null=True
-    )
+    input_image = models.ImageField(upload_to='renders/inputs/%Y/%m/', blank=True, null=True)
 
     # ─── Output ───────────────────────────────────────────────────────────────
-    result_image = models.ImageField(
-        upload_to="renders/outputs/%Y/%m/", blank=True, null=True
-    )
+    result_image = models.ImageField(upload_to='renders/outputs/%Y/%m/', blank=True, null=True)
 
     # ─── État du pipeline ─────────────────────────────────────────────────────
     status = models.CharField(
@@ -65,16 +61,16 @@ class Render(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        db_table = "renders_render"
-        ordering = ["-created_at"]
+        db_table = 'renders_render'
+        ordering = ['-created_at']
         indexes = [
-            models.Index(fields=["user", "-created_at"]),
-            models.Index(fields=["user", "status"]),
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['user', 'status']),
         ]
 
     def __str__(self) -> str:
         snippet = (self.prompt or self.style_hint or self.source)[:50]
-        return f"#{self.pk} {self.source}: {snippet}"
+        return f'#{self.pk} {self.source}: {snippet}'
 
     @property
     def is_terminal(self) -> bool:

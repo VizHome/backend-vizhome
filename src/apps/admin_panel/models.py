@@ -27,27 +27,27 @@ class AdminAuditLog(models.Model):
     """
 
     class Action(models.TextChoices):
-        USER_BAN = "user.ban", "Bannir un user"
-        USER_UNBAN = "user.unban", "Réactiver un user"
-        USER_PROMOTE_STAFF = "user.promote_staff", "Promouvoir staff"
-        USER_DEMOTE_STAFF = "user.demote_staff", "Retirer staff"
-        USER_BAN_FORUM = "user.ban_forum", "Bannir du forum"
-        USER_UNBAN_FORUM = "user.unban_forum", "Débannir du forum"
-        USER_PSEUDO_CHANGE = "user.pseudo_change", "Changer le pseudo"
-        TOPIC_PIN = "topic.pin", "Épingler un topic"
-        TOPIC_UNPIN = "topic.unpin", "Désépingler un topic"
-        TOPIC_LOCK = "topic.lock", "Verrouiller un topic"
-        TOPIC_UNLOCK = "topic.unlock", "Déverrouiller un topic"
-        TOPIC_DELETE = "topic.delete", "Supprimer un topic"
-        REPLY_DELETE = "reply.delete", "Supprimer une réponse"
-        REPLY_MARK_SOLUTION = "reply.mark_solution", "Marquer solution"
+        USER_BAN = 'user.ban', 'Bannir un user'
+        USER_UNBAN = 'user.unban', 'Réactiver un user'
+        USER_PROMOTE_STAFF = 'user.promote_staff', 'Promouvoir staff'
+        USER_DEMOTE_STAFF = 'user.demote_staff', 'Retirer staff'
+        USER_BAN_FORUM = 'user.ban_forum', 'Bannir du forum'
+        USER_UNBAN_FORUM = 'user.unban_forum', 'Débannir du forum'
+        USER_PSEUDO_CHANGE = 'user.pseudo_change', 'Changer le pseudo'
+        TOPIC_PIN = 'topic.pin', 'Épingler un topic'
+        TOPIC_UNPIN = 'topic.unpin', 'Désépingler un topic'
+        TOPIC_LOCK = 'topic.lock', 'Verrouiller un topic'
+        TOPIC_UNLOCK = 'topic.unlock', 'Déverrouiller un topic'
+        TOPIC_DELETE = 'topic.delete', 'Supprimer un topic'
+        REPLY_DELETE = 'reply.delete', 'Supprimer une réponse'
+        REPLY_MARK_SOLUTION = 'reply.mark_solution', 'Marquer solution'
 
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="admin_actions",
+        related_name='admin_actions',
     )
     actor_email = models.CharField(max_length=255, blank=True)  # snapshot
     action = models.CharField(max_length=50, choices=Action.choices)
@@ -65,17 +65,17 @@ class AdminAuditLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "admin_audit_log"
-        ordering = ["-created_at"]
+        db_table = 'admin_audit_log'
+        ordering = ['-created_at']
         indexes = [
-            models.Index(fields=["-created_at"]),
-            models.Index(fields=["target_type", "target_id"]),
-            models.Index(fields=["action"]),
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['target_type', 'target_id']),
+            models.Index(fields=['action']),
         ]
 
     def __str__(self) -> str:
-        actor = self.actor_email or "(deleted)"
-        return f"[{self.created_at:%Y-%m-%d %H:%M}] {actor} → {self.action}"
+        actor = self.actor_email or '(deleted)'
+        return f'[{self.created_at:%Y-%m-%d %H:%M}] {actor} → {self.action}'
 
 
 class AdminDailySnapshot(models.Model):
@@ -94,11 +94,11 @@ class AdminDailySnapshot(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "admin_daily_snapshot"
-        ordering = ["-date"]
+        db_table = 'admin_daily_snapshot'
+        ordering = ['-date']
         indexes = [
-            models.Index(fields=["-date"]),
+            models.Index(fields=['-date']),
         ]
 
     def __str__(self) -> str:
-        return f"Snapshot {self.date}"
+        return f'Snapshot {self.date}'

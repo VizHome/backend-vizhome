@@ -15,11 +15,11 @@ from apps.accounts.models import UserStats
 
 
 class Command(BaseCommand):
-    help = "Reset les compteurs mensuels (renders_this_month) de tous les users"
+    help = 'Reset les compteurs mensuels (renders_this_month) de tous les users'
 
     def handle(self, *args, **opts) -> None:
         updated = UserStats.objects.update(
             renders_this_month=0,
             period_started_at=timezone.now(),
         )
-        self.stdout.write(self.style.SUCCESS(f"✓ {updated} compteurs reset."))
+        self.stdout.write(self.style.SUCCESS(f'✓ {updated} compteurs reset.'))

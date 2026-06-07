@@ -93,7 +93,5 @@ class DeleteAccountInputSerializer(serializers.Serializer):
 
     def validate_confirm(self, value: str) -> str:
         if value.strip() != 'DELETE':
-            raise serializers.ValidationError(
-                'Confirme la suppression en envoyant "DELETE".'
-            )
+            raise serializers.ValidationError('Confirme la suppression en envoyant "DELETE".')
         return value

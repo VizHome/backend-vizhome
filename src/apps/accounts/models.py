@@ -11,10 +11,10 @@ from .managers import UserManager
 
 # Validator pour le pseudo : 3-30 chars, alphanum + _ -, doit commencer par une lettre
 PSEUDO_VALIDATOR = RegexValidator(
-    regex=r"^[a-zA-Z][a-zA-Z0-9_-]{2,29}$",
+    regex=r'^[a-zA-Z][a-zA-Z0-9_-]{2,29}$',
     message=(
-        "Le pseudo doit faire 3 à 30 caractères, commencer par une lettre, "
-        "et ne contenir que des lettres, chiffres, tirets ou underscores."
+        'Le pseudo doit faire 3 à 30 caractères, commencer par une lettre, '
+        'et ne contenir que des lettres, chiffres, tirets ou underscores.'
     ),
 )
 
@@ -23,9 +23,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     """Custom user model : email comme login, pas de username."""
 
     class Plan(models.TextChoices):
-        FREE = "free", "Gratuit"
-        PRO = "pro", "Pro"
-        ENTERPRISE = "enterprise", "Entreprise"
+        FREE = 'free', 'Gratuit'
+        PRO = 'pro', 'Pro'
+        ENTERPRISE = 'enterprise', 'Entreprise'
 
     email = models.EmailField(unique=True, db_index=True)
     # Pseudo public, unique et immuable (modifiable seulement par staff).
@@ -35,7 +35,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         unique=True,
         db_index=True,
         validators=[PSEUDO_VALIDATOR],
-        help_text="Pseudo public unique, modifiable seulement par staff.",
+        help_text='Pseudo public unique, modifiable seulement par staff.',
     )
     first_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100, blank=True)
@@ -51,14 +51,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["pseudo"]  # email + password déjà requis ; pseudo requis aussi
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['pseudo']  # email + password déjà requis ; pseudo requis aussi
 
     class Meta:
-        db_table = "accounts_user"
-        verbose_name = "Utilisateur"
-        verbose_name_plural = "Utilisateurs"
-        ordering = ["-date_joined"]
+        db_table = 'accounts_user'
+        verbose_name = 'Utilisateur'
+        verbose_name_plural = 'Utilisateurs'
+        ordering = ['-date_joined']
 
     def __str__(self) -> str:
         return self.email
@@ -66,58 +66,54 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def name(self) -> str:
         """Nom d'affichage public : pseudo en priorité, fallback email."""
-        return self.pseudo or self.email.split("@")[0]
+        return self.pseudo or self.email.split('@')[0]
 
     @property
     def full_name(self) -> str:
         """Prénom + nom (privé, utilisé dans Settings / facturation)."""
-        full = f"{self.first_name} {self.last_name}".strip()
-        return full or self.pseudo or self.email.split("@")[0]
+        full = f'{self.first_name} {self.last_name}'.strip()
+        return full or self.pseudo or self.email.split('@')[0]
 
 
 class UserPreferences(models.Model):
     """Préférences utilisateur (mappe les types du frontend useUser.ts)."""
 
     class Theme(models.TextChoices):
-        LIGHT = "light", "Clair"
-        DARK = "dark", "Sombre"
-        SYSTEM = "system", "Système"
+        LIGHT = 'light', 'Clair'
+        DARK = 'dark', 'Sombre'
+        SYSTEM = 'system', 'Système'
 
     class Language(models.TextChoices):
-        FR = "fr", "Français"
-        EN = "en", "English"
-        ES = "es", "Español"
-        DE = "de", "Deutsch"
+        FR = 'fr', 'Français'
+        EN = 'en', 'English'
+        ES = 'es', 'Español'
+        DE = 'de', 'Deutsch'
 
     class RenderQuality(models.TextChoices):
-        DRAFT = "draft", "Brouillon"
-        STANDARD = "standard", "Standard"
-        HIGH = "high", "Haute"
+        DRAFT = 'draft', 'Brouillon'
+        STANDARD = 'standard', 'Standard'
+        HIGH = 'high', 'Haute'
 
     class RenderFormat(models.TextChoices):
-        PNG = "png", "PNG"
-        JPG = "jpg", "JPG"
-        WEBP = "webp", "WebP"
+        PNG = 'png', 'PNG'
+        JPG = 'jpg', 'JPG'
+        WEBP = 'webp', 'WebP'
 
     class RenderResolution(models.TextChoices):
-        R1024 = "1024", "1024px"
-        R2048 = "2048", "2048px"
-        R4096 = "4096", "4096px"
+        R1024 = '1024', '1024px'
+        R2048 = '2048', '2048px'
+        R4096 = '4096', '4096px'
 
     class FontSize(models.TextChoices):
-        SMALL = "small", "Petit"
-        MEDIUM = "medium", "Moyen"
-        LARGE = "large", "Grand"
+        SMALL = 'small', 'Petit'
+        MEDIUM = 'medium', 'Moyen'
+        LARGE = 'large', 'Grand'
 
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="preferences"
-    )
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='preferences')
 
     # Apparence
     theme = models.CharField(max_length=10, choices=Theme.choices, default=Theme.SYSTEM)
-    language = models.CharField(
-        max_length=2, choices=Language.choices, default=Language.FR
-    )
+    language = models.CharField(max_length=2, choices=Language.choices, default=Language.FR)
 
     # Notifications
     notif_email_render = models.BooleanField(default=True)
@@ -146,26 +142,24 @@ class UserPreferences(models.Model):
     # Accessibilité
     reduced_motion = models.BooleanField(default=False)
     high_contrast = models.BooleanField(default=False)
-    font_size = models.CharField(
-        max_length=10, choices=FontSize.choices, default=FontSize.MEDIUM
-    )
+    font_size = models.CharField(max_length=10, choices=FontSize.choices, default=FontSize.MEDIUM)
 
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "accounts_preferences"
+        db_table = 'accounts_preferences'
 
     def __str__(self) -> str:
-        return f"Préférences de {self.user.email}"
+        return f'Préférences de {self.user.email}'
 
 
 # Quotas par défaut selon le plan (octets pour le storage)
 PLAN_QUOTAS: dict[str, dict[str, int]] = {
-    User.Plan.FREE: {"renders_limit": 5, "storage_limit_bytes": 1 * 1024**3},
-    User.Plan.PRO: {"renders_limit": 50, "storage_limit_bytes": 5 * 1024**3},
+    User.Plan.FREE: {'renders_limit': 5, 'storage_limit_bytes': 1 * 1024**3},
+    User.Plan.PRO: {'renders_limit': 50, 'storage_limit_bytes': 5 * 1024**3},
     User.Plan.ENTERPRISE: {
-        "renders_limit": 9999,
-        "storage_limit_bytes": 1024 * 1024**3,
+        'renders_limit': 9999,
+        'storage_limit_bytes': 1024 * 1024**3,
     },
 }
 
@@ -173,7 +167,7 @@ PLAN_QUOTAS: dict[str, dict[str, int]] = {
 class UserStats(models.Model):
     """Compteurs et quotas — mis à jour par les apps `renders` et `projects`."""
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="stats")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='stats')
     renders_this_month = models.PositiveIntegerField(default=0)
     renders_limit = models.PositiveIntegerField(default=5)
     total_projects = models.PositiveIntegerField(default=0)
@@ -182,10 +176,10 @@ class UserStats(models.Model):
     period_started_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        db_table = "accounts_stats"
+        db_table = 'accounts_stats'
 
     def __str__(self) -> str:
-        return f"Stats de {self.user.email}"
+        return f'Stats de {self.user.email}'
 
 
 class UserSession(models.Model):
@@ -195,7 +189,7 @@ class UserSession(models.Model):
     connectés dans /me/sessions et de révoquer à distance.
     """
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sessions")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sessions')
     refresh_jti = models.CharField(max_length=255, unique=True, db_index=True)
     device_name = models.CharField(max_length=200, blank=True)
     user_agent = models.TextField(blank=True)
@@ -206,11 +200,11 @@ class UserSession(models.Model):
     revoked_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        db_table = "accounts_session"
-        ordering = ["-last_active"]
+        db_table = 'accounts_session'
+        ordering = ['-last_active']
 
     def __str__(self) -> str:
-        return f"{self.user.email} — {self.device_name or 'Inconnu'}"
+        return f'{self.user.email} — {self.device_name or "Inconnu"}'
 
     @property
     def is_active(self) -> bool:

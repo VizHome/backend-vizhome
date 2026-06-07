@@ -34,9 +34,7 @@ class JWTAuthenticationAllowInactive(JWTAuthentication):
         try:
             user_id = validated_token[api_settings.USER_ID_CLAIM]
         except KeyError as exc:
-            raise InvalidToken(
-                'Token contained no recognizable user identification'
-            ) from exc
+            raise InvalidToken('Token contained no recognizable user identification') from exc
 
         user_model = get_user_model()
         try:

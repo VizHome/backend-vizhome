@@ -6,12 +6,12 @@ from rest_framework.throttling import AnonRateThrottle
 
 
 class RegisterThrottle(AnonRateThrottle):
-    scope = "register"
+    scope = 'register'
 
 
 class ForgotPasswordThrottle(AnonRateThrottle):
-    scope = "forgot-password"
+    scope = 'forgot-password'
 
 
 class LoginThrottle(AnonRateThrottle):
-    scope = "login"
+    scope = 'login'

@@ -42,7 +42,7 @@ class CategoryListView(generics.ListAPIView):
     pagination_class = None  # peu de catégories, pas besoin de pagination
 
     def get_queryset(self):
-        return Category.objects.all().order_by("order", "name")
+        return Category.objects.all().order_by('order', 'name')
 
 
 class CategoryDetailView(generics.RetrieveAPIView):
@@ -51,7 +51,7 @@ class CategoryDetailView(generics.RetrieveAPIView):
     permission_classes = [AllowAny]
     authentication_classes: list = []
     serializer_class = CategorySerializer
-    lookup_field = "slug"
+    lookup_field = 'slug'
 
     def get_queryset(self):
         return Category.objects.all()
@@ -70,55 +70,51 @@ class TopicListCreateView(generics.ListCreateAPIView):
 
     def get_throttles(self):
         """Anti-flood : 30 topics/min/user max sur POST."""
-        if self.request.method == "POST":
+        if self.request.method == 'POST':
             return [ForumWriteThrottle()]
         return super().get_throttles()
 
     def get_permissions(self):
-        if self.request.method == "POST":
+        if self.request.method == 'POST':
             return [IsAuthenticated(), IsNotForumBanned()]
         return [AllowAny()]
 
     def get_authenticators(self):
         # GET public — pas d'auth → évite les 401 sur tokens expirés
-        if self.request.method == "GET":
+        if self.request.method == 'GET':
             return []
         return super().get_authenticators()
 
     def get_serializer_class(self):
-        return (
-            TopicCreateSerializer
-            if self.request.method == "POST"
-            else TopicListSerializer
-        )
+        return TopicCreateSerializer if self.request.method == 'POST' else TopicListSerializer
 
     def get_queryset(self):
-        qs = Topic.objects.select_related("category", "author").all()
+        qs = Topic.objects.select_related('category', 'author').all()
 
-        category_slug = self.request.query_params.get("category")
+        category_slug = self.request.query_params.get('category')
         if category_slug:
             qs = qs.filter(category__slug=category_slug)
 
-        search = self.request.query_params.get("search")
+        search = self.request.query_params.get('search')
         if search:
             qs = qs.filter(title__icontains=search.strip())
 
-        ordering = self.request.query_params.get("ordering")
+        ordering = self.request.query_params.get('ordering')
         allowed = {
-            "created_at",
-            "-created_at",
-            "last_reply_at",
-            "-last_reply_at",
-            "replies_count",
-            "-replies_count",
-            "views_count",
-            "-views_count",
+            'created_at',
+            '-created_at',
+            'last_reply_at',
+            '-last_reply_at',
+            'replies_count',
+            '-replies_count',
+            'views_count',
+            '-views_count',
         }
         if ordering in allowed:
             qs = qs.order_by(ordering)
         else:
             # Par défaut : pinned d'abord, puis dernière activité
-            qs = qs.order_by("-is_pinned", "-last_reply_at", "-created_at")
+            qs = qs.order_by('-is_pinned', '-last_reply_at', '-created_at')
 
         return qs
 
@@ -127,22 +123,22 @@ class TopicListCreateView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
 
         # Empêche les non-staff de poster dans les catégories is_admin_only
-        category = serializer.validated_data["category"]
+        category = serializer.validated_data['category']
         if category.is_admin_only and not request.user.is_staff:
             return Response(
                 {
-                    "detail": f"Seul le staff peut poster dans « {category.name} ».",
-                    "code": "category_locked",
+                    'detail': f'Seul le staff peut poster dans « {category.name} ».',
+                    'code': 'category_locked',
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         topic = serializer.save(author=request.user)
         # Re-slug avec l'id pour URLs uniques (`12-comment-importer-glb`)
-        topic.slug = f"{topic.pk}-{topic.slug[:200]}"
-        topic.save(update_fields=["slug"])
+        topic.slug = f'{topic.pk}-{topic.slug[:200]}'
+        topic.save(update_fields=['slug'])
 
-        output = TopicDetailSerializer(topic, context={"request": request})
+        output = TopicDetailSerializer(topic, context={'request': request})
         return Response(output.data, status=status.HTTP_201_CREATED)
 
 
@@ -157,23 +153,23 @@ class TopicDetailView(generics.RetrieveUpdateDestroyAPIView):
     EDIT_WINDOW_MINUTES = 15
 
     def get_authenticators(self):
-        if self.request.method == "GET":
+        if self.request.method == 'GET':
             return []
         return super().get_authenticators()
 
     def get_permissions(self):
-        if self.request.method == "GET":
+        if self.request.method == 'GET':
             return [AllowAny()]
         return [IsAuthenticated(), IsAuthorWithinTimeWindowOrStaff()]
 
     def get_queryset(self):
-        return Topic.objects.select_related("category", "author").all()
+        return Topic.objects.select_related('category', 'author').all()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         # Incrémente le compteur de vues (atomic, anti-race)
-        Topic.objects.filter(pk=instance.pk).update(views_count=F("views_count") + 1)
-        instance.refresh_from_db(fields=["views_count"])
+        Topic.objects.filter(pk=instance.pk).update(views_count=F('views_count') + 1)
+        instance.refresh_from_db(fields=['views_count'])
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -188,37 +184,35 @@ class ReplyListCreateView(generics.ListCreateAPIView):
 
     def get_throttles(self):
         """Anti-flood replies : partage le scope `forum-write` avec les topics."""
-        if self.request.method == "POST":
+        if self.request.method == 'POST':
             return [ForumWriteThrottle()]
         return super().get_throttles()
 
     def get_permissions(self):
-        if self.request.method == "POST":
+        if self.request.method == 'POST':
             return [IsAuthenticated(), IsNotForumBanned()]
         return [AllowAny()]
 
     def get_authenticators(self):
-        if self.request.method == "GET":
+        if self.request.method == 'GET':
             return []
         return super().get_authenticators()
 
     def get_serializer_class(self):
-        return (
-            ReplyCreateSerializer if self.request.method == "POST" else ReplySerializer
-        )
+        return ReplyCreateSerializer if self.request.method == 'POST' else ReplySerializer
 
     def get_queryset(self):
         return (
-            Reply.objects.filter(topic_id=self.kwargs["topic_id"])
-            .select_related("author")
-            .order_by("created_at")
+            Reply.objects.filter(topic_id=self.kwargs['topic_id'])
+            .select_related('author')
+            .order_by('created_at')
         )
 
     def create(self, request, *args, **kwargs):
-        topic = get_object_or_404(Topic, pk=self.kwargs["topic_id"])
+        topic = get_object_or_404(Topic, pk=self.kwargs['topic_id'])
         if topic.is_locked:
             return Response(
-                {"detail": "Ce topic est verrouillé.", "code": "topic_locked"},
+                {'detail': 'Ce topic est verrouillé.', 'code': 'topic_locked'},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -226,7 +220,7 @@ class ReplyListCreateView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         reply = serializer.save(author=request.user, topic=topic)
 
-        output = ReplySerializer(reply, context={"request": request})
+        output = ReplySerializer(reply, context={'request': request})
         return Response(output.data, status=status.HTTP_201_CREATED)
 
 
@@ -242,7 +236,7 @@ class ReplyDetailView(generics.RetrieveUpdateDestroyAPIView):
     EDIT_WINDOW_MINUTES = 15
 
     def get_queryset(self):
-        return Reply.objects.select_related("author", "topic").all()
+        return Reply.objects.select_related('author', 'topic').all()
 
 
 # ─── Actions modération (staff ou owner du topic selon le cas) ─────────────
@@ -254,12 +248,12 @@ class TopicTogglePinView(APIView):
     def post(self, request, pk: int, *args, **kwargs):
         if not request.user.is_staff:
             return Response(
-                {"detail": "Réservé au staff.", "code": "forbidden"},
+                {'detail': 'Réservé au staff.', 'code': 'forbidden'},
                 status=status.HTTP_403_FORBIDDEN,
             )
         topic = get_object_or_404(Topic, pk=pk)
         topic.is_pinned = not topic.is_pinned
-        topic.save(update_fields=["is_pinned"])
+        topic.save(update_fields=['is_pinned'])
         # Audit log staff action
         from apps.admin_panel.audit import log_admin_action
         from apps.admin_panel.models import AdminAuditLog
@@ -273,7 +267,7 @@ class TopicTogglePinView(APIView):
             ),
             target=topic,
         )
-        return Response({"is_pinned": topic.is_pinned})
+        return Response({'is_pinned': topic.is_pinned})
 
 
 class TopicToggleLockView(APIView):
@@ -284,12 +278,12 @@ class TopicToggleLockView(APIView):
     def post(self, request, pk: int, *args, **kwargs):
         if not request.user.is_staff:
             return Response(
-                {"detail": "Réservé au staff.", "code": "forbidden"},
+                {'detail': 'Réservé au staff.', 'code': 'forbidden'},
                 status=status.HTTP_403_FORBIDDEN,
             )
         topic = get_object_or_404(Topic, pk=pk)
         topic.is_locked = not topic.is_locked
-        topic.save(update_fields=["is_locked"])
+        topic.save(update_fields=['is_locked'])
         from apps.admin_panel.audit import log_admin_action
         from apps.admin_panel.models import AdminAuditLog
 
@@ -302,7 +296,7 @@ class TopicToggleLockView(APIView):
             ),
             target=topic,
         )
-        return Response({"is_locked": topic.is_locked})
+        return Response({'is_locked': topic.is_locked})
 
 
 class ReplyToggleSolutionView(APIView):
@@ -317,15 +311,15 @@ class ReplyToggleSolutionView(APIView):
 
     def post(self, request, pk: int, *args, **kwargs):
         reply = get_object_or_404(
-            Reply.objects.select_related("topic"),
+            Reply.objects.select_related('topic'),
             pk=pk,
         )
         is_topic_author = reply.topic.author_id == request.user.id
         if not (request.user.is_staff or is_topic_author):
             return Response(
                 {
-                    "detail": "Seul l'auteur du sujet ou le staff peut marquer une solution.",
-                    "code": "forbidden",
+                    'detail': "Seul l'auteur du sujet ou le staff peut marquer une solution.",
+                    'code': 'forbidden',
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
@@ -336,7 +330,7 @@ class ReplyToggleSolutionView(APIView):
                 is_solution=False,
             )
         reply.is_solution = not reply.is_solution
-        reply.save(update_fields=["is_solution"])
+        reply.save(update_fields=['is_solution'])
         # Audit log staff actions only (les owners c'est normal)
         if request.user.is_staff and reply.is_solution:
             from apps.admin_panel.audit import log_admin_action
@@ -347,7 +341,7 @@ class ReplyToggleSolutionView(APIView):
                 AdminAuditLog.Action.REPLY_MARK_SOLUTION,
                 target=reply,
             )
-        return Response({"is_solution": reply.is_solution})
+        return Response({'is_solution': reply.is_solution})
 
 
 # ─── Upload images dans les posts du forum ───────────────────────────────
@@ -356,11 +350,11 @@ class ReplyToggleSolutionView(APIView):
 
 # Types MIME autorisés pour les images du forum
 _FORUM_IMAGE_ALLOWED_TYPES = {
-    "image/png": ".png",
-    "image/jpeg": ".jpg",
-    "image/jpg": ".jpg",
-    "image/gif": ".gif",
-    "image/webp": ".webp",
+    'image/png': '.png',
+    'image/jpeg': '.jpg',
+    'image/jpg': '.jpg',
+    'image/gif': '.gif',
+    'image/webp': '.webp',
 }
 _FORUM_IMAGE_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
 
@@ -384,23 +378,23 @@ class ForumImageUploadView(APIView):
     parser_classes = [MultiPartParser]
 
     def post(self, request, *args, **kwargs):
-        upload = request.FILES.get("file")
+        upload = request.FILES.get('file')
         if not upload:
             return Response(
-                {"detail": "Champ 'file' manquant.", "code": "no_file"},
+                {'detail': "Champ 'file' manquant.", 'code': 'no_file'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Validation type
-        content_type = (upload.content_type or "").lower()
+        content_type = (upload.content_type or '').lower()
         if content_type not in _FORUM_IMAGE_ALLOWED_TYPES:
             return Response(
                 {
-                    "detail": (
-                        "Type de fichier non autorisé. "
-                        f"Acceptés : {', '.join(sorted(_FORUM_IMAGE_ALLOWED_TYPES))}."
+                    'detail': (
+                        'Type de fichier non autorisé. '
+                        f'Acceptés : {", ".join(sorted(_FORUM_IMAGE_ALLOWED_TYPES))}.'
                     ),
-                    "code": "invalid_type",
+                    'code': 'invalid_type',
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -409,11 +403,11 @@ class ForumImageUploadView(APIView):
         if upload.size > _FORUM_IMAGE_MAX_BYTES:
             return Response(
                 {
-                    "detail": (
-                        f"Fichier trop volumineux ({upload.size} octets). "
-                        f"Max : {_FORUM_IMAGE_MAX_BYTES // (1024 * 1024)} MB."
+                    'detail': (
+                        f'Fichier trop volumineux ({upload.size} octets). '
+                        f'Max : {_FORUM_IMAGE_MAX_BYTES // (1024 * 1024)} MB.'
                     ),
-                    "code": "too_large",
+                    'code': 'too_large',
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -422,9 +416,9 @@ class ForumImageUploadView(APIView):
         ext = _FORUM_IMAGE_ALLOWED_TYPES[content_type]
         now = timezone.now()
         key = (
-            f"forum/uploads/{request.user.pk}/"
-            f"{now.year:04d}/{now.month:02d}/"
-            f"{uuid.uuid4().hex}{ext}"
+            f'forum/uploads/{request.user.pk}/'
+            f'{now.year:04d}/{now.month:02d}/'
+            f'{uuid.uuid4().hex}{ext}'
         )
 
         # Upload via django-storages (utilise le backend S3/MinIO configuré)
@@ -444,10 +438,10 @@ class ForumImageUploadView(APIView):
 
         return Response(
             {
-                "url": url,
-                "filename": Path(saved_key).name,
-                "size_bytes": upload.size,
-                "content_type": content_type,
+                'url': url,
+                'filename': Path(saved_key).name,
+                'size_bytes': upload.size,
+                'content_type': content_type,
             },
             status=status.HTTP_201_CREATED,
         )

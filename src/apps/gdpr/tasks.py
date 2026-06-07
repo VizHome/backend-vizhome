@@ -175,14 +175,14 @@ def _build_zip(data: dict[str, Any]) -> bytes:
     """Construit l'archive ZIP en mémoire (data.json + README)."""
     buffer = io.BytesIO()
     readme = (
-        "# Export RGPD VizHome\n\n"
-        "Ce ZIP contient toutes les données personnelles associées à votre "
-        "compte VizHome.\n\n"
-        "Fichiers :\n"
-        "- data.json — profil, préférences, stats, projets, renders, "
-        "forum, support, sessions.\n\n"
-        "Ce lien de téléchargement est valable 24 heures. Au-delà, demande "
-        "un nouvel export depuis Mon compte → Confidentialité.\n"
+        '# Export RGPD VizHome\n\n'
+        'Ce ZIP contient toutes les données personnelles associées à votre '
+        'compte VizHome.\n\n'
+        'Fichiers :\n'
+        '- data.json — profil, préférences, stats, projets, renders, '
+        'forum, support, sessions.\n\n'
+        'Ce lien de téléchargement est valable 24 heures. Au-delà, demande '
+        'un nouvel export depuis Mon compte → Confidentialité.\n'
     )
     with zipfile.ZipFile(buffer, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr('README.md', readme)
@@ -249,7 +249,7 @@ def build_user_export_zip(self, export_id: int) -> None:
                     f'Bonjour,\n\n'
                     f"Ton archive d'export RGPD est prête.\n"
                     f'Télécharge-la depuis ton espace : {frontend}/account/privacy\n\n'
-                    f"Lien direct (valable 24h) : {download_url or '(indisponible)'}\n"
+                    f'Lien direct (valable 24h) : {download_url or "(indisponible)"}\n'
                 ),
                 from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@vizhome.fr'),
                 recipient_list=[user.email],
@@ -265,9 +265,7 @@ def build_user_export_zip(self, export_id: int) -> None:
         export.status = ExportRequest.Status.FAILED
         export.error_message = str(exc)[:2000]
         export.completed_at = timezone.now()
-        export.save(
-            update_fields=['status', 'error_message', 'completed_at']
-        )
+        export.save(update_fields=['status', 'error_message', 'completed_at'])
 
 
 # ─── Cleanup périodique des exports expirés ──────────────────────────────────

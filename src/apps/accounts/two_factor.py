@@ -35,9 +35,7 @@ def user_has_active_2fa(user: User) -> bool:
     return TOTPDevice.objects.filter(user=user, confirmed=True).exists()
 
 
-def get_user_totp_device(
-    user: User, confirmed: bool | None = True
-) -> TOTPDevice | None:
+def get_user_totp_device(user: User, confirmed: bool | None = True) -> TOTPDevice | None:
     qs = TOTPDevice.objects.filter(user=user)
     if confirmed is not None:
         qs = qs.filter(confirmed=confirmed)
@@ -47,14 +45,14 @@ def get_user_totp_device(
 def generate_challenge_token(user_id: int) -> str:
     """Token éphémère (5 min) qui prouve qu'on a passé l'étape 1 du login 2FA."""
     token = secrets.token_urlsafe(32)
-    cache.set(f"2fa_challenge:{token}", user_id, timeout=300)
+    cache.set(f'2fa_challenge:{token}', user_id, timeout=300)
     return token
 
 
 def consume_challenge_token(token: str) -> int | None:
-    user_id = cache.get(f"2fa_challenge:{token}")
+    user_id = cache.get(f'2fa_challenge:{token}')
     if user_id is not None:
-        cache.delete(f"2fa_challenge:{token}")
+        cache.delete(f'2fa_challenge:{token}')
     return user_id
 
 
@@ -62,9 +60,9 @@ def build_qr_code_data_uri(uri: str) -> str:
     """Génère un QR code en data URI (base64 PNG) depuis l'otpauth:// URI."""
     img = qrcode.make(uri)
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    img.save(buf, format='PNG')
     b64 = base64.b64encode(buf.getvalue()).decode()
-    return f"data:image/png;base64,{b64}"
+    return f'data:image/png;base64,{b64}'
 
 
 # ─── Serializers ──────────────────────────────────────────────────────────────
@@ -86,7 +84,7 @@ class Setup2FAView(APIView):
 
         if user_has_active_2fa(user):
             return Response(
-                {"detail": "2FA déjà activé. Désactivez-le avant de re-configurer."},
+                {'detail': '2FA déjà activé. Désactivez-le avant de re-configurer.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -96,15 +94,15 @@ class Setup2FAView(APIView):
         # Crée un nouveau device (non confirmé)
         device = TOTPDevice.objects.create(
             user=user,
-            name=f"TOTP {user.email}",
+            name=f'TOTP {user.email}',
             confirmed=False,
         )
 
         return Response(
             {
-                "secret": base64.b32encode(bytes.fromhex(device.key)).decode(),
-                "qr_code": build_qr_code_data_uri(device.config_url),
-                "otpauth_uri": device.config_url,
+                'secret': base64.b32encode(bytes.fromhex(device.key)).decode(),
+                'qr_code': build_qr_code_data_uri(device.config_url),
+                'otpauth_uri': device.config_url,
             }
         )
 
@@ -119,16 +117,12 @@ class VerifySetup2FAView(APIView):
         device = get_user_totp_device(request.user, confirmed=False)
         if not device:
             return Response(
-                {
-                    "detail": "Aucune configuration 2FA en attente. Appelez /me/2fa/setup d'abord."
-                },
+                {'detail': "Aucune configuration 2FA en attente. Appelez /me/2fa/setup d'abord."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if not device.verify_token(serializer.validated_data["code"]):
-            return Response(
-                {"detail": "Code invalide."}, status=status.HTTP_400_BAD_REQUEST
-            )
+        if not device.verify_token(serializer.validated_data['code']):
+            return Response({'detail': 'Code invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
         device.confirmed = True
         device.save()
@@ -136,9 +130,9 @@ class VerifySetup2FAView(APIView):
         # Met à jour la préférence du user
         prefs = request.user.preferences
         prefs.two_factor_enabled = True
-        prefs.save(update_fields=["two_factor_enabled"])
+        prefs.save(update_fields=['two_factor_enabled'])
 
-        return Response({"detail": "2FA activé avec succès."})
+        return Response({'detail': '2FA activé avec succès.'})
 
 
 class Disable2FAView(APIView):
@@ -150,23 +144,19 @@ class Disable2FAView(APIView):
 
         device = get_user_totp_device(request.user, confirmed=True)
         if not device:
-            return Response(
-                {"detail": "2FA non activé."}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'detail': '2FA non activé.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Exige un code valide pour désactiver (sécurité)
-        if not device.verify_token(serializer.validated_data["code"]):
-            return Response(
-                {"detail": "Code invalide."}, status=status.HTTP_400_BAD_REQUEST
-            )
+        if not device.verify_token(serializer.validated_data['code']):
+            return Response({'detail': 'Code invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
         device.delete()
 
         prefs = request.user.preferences
         prefs.two_factor_enabled = False
-        prefs.save(update_fields=["two_factor_enabled"])
+        prefs.save(update_fields=['two_factor_enabled'])
 
-        return Response({"detail": "2FA désactivé."})
+        return Response({'detail': '2FA désactivé.'})
 
 
 # ─── Login 2FA ────────────────────────────────────────────────────────────────
@@ -180,10 +170,10 @@ class Verify2FALoginView(APIView):
         serializer = TwoFactorLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_id = consume_challenge_token(serializer.validated_data["challenge_token"])
+        user_id = consume_challenge_token(serializer.validated_data['challenge_token'])
         if user_id is None:
             return Response(
-                {"detail": "Challenge invalide ou expiré."},
+                {'detail': 'Challenge invalide ou expiré.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -191,18 +181,16 @@ class Verify2FALoginView(APIView):
             user = User.objects.get(pk=user_id, is_active=True)
         except User.DoesNotExist:
             return Response(
-                {"detail": "Utilisateur introuvable."},
+                {'detail': 'Utilisateur introuvable.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         device = get_user_totp_device(user, confirmed=True)
-        if not device or not device.verify_token(serializer.validated_data["code"]):
-            return Response(
-                {"detail": "Code 2FA invalide."}, status=status.HTTP_400_BAD_REQUEST
-            )
+        if not device or not device.verify_token(serializer.validated_data['code']):
+            return Response({'detail': 'Code 2FA invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Import local pour éviter le cycle avec views.py
         from .views import _issue_tokens_for_user
 
         tokens = _issue_tokens_for_user(user, request)
-        return Response({"user": UserSerializer(user).data, **tokens})
+        return Response({'user': UserSerializer(user).data, **tokens})

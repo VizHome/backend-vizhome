@@ -41,12 +41,12 @@ SSE_HEARTBEAT_EVERY_S = 15  # commentaire SSE pour garder la connexion en vie
 
 def _sse_event(data: dict) -> bytes:
     """Encode un dict en frame SSE ``data: <json>\\n\\n``."""
-    return f"data: {json.dumps(data, separators=(',', ':'))}\n\n".encode()
+    return f'data: {json.dumps(data, separators=(",", ":"))}\n\n'.encode()
 
 
 def _sse_comment(text: str) -> bytes:
     """Encode un commentaire SSE (ligne ``: ...``) servant de heartbeat."""
-    return f": {text}\n\n".encode()
+    return f': {text}\n\n'.encode()
 
 
 class RenderSSEView(View):
@@ -75,7 +75,7 @@ class RenderSSEView(View):
     concurrentes par instance.
     """
 
-    http_method_names = ["get"]
+    http_method_names = ['get']
 
     def get(self, request: HttpRequest, pk: int) -> HttpResponse:
         # ─── Auth Bearer manuelle (View, pas DRF) ───────────────────────────
@@ -83,37 +83,37 @@ class RenderSSEView(View):
         if user is None:
             return HttpResponse(
                 status=401,
-                content=json.dumps({"detail": "Authentification requise."}),
-                content_type="application/json",
+                content=json.dumps({'detail': 'Authentification requise.'}),
+                content_type='application/json',
             )
 
         # ─── IDOR : on filtre sur user dans le queryset ─────────────────────
         try:
-            render = Render.objects.only("pk", "user_id").get(pk=pk, user=user)
+            render = Render.objects.only('pk', 'user_id').get(pk=pk, user=user)
         except Render.DoesNotExist:
             return HttpResponse(
                 status=404,
-                content=json.dumps({"detail": "Render introuvable."}),
-                content_type="application/json",
+                content=json.dumps({'detail': 'Render introuvable.'}),
+                content_type='application/json',
             )
 
         response = StreamingHttpResponse(
             self._event_stream(render.pk),
-            content_type="text/event-stream",
+            content_type='text/event-stream',
         )
-        response["Cache-Control"] = "no-cache"
-        response["X-Accel-Buffering"] = "no"  # Nginx : ne pas bufferiser
-        response["Connection"] = "keep-alive"
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'  # Nginx : ne pas bufferiser
+        response['Connection'] = 'keep-alive'
         return response
 
     # ─── Helpers ────────────────────────────────────────────────────────────
     @staticmethod
     def _authenticate(request: HttpRequest):
         """Valide le Bearer JWT et renvoie l'utilisateur, ou ``None`` si KO."""
-        header = request.META.get("HTTP_AUTHORIZATION", "")
-        if not header.startswith("Bearer "):
+        header = request.META.get('HTTP_AUTHORIZATION', '')
+        if not header.startswith('Bearer '):
             return None
-        token_str = header.split(" ", 1)[1].strip()
+        token_str = header.split(' ', 1)[1].strip()
         if not token_str:
             return None
 
@@ -143,26 +143,24 @@ class RenderSSEView(View):
 
         while time.monotonic() < deadline:
             try:
-                render = Render.objects.only(
-                    "pk", "status", "error_message", "result_image"
-                ).get(pk=render_id)
+                render = Render.objects.only('pk', 'status', 'error_message', 'result_image').get(
+                    pk=render_id
+                )
             except Render.DoesNotExist:
                 # Supprimé en cours de route, on coupe.
-                yield _sse_event(
-                    {"status": "failed", "error": "Render supprimé."}
-                )
+                yield _sse_event({'status': 'failed', 'error': 'Render supprimé.'})
                 return
 
             if render.status != last_status:
                 payload = {
-                    "id": render.pk,
-                    "status": render.status,
-                    "is_terminal": render.is_terminal,
+                    'id': render.pk,
+                    'status': render.status,
+                    'is_terminal': render.is_terminal,
                 }
                 if render.status == Render.Status.FAILED and render.error_message:
-                    payload["error"] = render.error_message
+                    payload['error'] = render.error_message
                 if render.status == Render.Status.DONE and render.result_image:
-                    payload["result_url"] = render.result_image.url
+                    payload['result_url'] = render.result_image.url
                 yield _sse_event(payload)
                 last_status = render.status
 
@@ -172,7 +170,7 @@ class RenderSSEView(View):
             # Heartbeat (commentaire SSE) pour garder la connexion vivante
             now = time.monotonic()
             if now - last_heartbeat >= SSE_HEARTBEAT_EVERY_S:
-                yield _sse_comment("keep-alive")
+                yield _sse_comment('keep-alive')
                 last_heartbeat = now
 
             time.sleep(SSE_POLL_INTERVAL_S)
@@ -180,8 +178,8 @@ class RenderSSEView(View):
         # Timeout : on prévient le client qu'on coupe sans verdict.
         yield _sse_event(
             {
-                "status": last_status or "pending",
-                "is_terminal": False,
-                "timeout": True,
+                'status': last_status or 'pending',
+                'is_terminal': False,
+                'timeout': True,
             }
         )

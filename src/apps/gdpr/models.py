@@ -31,7 +31,7 @@ DELETION_GRACE_PERIOD_DAYS = 30
 EXPORT_LINK_TTL_HOURS = 24
 
 
-def _default_scheduled_for() -> "timezone.datetime":
+def _default_scheduled_for() -> timezone.datetime:
     """Calcule l'échéance par défaut d'une demande de suppression."""
     return timezone.now() + timedelta(days=DELETION_GRACE_PERIOD_DAYS)
 

@@ -11,9 +11,7 @@ from .models import PLAN_QUOTAS, User, UserPreferences, UserStats
 
 
 @receiver(post_save, sender=User)
-def create_user_relations(
-    sender: type[User], instance: User, created: bool, **kwargs: Any
-) -> None:
+def create_user_relations(sender: type[User], instance: User, created: bool, **kwargs: Any) -> None:
     """À la création d'un user, instancier ses Preferences et Stats."""
     if not created:
         return
@@ -23,6 +21,6 @@ def create_user_relations(
     quotas = PLAN_QUOTAS[instance.plan]
     UserStats.objects.create(
         user=instance,
-        renders_limit=quotas["renders_limit"],
-        storage_limit_bytes=quotas["storage_limit_bytes"],
+        renders_limit=quotas['renders_limit'],
+        storage_limit_bytes=quotas['storage_limit_bytes'],
     )

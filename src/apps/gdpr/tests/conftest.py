@@ -47,6 +47,6 @@ def auth_client(api_client: APIClient, user: User) -> APIClient:
 
 
 @pytest.fixture
-def other_auth_client(user: User, other_user: User) -> APIClient:  # noqa: ARG001
+def other_auth_client(user: User, other_user: User) -> APIClient:
     """Client authentifié comme `other_user` (pour les tests IDOR)."""
     return _build_auth_client(APIClient(), other_user)

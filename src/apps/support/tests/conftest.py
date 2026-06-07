@@ -17,27 +17,27 @@ def api_client() -> APIClient:
 @pytest.fixture
 def user(db) -> User:
     return User.objects.create_user(
-        email="alice@example.com",
-        password="S3cure!pass",
-        first_name="Alice",
+        email='alice@example.com',
+        password='S3cure!pass',
+        first_name='Alice',
     )
 
 
 @pytest.fixture
 def other_user(db) -> User:
     return User.objects.create_user(
-        email="bob@example.com",
-        password="S3cure!pass",
-        first_name="Bob",
+        email='bob@example.com',
+        password='S3cure!pass',
+        first_name='Bob',
     )
 
 
 @pytest.fixture
 def staff_user(db) -> User:
     return User.objects.create_user(
-        email="admin@example.com",
-        password="S3cure!pass",
-        first_name="Admin",
+        email='admin@example.com',
+        password='S3cure!pass',
+        first_name='Admin',
         is_staff=True,
     )
 
@@ -72,7 +72,7 @@ def ticket(db, user: User) -> SupportTicket:
 
     t = SupportTicket.objects.create(
         user=user,
-        subject="Mon rendu reste bloqué",
+        subject='Mon rendu reste bloqué',
         category=SupportTicket.Category.TECHNICAL,
         priority=SupportTicket.Priority.HIGH,
     )
@@ -80,6 +80,6 @@ def ticket(db, user: User) -> SupportTicket:
         ticket=t,
         author=user,
         from_staff=False,
-        body="Le rendu #42 est toujours en pending depuis 1h.",
+        body='Le rendu #42 est toujours en pending depuis 1h.',
     )
     return t

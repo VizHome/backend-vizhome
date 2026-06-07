@@ -20,18 +20,12 @@ def create_scene_for_new_project(
     """À la création d'un projet, instancie sa Scene vide."""
     if created:
         Scene.objects.create(project=instance)
-        UserStats.objects.filter(user=instance.user).update(
-            total_projects=F("total_projects") + 1
-        )
+        UserStats.objects.filter(user=instance.user).update(total_projects=F('total_projects') + 1)
 
 
 @receiver(post_delete, sender=Project)
-def decrement_project_count(
-    sender: type[Project], instance: Project, **kwargs: Any
-) -> None:
-    UserStats.objects.filter(user=instance.user).update(
-        total_projects=F("total_projects") - 1
-    )
+def decrement_project_count(sender: type[Project], instance: Project, **kwargs: Any) -> None:
+    UserStats.objects.filter(user=instance.user).update(total_projects=F('total_projects') - 1)
 
 
 @receiver(post_save, sender=ImportedModel)
@@ -41,7 +35,7 @@ def increment_storage_on_model_save(
     """À l'ajout d'un ImportedModel, incrémente le storage usage du user."""
     if created:
         UserStats.objects.filter(user=instance.project.user).update(
-            storage_used_bytes=F("storage_used_bytes") + instance.file_size_bytes
+            storage_used_bytes=F('storage_used_bytes') + instance.file_size_bytes
         )
 
 
@@ -50,7 +44,7 @@ def decrement_storage_on_model_delete(
     sender: type[ImportedModel], instance: ImportedModel, **kwargs: Any
 ) -> None:
     UserStats.objects.filter(user=instance.project.user).update(
-        storage_used_bytes=F("storage_used_bytes") - instance.file_size_bytes
+        storage_used_bytes=F('storage_used_bytes') - instance.file_size_bytes
     )
     # Nettoie les fichiers du storage
     if instance.file:

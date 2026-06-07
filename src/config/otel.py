@@ -35,7 +35,7 @@ def init_otel() -> None:
     if _INITIALIZED:
         return
 
-    endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
+    endpoint = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', '').strip()
     if not endpoint:
         return  # OTel désactivé tant qu'aucun endpoint n'est fourni.
 
@@ -55,19 +55,17 @@ def init_otel() -> None:
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
     except ImportError as exc:
-        logger.warning(
-            "OpenTelemetry packages not installed, tracing disabled: %s", exc
-        )
+        logger.warning('OpenTelemetry packages not installed, tracing disabled: %s', exc)
         return
 
-    service_name = os.getenv("OTEL_SERVICE_NAME", "vizhome-backend")
-    environment = os.getenv("OTEL_ENVIRONMENT", "production")
+    service_name = os.getenv('OTEL_SERVICE_NAME', 'vizhome-backend')
+    environment = os.getenv('OTEL_ENVIRONMENT', 'production')
 
     resource = Resource.create(
         {
-            "service.name": service_name,
-            "service.namespace": "vizhome",
-            "deployment.environment": environment,
+            'service.name': service_name,
+            'service.namespace': 'vizhome',
+            'deployment.environment': environment,
         }
     )
 
@@ -76,7 +74,7 @@ def init_otel() -> None:
     # automatiquement par le schéma de l'URL.
     exporter = OTLPSpanExporter(
         endpoint=endpoint,
-        insecure=endpoint.startswith("http://"),
+        insecure=endpoint.startswith('http://'),
     )
     provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)
@@ -90,7 +88,7 @@ def init_otel() -> None:
 
     _INITIALIZED = True
     logger.info(
-        "OpenTelemetry tracing initialized (service=%s, env=%s, endpoint=%s)",
+        'OpenTelemetry tracing initialized (service=%s, env=%s, endpoint=%s)',
         service_name,
         environment,
         endpoint,
