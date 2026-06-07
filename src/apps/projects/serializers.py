@@ -154,23 +154,77 @@ class ImportedModelUploadSerializer(serializers.Serializer):
 
 
 class PresignedUploadRequestSerializer(serializers.Serializer):
-    """Demande une URL pré-signée pour upload direct vers MinIO."""
+    """Demande une URL pré-signée pour upload direct vers MinIO.
+
+    Sécurité :
+    - Extension whitelist (.glb, .gltf, .obj, .fbx, .stl)
+    - Filename sanitisé (refuse path traversal et caractères dangereux)
+    - Taille max : 100 MB (les modèles 3D plus gros doivent passer par
+      l'upload S3 multipart, pas encore implémenté côté frontend)
+    - content_type whitelist alignée sur l'extension demandée
+    """
+
+    # 100 MB — au delà, on doit basculer en multipart upload S3
+    MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024
+
+    # Mapping extension → content-types acceptables
+    # Le `application/octet-stream` est toléré partout (browsers le retournent
+    # pour les formats peu courants) mais on refuse les types clairement faux
+    # (un .glb avec content-type `text/html` est suspect).
+    CONTENT_TYPE_WHITELIST = {
+        "glb": {"model/gltf-binary", "application/octet-stream"},
+        "gltf": {"model/gltf+json", "application/json", "application/octet-stream"},
+        "obj": {"text/plain", "model/obj", "application/octet-stream"},
+        "fbx": {"application/octet-stream"},
+        "stl": {"model/stl", "application/sla", "application/octet-stream"},
+    }
 
     name = serializers.CharField(max_length=200)
     file_name = serializers.CharField(max_length=200)
-    file_size_bytes = serializers.IntegerField(min_value=1)
+    file_size_bytes = serializers.IntegerField(
+        min_value=1, max_value=MAX_FILE_SIZE_BYTES
+    )
     content_type = serializers.CharField(
         max_length=100, required=False, default="application/octet-stream"
     )
 
-    def validate_file_name(self, value):
-        ext = os.path.splitext(value)[1].lstrip(".").lower()
+    def validate_file_name(self, value: str) -> str:
+        # Sanitisation contre path traversal et caractères dangereux.
+        # On garde uniquement le basename — pas de dossier dans le filename.
+        sanitized = os.path.basename(value).strip()
+        if not sanitized or sanitized.startswith("."):
+            raise serializers.ValidationError(
+                "Nom de fichier invalide."
+            )
+        # Caractères dangereux pour S3 / shell : null byte, contrôles
+        if any(c in sanitized for c in ("\x00", "\n", "\r", "\\", "/", "..")):
+            raise serializers.ValidationError(
+                "Nom de fichier contient des caractères interdits."
+            )
+        # Extension whitelist
+        ext = os.path.splitext(sanitized)[1].lstrip(".").lower()
         if ext not in {choice.value for choice in ImportedModel.Format}:
             raise serializers.ValidationError(
                 f"Format non supporté : .{ext}. "
                 f"Formats acceptés : .glb, .gltf, .obj, .fbx, .stl"
             )
-        return value
+        return sanitized
+
+    def validate(self, attrs: dict) -> dict:
+        """Cohérence content_type ↔ extension (browser peut mentir, mais
+        on refuse les valeurs clairement incohérentes)."""
+        ext = os.path.splitext(attrs["file_name"])[1].lstrip(".").lower()
+        ct = (attrs.get("content_type") or "").lower().strip()
+        allowed = self.CONTENT_TYPE_WHITELIST.get(ext, set())
+        if ct and ct not in allowed:
+            # On normalise sur octet-stream plutôt que rejeter, sauf si la valeur
+            # ressemble à un type clairement malveillant (HTML, script).
+            if ct.startswith(("text/html", "application/javascript", "application/x-")):
+                raise serializers.ValidationError(
+                    {"content_type": f"Type MIME incompatible avec .{ext}"}
+                )
+            attrs["content_type"] = "application/octet-stream"
+        return attrs
 
 
 class PresignedUploadConfirmSerializer(serializers.Serializer):

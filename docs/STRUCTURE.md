@@ -20,7 +20,7 @@ backend-vizhome/
 │   │   ├── urls.py               routing racine + API v1
 │   │   ├── wsgi.py / asgi.py
 │   │   └── celery.py             instance Celery + autodiscover
-│   └── apps/                     7 apps métier
+│   └── apps/                     apps métier
 │       ├── core/                 healthcheck, middleware partagé
 │       ├── accounts/             User custom + 2FA + OAuth + sessions
 │       ├── projects/             Project + Scene + ImportedModel + Annotation
@@ -28,7 +28,8 @@ backend-vizhome/
 │       ├── gallery/              endpoints galerie (réutilise renders)
 │       ├── billing/              dj-stripe + plans + webhook handlers
 │       ├── forum/                Category + Topic + Reply (forum communautaire)
-│       └── support/              SupportTicket + SupportMessage (ticketing helpdesk)
+│       ├── support/              SupportTicket + SupportMessage (ticketing helpdesk)
+│       └── gdpr/                 ExportRequest + DeletionRequest (RGPD art. 15/17/20)
 │
 ├── docker/
 │   ├── Dockerfile                multi-stage prod (~629 MB)
@@ -40,7 +41,16 @@ backend-vizhome/
 │   └── backup_minio.sh           mirror MinIO (snapshot)
 │
 ├── .github/workflows/
-│   └── ci.yml                    lint (ruff) + tests (pytest) + build
+│   ├── ci.yml                    lint (ruff) + tests (pytest) + build
+│   └── benchmarks.yml            microbench pytest-benchmark (main only)
+│
+├── benchmarks/                   bench performance (hors src/, indep de Django)
+│   ├── README.md                 mode d'emploi local + CI
+│   ├── locustfile.py             5 scenarios load test HTTP (Locust)
+│   ├── test_perf.py              microbench Python (pytest-benchmark)
+│   └── conftest.py               injecte src/ dans sys.path
+│
+├── Makefile                      targets bench-local / bench-headless / bench-micro / bench-compare
 │
 ├── docker-compose.yml            stack dev (postgres + redis + minio + mailpit + api + celery)
 ├── docker-compose.prod.yml       stack prod (+ traefik + celery-beat)
@@ -80,10 +90,39 @@ core/
 ├── apps.py
 ├── views.py                      liveness + readiness
 ├── urls.py                       /health/live, /health/ready
-└── (pas de models — utilitaires uniquement)
+├── tests.py                      tests healthcheck + bootstrap command
+└── management/commands/
+    └── bootstrap.py              orchestrateur "zéro-commande" pour le deploy
 ```
 
 Endpoints `/health/*` pour Docker healthcheck + load balancer prod.
+
+**`manage.py bootstrap`** : exécuté par l'entrypoint Docker au démarrage de
+l'API. Idempotent. Étapes : `migrate` → `collectstatic` → `compilemessages`
+→ `seed_forum_categories` → `setup_stripe_products` → `setup_webhook_endpoint`.
+Sûr en multi-replica grâce à un verrou Redis (`vizhome:bootstrap:lock`, TTL
+5 min). Flags : `--skip-stripe`, `--skip-lock`, `--only <step>`,
+`--wait-for-lock <sec>`.
+
+### `apps/contact/`
+
+```
+contact/
+├── apps.py
+├── models.py                     NewsletterSubscriber (email opt-in)
+├── serializers.py                ContactMessageSerializer
+├── views.py                      POST /api/v1/contact/ (public, rate-limited 5/h)
+├── admin.py                      gestion staff des subscribers
+├── urls.py
+├── tests.py
+├── templates/contact/            email HTML + text (Reply-To direct user)
+└── migrations/0001_initial.py
+```
+
+Form de contact public marketing site. Envoie un email à
+`CONTACT_RECIPIENT_EMAIL` (défaut `contact@vizhome.fr`) via `send_mail`.
+Si `newsletter_opt_in=True`, crée/réactive un `NewsletterSubscriber`
+idempotent par email (lowercase normalisé).
 
 ### `apps/accounts/`
 
@@ -314,6 +353,62 @@ support/
 - Reply staff → mail à l'auteur du ticket
 - Reply user sur ticket assigné → mail à l'assignee uniquement (pas à tous
   les staffs pour éviter le spam)
+
+### `apps/gdpr/`
+
+Conformité RGPD : export des données personnelles (art. 15 + 20) et
+suppression de compte avec délai de rétractation (art. 17).
+
+```
+gdpr/
+├── apps.py
+├── models.py                    ExportRequest + DeletionRequest
+├── serializers.py               ExportRequestSerializer + DeletionRequestSerializer
+│                                + DeleteAccountInputSerializer (confirm == "DELETE")
+├── views.py                     ExportDataView + ExportDataStatusView
+│                                + RequestDeleteAccountView + CancelDeleteAccountView
+├── tasks.py                     ★ build_user_export_zip (Celery)
+│                                + cleanup_expired_exports (cron horaire)
+│                                + cleanup_pending_deletions (cron quotidien)
+├── storage.py                   wrappers default_storage / presigned MinIO
+├── authentication.py            JWTAuthenticationAllowInactive (cancel post soft delete)
+├── urls.py                      me_patterns ajoutés à `/api/v1/me/`
+├── admin.py                     ExportRequest + DeletionRequest en lecture seule
+├── tests/                       conftest + test_export + test_delete_account + test_tasks
+└── migrations/0001_initial.py
+```
+
+Endpoints (montés sous `/api/v1/me/` via `config/urls.py`) :
+- `POST   /me/export-data` — déclenche un job Celery (idempotent : renvoie
+  la demande QUEUED/PROCESSING existante au lieu de doubler le job)
+- `GET    /me/export-data/status` — statut de la dernière demande
+  + URL de téléchargement signée 24h si `status=ready`
+- `POST   /me/delete-account` — exige `{"confirm": "DELETE"}`,
+  soft delete immédiat (`is_active=False`, sessions JWT révoquées),
+  `DeletionRequest(scheduled_for = now + 30j)` créé
+- `POST   /me/delete-account/cancel` — réactive le compte tant que la
+  tâche cron n'a pas hard-delete. Accepte les tokens même pour
+  `is_active=False` (custom `JWTAuthenticationAllowInactive`).
+
+Tâches Celery (à planifier via `django-celery-beat`) :
+- `gdpr.build_user_export_zip(export_id)` — déclenchée à la demande
+  utilisateur ; produit un ZIP `{README.md, data.json}` uploadé via
+  `default_storage` (MinIO en prod, FileSystem en tests), TTL 24h
+- `gdpr.cleanup_expired_exports` — horaire, supprime les archives dont
+  `expires_at <= now`
+- `gdpr.cleanup_pending_deletions` — quotidien à 03:00, hard-delete les
+  comptes dont `scheduled_for <= now` ET ni annulés ni complétés.
+  `user.delete()` cascade sur tous les FK (projets, renders, forum,
+  support, sessions, etc.).
+
+Limites connues (à documenter côté UX privacy) :
+- Les emails déjà envoyés (Mailpit en dev, SMTP en prod) ne sont pas
+  effacés — ils restent côté serveur SMTP / destinataires.
+- Les facteurs Stripe (Customer, Invoices) ne sont pas effacés
+  automatiquement côté Stripe ; à supprimer manuellement ou via un
+  cron dédié (obligations légales facturation FR : 10 ans).
+- Les logs applicatifs (Sentry, fichiers) ne sont pas purgés — TTL
+  géré côté Sentry (90j) et logrotate.
 
 ## Migration vers production
 

@@ -44,6 +44,7 @@ THIRD_PARTY_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "axes",
+    "csp",
     "django_otp",
     "django_otp.plugins.otp_totp",
     "djstripe",
@@ -61,6 +62,8 @@ LOCAL_APPS = [
     "apps.forum",
     "apps.support",
     "apps.admin_panel",
+    "apps.contact",
+    "apps.gdpr",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -75,10 +78,47 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # CSP — Content Security Policy (django-csp 4+)
+    "csp.middleware.CSPMiddleware",
     "django_otp.middleware.OTPMiddleware",
     # axes doit être en dernier
     "axes.middleware.AxesMiddleware",
 ]
+
+# ─── CSP — Content Security Policy ────────────────────────────────────────────
+# django-csp 4+ utilise la struct `CONTENT_SECURITY_POLICY` (dict imbriqué).
+# Stratégie : restrictive par défaut, sources autorisées explicites.
+# L'API renvoie surtout du JSON donc les sources "script-src" etc. servent
+# uniquement à protéger /admin/ + /api/docs/ (Swagger UI charge des scripts).
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        "default-src": ["'self'"],
+        "script-src": [
+            "'self'",
+            # Swagger UI (drf-spectacular) sert ses statics depuis cdn.jsdelivr
+            "https://cdn.jsdelivr.net",
+            # Stripe.js si on charge le SDK Stripe Elements depuis /admin/ test
+            "https://js.stripe.com",
+            # `'unsafe-inline'` pour les <script> inline de l'admin Django
+            "'unsafe-inline'",
+        ],
+        "style-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+        "img-src": ["'self'", "data:", "https:"],  # img upload + avatars OAuth
+        "font-src": ["'self'", "data:", "https://cdn.jsdelivr.net"],
+        "connect-src": [
+            "'self'",
+            "https://api.stripe.com",
+            "https://accounts.google.com",
+            "https://github.com",
+        ],
+        "frame-src": ["'self'", "https://js.stripe.com"],
+        "object-src": ["'none'"],
+        "base-uri": ["'self'"],
+        "form-action": ["'self'"],
+        "frame-ancestors": ["'none'"],  # équivalent X-Frame-Options: DENY
+        "upgrade-insecure-requests": True,
+    },
+}
 
 # Auth backends : axes intercepte les échecs de login pour le verrouillage
 AUTHENTICATION_BACKENDS = [
@@ -193,9 +233,21 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "60/min",
         "user": "120/min",
+        # ── Auth ─────────────────────────────────────────────────────────
         "register": "5/hour",
         "forgot-password": "3/hour",
         "login": "20/min",
+        # ── Form de contact public (anti-spam par IP) ────────────────────
+        "contact": "5/hour",
+        # ── Génération IA — coûteuse (token Gemini + storage MinIO) ──────
+        # 10 renders/h par user (free) / 60 (pro) à enforcer côté quota,
+        # ici on borne la cadence pour éviter qu'un user fasse 50 reqs
+        # en 10s qui bloqueraient le pool Celery.
+        "render-create": "20/hour",
+        # ── Forum : prévient le flood d'un user (topics + replies) ───────
+        "forum-write": "30/min",
+        # ── Support tickets : un user spam pas 100 tickets ──────────────
+        "support-create": "10/hour",
     },
 }
 

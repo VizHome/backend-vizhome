@@ -15,6 +15,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core.throttling import ForumWriteThrottle
+
 from .models import Category, ForumUpload, Reply, Topic
 from .permissions import (
     IsAuthorWithinTimeWindowOrStaff,
@@ -65,6 +67,12 @@ class TopicListCreateView(generics.ListCreateAPIView):
     - ?search=<q>       : recherche dans title (icontains)
     - ?ordering=...     : `created_at`, `-created_at`, `-last_reply_at`, etc.
     """
+
+    def get_throttles(self):
+        """Anti-flood : 30 topics/min/user max sur POST."""
+        if self.request.method == "POST":
+            return [ForumWriteThrottle()]
+        return super().get_throttles()
 
     def get_permissions(self):
         if self.request.method == "POST":
@@ -177,6 +185,12 @@ class ReplyListCreateView(generics.ListCreateAPIView):
     """
 
     serializer_class = ReplySerializer
+
+    def get_throttles(self):
+        """Anti-flood replies : partage le scope `forum-write` avec les topics."""
+        if self.request.method == "POST":
+            return [ForumWriteThrottle()]
+        return super().get_throttles()
 
     def get_permissions(self):
         if self.request.method == "POST":

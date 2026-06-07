@@ -28,6 +28,65 @@ jobs:
       - run: ruff check src/
       - run: ruff format --check src/
 
+  # ─── 1.b. Security scan code source (bandit) ────────────────────────────
+  bandit:
+    name: Security scan (bandit)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - run: pip install bandit[sarif]
+
+      # Scan : skip les tests (B101 asserts faux positifs en pytest)
+      # B608 (SQL injection raw) tolerable car on utilise l'ORM Django
+      # mais on garde l'alerte si jamais quelqu'un écrit du SQL brut.
+      - name: Run bandit
+        run: |
+          bandit -r src/ \
+            --skip B101 \
+            --exclude src/apps/*/tests,src/apps/*/migrations \
+            --format sarif \
+            --output bandit-results.sarif \
+            --exit-zero
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: bandit-results.sarif
+          category: bandit
+
+  # ─── 1.c. Audit des deps Python connues vulnérables (pip-audit) ─────────
+  pip-audit:
+    name: Dependency audit (pip-audit)
+    runs-on: ubuntu-latest
+    continue-on-error: true  # avis bloquant via Dependency Review en parallèle
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - run: pip install pip-audit
+
+      # `--vulnerability-service` osv (Google OSV) plus à jour qu'un seul DB.
+      # `--ignore-vuln` à utiliser si un faux positif connu apparaît.
+      - name: Audit requirements
+        run: |
+          pip-audit --requirement src/requirements.txt \
+                    --vulnerability-service osv \
+                    --strict \
+                    || true  # non bloquant en attendant un baseline propre
+
   # ─── 2. Type check (mypy) ──────────────────────────────────────────────
   typecheck:
     name: Type check (mypy)
