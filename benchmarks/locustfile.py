@@ -86,9 +86,7 @@ class AnonymousUser(HttpUser):
     @task(weight=WEIGHT_LIST)
     def browse_forum_categories(self) -> None:
         """GET /api/v1/forum/categories : liste publique des cats."""
-        self.client.get(
-            '/api/v1/forum/categories', name='GET /forum/categories (anon)'
-        )
+        self.client.get('/api/v1/forum/categories', name='GET /forum/categories (anon)')
 
     @task(weight=WEIGHT_DETAIL)
     def view_openapi_schema(self) -> None:
@@ -116,9 +114,7 @@ class AuthenticatedUser(HttpUser):
         """Authentifie ce user simule au demarrage de la session Locust."""
         self.access_token = _login(self.client, USER_EMAIL, USER_PASSWORD)
         if self.access_token:
-            self.client.headers.update(
-                {'Authorization': f'Bearer {self.access_token}'}
-            )
+            self.client.headers.update({'Authorization': f'Bearer {self.access_token}'})
 
     @task(weight=WEIGHT_LIST)
     def list_projects(self) -> None:
@@ -162,9 +158,7 @@ class RenderingUser(HttpUser):
         """Login et stocke le token sur l'instance."""
         self.access_token = _login(self.client, USER_EMAIL, USER_PASSWORD)
         if self.access_token:
-            self.client.headers.update(
-                {'Authorization': f'Bearer {self.access_token}'}
-            )
+            self.client.headers.update({'Authorization': f'Bearer {self.access_token}'})
 
     @task(weight=WEIGHT_CREATE)
     def create_prompt_render(self) -> None:
@@ -213,9 +207,7 @@ class ForumReader(HttpUser):
     @task(weight=WEIGHT_LIST)
     def list_categories(self) -> None:
         """GET /api/v1/forum/categories : peu de cats, doit etre rapide."""
-        self.client.get(
-            '/api/v1/forum/categories', name='GET /forum/categories (reader)'
-        )
+        self.client.get('/api/v1/forum/categories', name='GET /forum/categories (reader)')
 
     @task(weight=WEIGHT_LIST)
     def list_topics_page1(self) -> None:
@@ -225,9 +217,7 @@ class ForumReader(HttpUser):
     @task(weight=WEIGHT_DETAIL)
     def list_topics_page2(self) -> None:
         """GET /api/v1/forum/topics?page=2 : test la pagination DRF."""
-        self.client.get(
-            '/api/v1/forum/topics?page=2', name='GET /forum/topics?page=2'
-        )
+        self.client.get('/api/v1/forum/topics?page=2', name='GET /forum/topics?page=2')
 
     @task(weight=1)
     def list_topics_by_category(self) -> None:
