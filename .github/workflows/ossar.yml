@@ -40,8 +40,10 @@ jobs:
         continue-on-error: true
         uses: github/ossar-action@v1
 
+      # Skip l'upload si OSSAR a planté (guardian.cmd exit 1 = sarifFile null,
+      # pas '' donc on check `outcome == success` plutôt que le path).
       - name: Upload OSSAR results
-        if: ${{ steps.ossar.outputs.sarifFile != '' }}
+        if: steps.ossar.outcome == 'success' && steps.ossar.outputs.sarifFile != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ steps.ossar.outputs.sarifFile }}
