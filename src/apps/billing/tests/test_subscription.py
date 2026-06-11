@@ -1,4 +1,5 @@
 """Tests endpoints subscription : status, checkout, cancel."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -36,16 +37,13 @@ class TestCheckout:
     @patch('apps.billing.views.is_configured', return_value=True)
     @patch('apps.billing.views.get_stripe_client')
     @patch('apps.billing.views._get_or_create_customer')
-    def test_checkout_creates_session(
-        self, mock_customer, mock_get_stripe, _mock_cfg, auth_client
-    ):
+    def test_checkout_creates_session(self, mock_customer, mock_get_stripe, _mock_cfg, auth_client):
         mock_customer.return_value = MagicMock(id='cus_test123')
         mock_stripe = MagicMock()
-        mock_stripe.Price.list.return_value = MagicMock(
-            data=[MagicMock(id='price_test123')]
-        )
+        mock_stripe.Price.list.return_value = MagicMock(data=[MagicMock(id='price_test123')])
         mock_stripe.checkout.Session.create.return_value = MagicMock(
-            id='cs_test_abc', url='https://checkout.stripe.com/c/abc',
+            id='cs_test_abc',
+            url='https://checkout.stripe.com/c/abc',
         )
         mock_get_stripe.return_value = mock_stripe
 

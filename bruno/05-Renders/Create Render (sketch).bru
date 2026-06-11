@@ -1,0 +1,51 @@
+meta {
+  name: Create Render (sketch)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/renders/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "source": "sketch",
+    "output_type": "2d",
+    "prompt": "Transform this sketch into a photorealistic interior render",
+    "style_hint": "warm lighting, evening atmosphere",
+    "title": "Sketch test Bruno",
+    "sketch_base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 202) {
+    bru.setEnvVar("renderId", res.body.id);
+  }
+}
+
+tests {
+  test("returns 202 (or 503 if Gemini not configured)", function() {
+    expect([202, 503]).to.include(res.getStatus());
+  });
+}
+
+docs {
+  Crée un render à partir d'un sketch 2D (data URI base64).
+
+  Le `sketch_base64` fourni ici est un **pixel rouge 1×1** pour
+  démonstration. En usage réel, le frontend (`useSketchCanvas`) capture
+  le canvas via `toDataURL('image/png')` et l'envoie.
+
+  Pour `source: "screenshot"`, même structure mais l'image est un
+  rendu Three.js de la scène 3D courante (capturé via `renderer.domElement.toDataURL()`).
+
+  Limite typique : 5 MB de données base64.
+}

@@ -1,11 +1,11 @@
 """Vues DRF pour accounts : auth + me + sessions."""
+
 from __future__ import annotations
 
 from typing import Any
 
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -15,9 +15,10 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.core.emails import send_templated_email
+
 from .lockout import drf_lockout_response
 from .models import User, UserSession
-from .throttling import ForgotPasswordThrottle, LoginThrottle, RegisterThrottle
 from .serializers import (
     ChangePasswordSerializer,
     ForgotPasswordSerializer,
@@ -30,6 +31,7 @@ from .serializers import (
     build_token_pair,
     encode_uid,
 )
+from .throttling import ForgotPasswordThrottle, LoginThrottle, RegisterThrottle
 from .utils import get_client_ip, parse_device_name
 
 
@@ -48,6 +50,7 @@ def _issue_tokens_for_user(user: User, request: Request) -> dict[str, Any]:
 
     # Récupère le jti depuis le refresh token et persiste-le
     from rest_framework_simplejwt.tokens import RefreshToken as RT
+
     refresh_obj = RT(tokens['refresh'])
     session.refresh_jti = refresh_obj['jti']
     session.save(update_fields=['refresh_jti'])
@@ -125,9 +128,7 @@ class LogoutView(APIView):
     def post(self, request: Request) -> Response:
         refresh_token = request.data.get('refresh')
         if not refresh_token:
-            return Response(
-                {'detail': 'Refresh token requis.'}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'detail': 'Refresh token requis.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             token = RefreshToken(refresh_token)
@@ -158,16 +159,15 @@ class ForgotPasswordView(APIView):
             token = default_token_generator.make_token(user)
             reset_url = f'{settings.FRONTEND_URL}/auth/reset-password?uid={uid}&token={token}'
 
-            send_mail(
+            send_templated_email(
                 subject='Réinitialisation de votre mot de passe VizHome',
-                message=(
-                    f'Bonjour,\n\n'
-                    f'Vous avez demandé une réinitialisation de votre mot de passe.\n'
-                    f'Cliquez sur ce lien pour en choisir un nouveau :\n\n{reset_url}\n\n'
-                    f"Si vous n'êtes pas à l'origine de cette demande, ignorez cet email."
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
+                recipients=[user.email],
+                template='password_reset',
+                context={
+                    'cta_url': reset_url,
+                    'cta_label': 'Réinitialiser mon mot de passe',
+                    'preheader': 'Choisis un nouveau mot de passe pour ton compte VizHome.',
+                },
                 fail_silently=False,
             )
 
@@ -264,7 +264,10 @@ class SessionDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         # Blacklist tous les outstanding tokens avec ce jti
-        from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+        from rest_framework_simplejwt.token_blacklist.models import (
+            BlacklistedToken,
+            OutstandingToken,
+        )
 
         outstanding = OutstandingToken.objects.filter(jti=session.refresh_jti)
         for token in outstanding:

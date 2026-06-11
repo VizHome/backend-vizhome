@@ -1,4 +1,5 @@
 """Vues DRF pour billing."""
+
 from __future__ import annotations
 
 from django.conf import settings
@@ -9,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .plans import PLAN_CONFIG, get_billable_plans
+from .plans import PLAN_CONFIG
 from .serializers import (
     CheckoutRequestSerializer,
     CheckoutResponseSerializer,
@@ -38,10 +39,38 @@ def _get_or_create_customer(user) -> dj_models.Customer:
     return customer
 
 
-def _get_active_subscription(customer: dj_models.Customer) -> dj_models.Subscription | None:
-    return customer.subscriptions.filter(
-        status__in=['active', 'trialing', 'past_due']
-    ).first()
+_ACTIVE_STATUSES = ('active', 'trialing', 'past_due')
+
+
+def _sub_field(sub, name: str, default=None):
+    """Accès défensif aux champs d'une djstripe.Subscription.
+
+    Selon la version de djstripe, `status`, `current_period_end`,
+    `cancel_at_period_end`, etc. peuvent être soit des colonnes directes,
+    soit dans `stripe_data` (JSONField). On essaie les deux.
+    """
+    val = getattr(sub, name, None)
+    if val is None:
+        stripe_data = getattr(sub, 'stripe_data', None) or {}
+        val = stripe_data.get(name)
+    return val if val is not None else default
+
+
+def _get_active_subscription(
+    customer: dj_models.Customer,
+) -> dj_models.Subscription | None:
+    """Récupère la subscription active du Customer (filtre en Python).
+
+    On n'utilise pas `.filter(status__in=...)` côté SQL car selon la
+    version de djstripe, `status` n'est pas une colonne — c'est une
+    clé du JSONField `stripe_data`. Filtrer en Python évite la
+    FieldError.
+    """
+    for sub in customer.subscriptions.all():
+        status = _sub_field(sub, 'status')
+        if status in _ACTIVE_STATUSES:
+            return sub
+    return None
 
 
 # ─── Plans (public catalog) ───────────────────────────────────────────────────
@@ -77,24 +106,34 @@ class SubscriptionView(APIView):
         user = request.user
 
         if not is_configured():
-            return Response(SubscriptionSerializer({
-                'has_subscription': False,
-                'plan': user.plan,
-                'status': None,
-                'current_period_end': None,
-                'cancel_at_period_end': False,
-            }).data)
+            return Response(
+                SubscriptionSerializer(
+                    {
+                        'has_subscription': False,
+                        'plan': user.plan,
+                        'status': None,
+                        'current_period_end': None,
+                        'cancel_at_period_end': False,
+                    }
+                ).data
+            )
 
         customer = dj_models.Customer.objects.filter(subscriber=user).first()
         sub = _get_active_subscription(customer) if customer else None
 
-        return Response(SubscriptionSerializer({
-            'has_subscription': sub is not None,
-            'plan': user.plan,
-            'status': sub.status if sub else None,
-            'current_period_end': sub.current_period_end if sub else None,
-            'cancel_at_period_end': sub.cancel_at_period_end if sub else False,
-        }).data)
+        return Response(
+            SubscriptionSerializer(
+                {
+                    'has_subscription': sub is not None,
+                    'plan': user.plan,
+                    'status': _sub_field(sub, 'status') if sub else None,
+                    'current_period_end': (_sub_field(sub, 'current_period_end') if sub else None),
+                    'cancel_at_period_end': (
+                        _sub_field(sub, 'cancel_at_period_end', False) if sub else False
+                    ),
+                }
+            ).data
+        )
 
 
 class CheckoutView(APIView):
@@ -143,10 +182,14 @@ class CheckoutView(APIView):
         except StripeNotConfigured:
             return _stripe_unavailable_response()
 
-        return Response(CheckoutResponseSerializer({
-            'checkout_url': session.url,
-            'session_id': session.id,
-        }).data)
+        return Response(
+            CheckoutResponseSerializer(
+                {
+                    'checkout_url': session.url,
+                    'session_id': session.id,
+                }
+            ).data
+        )
 
 
 class CancelSubscriptionView(APIView):
@@ -169,10 +212,12 @@ class CancelSubscriptionView(APIView):
         stripe = get_stripe_client()
         stripe.Subscription.modify(sub.id, cancel_at_period_end=True)
 
-        return Response({
-            'detail': "L'abonnement sera annulé à la fin de la période en cours.",
-            'cancel_at_period_end': True,
-        })
+        return Response(
+            {
+                'detail': "L'abonnement sera annulé à la fin de la période en cours.",
+                'cancel_at_period_end': True,
+            }
+        )
 
 
 # ─── Invoices ─────────────────────────────────────────────────────────────────
@@ -187,19 +232,24 @@ class InvoiceListView(APIView):
             return Response([])
 
         invoices = customer.invoices.all().order_by('-created')[:50]
-        data = [
-            {
-                'id': inv.id,
-                'number': inv.number,
-                'amount_paid': inv.amount_paid,
-                'currency': inv.currency,
-                'status': inv.status,
-                'created': inv.created,
-                'hosted_invoice_url': inv.hosted_invoice_url,
-                'invoice_pdf': inv.invoice_pdf,
-            }
-            for inv in invoices
-        ]
+        # dj-stripe 2.10 a aminci ses modèles : number, amount_paid, status,
+        # hosted_invoice_url... ne sont plus des colonnes mais vivent dans le
+        # JSON `stripe_data`. Y accéder en attribut lève AttributeError.
+        data = []
+        for inv in invoices:
+            sd = inv.stripe_data or {}
+            data.append(
+                {
+                    'id': inv.id,
+                    'number': sd.get('number') or '',
+                    'amount_paid': sd.get('amount_paid') or 0,
+                    'currency': sd.get('currency') or '',
+                    'status': sd.get('status') or '',
+                    'created': inv.created,
+                    'hosted_invoice_url': sd.get('hosted_invoice_url') or '',
+                    'invoice_pdf': sd.get('invoice_pdf') or '',
+                }
+            )
         return Response(InvoiceSerializer(data, many=True).data)
 
 
@@ -217,12 +267,15 @@ class PaymentMethodListView(APIView):
         methods = dj_models.PaymentMethod.objects.filter(customer=customer)
         data = []
         for pm in methods:
-            card = pm.card or {}
-            data.append({
-                'id': pm.id,
-                'brand': card.get('brand', '?'),
-                'last4': card.get('last4', '????'),
-                'exp_month': card.get('exp_month', 0),
-                'exp_year': card.get('exp_year', 0),
-            })
+            # dj-stripe 2.10 : `card` n'est plus une colonne, cf stripe_data.
+            card = (pm.stripe_data or {}).get('card') or {}
+            data.append(
+                {
+                    'id': pm.id,
+                    'brand': card.get('brand', '?'),
+                    'last4': card.get('last4', '????'),
+                    'exp_month': card.get('exp_month', 0),
+                    'exp_year': card.get('exp_year', 0),
+                }
+            )
         return Response(PaymentMethodSerializer(data, many=True).data)

@@ -1,7 +1,6 @@
 """Fixtures pytest pour l'app projects."""
-from __future__ import annotations
 
-import io
+from __future__ import annotations
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -29,6 +28,7 @@ def user(db) -> User:
 @pytest.fixture
 def auth_client(api_client: APIClient, user: User) -> APIClient:
     from rest_framework_simplejwt.tokens import RefreshToken
+
     refresh = RefreshToken.for_user(user)
     api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
     return api_client

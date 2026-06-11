@@ -1,4 +1,5 @@
 """URL routing pour l'app projects."""
+
 from __future__ import annotations
 
 from django.urls import path
@@ -8,13 +9,24 @@ from . import views
 urlpatterns = [
     path('', views.ProjectListCreateView.as_view(), name='projects-list'),
     path('<int:pk>', views.ProjectDetailView.as_view(), name='projects-detail'),
-    path('<int:pk>/duplicate', views.ProjectDuplicateView.as_view(), name='projects-duplicate'),
-
+    path(
+        '<int:pk>/duplicate',
+        views.ProjectDuplicateView.as_view(),
+        name='projects-duplicate',
+    ),
+    path(
+        '<int:pk>/thumbnail',
+        views.ProjectThumbnailView.as_view(),
+        name='projects-thumbnail',
+    ),
     # Scene
     path('<int:pk>/scene', views.SceneView.as_view(), name='projects-scene'),
-
     # ImportedModel
-    path('<int:pk>/models', views.ImportedModelListCreateView.as_view(), name='projects-models'),
+    path(
+        '<int:pk>/models',
+        views.ImportedModelListCreateView.as_view(),
+        name='projects-models',
+    ),
     path(
         '<int:pk>/models/upload-url',
         views.PresignedUploadView.as_view(),
@@ -30,7 +42,6 @@ urlpatterns = [
         views.ImportedModelDetailView.as_view(),
         name='projects-models-detail',
     ),
-
     # Annotation
     path(
         '<int:pk>/annotations',
@@ -42,7 +53,6 @@ urlpatterns = [
         views.AnnotationDetailView.as_view(),
         name='projects-annotations-detail',
     ),
-
     # ShareLink
     path('<int:pk>/share', views.ShareLinkListCreateView.as_view(), name='projects-share'),
     path(

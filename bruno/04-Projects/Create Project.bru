@@ -1,0 +1,53 @@
+meta {
+  name: Create Project
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/projects/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "title": "Bruno test project",
+    "description": "Créé via la collection Bruno"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("projectId", res.body.id);
+  }
+}
+
+tests {
+  test("returns 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("returns full project shape", function() {
+    expect(res.body).to.have.property("id");
+    expect(res.body).to.have.property("scene");
+    expect(res.body).to.have.property("imported_models");
+    expect(res.body).to.have.property("annotations");
+  });
+
+  test("scene is initialized with version 1", function() {
+    expect(res.body.scene.version).to.equal(1);
+  });
+}
+
+docs {
+  Crée un nouveau projet. La scène associée (`Scene`) est créée
+  automatiquement avec `data: {}` et `version: 1`.
+
+  Auto-stocke `projectId` — toutes les requêtes suivantes des
+  sous-dossiers Models / Annotations / Sharing l'utilisent.
+}

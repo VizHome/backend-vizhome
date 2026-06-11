@@ -2,15 +2,16 @@ name: CI
 
 on:
   push:
-    branches: [main, develop, "feature/**"]
+    branches: [main, dev]
   pull_request:
-    branches: [main, develop]
+    branches: [main, dev]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # ─── 1. Lint Python ─────────────────────────────────────────────────────
   lint:
     name: Lint (ruff)
     runs-on: ubuntu-latest
@@ -21,16 +22,95 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
+          cache-dependency-path: src/requirements-dev.txt
 
-      - name: Install ruff
-        run: pip install ruff
+      - run: pip install ruff
+      - run: ruff check src/
+      - run: ruff format --check src/
 
-      - name: ruff check
-        run: ruff check src/
+  # ─── 1.b. Security scan code source (bandit) ────────────────────────────
+  bandit:
+    name: Security scan (bandit)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: ruff format --check
-        run: ruff format --check src/
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
 
+      - run: pip install bandit[sarif]
+
+      # Scan : skip les tests (B101 asserts faux positifs en pytest)
+      # B608 (SQL injection raw) tolerable car on utilise l'ORM Django
+      # mais on garde l'alerte si jamais quelqu'un écrit du SQL brut.
+      - name: Run bandit
+        run: |
+          bandit -r src/ \
+            --skip B101 \
+            --exclude src/apps/*/tests,src/apps/*/migrations \
+            --format sarif \
+            --output bandit-results.sarif \
+            --exit-zero
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: bandit-results.sarif
+          category: bandit
+
+  # ─── 1.c. Audit des deps Python connues vulnérables (pip-audit) ─────────
+  pip-audit:
+    name: Dependency audit (pip-audit)
+    runs-on: ubuntu-latest
+    continue-on-error: true  # avis bloquant via Dependency Review en parallèle
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - run: pip install pip-audit
+
+      # `--vulnerability-service` osv (Google OSV) plus à jour qu'un seul DB.
+      # `--ignore-vuln` à utiliser si un faux positif connu apparaît.
+      - name: Audit requirements
+        run: |
+          pip-audit --requirement src/requirements.txt \
+                    --vulnerability-service osv \
+                    --strict \
+                    || true  # non bloquant en attendant un baseline propre
+
+  # ─── 2. Type check (mypy) ──────────────────────────────────────────────
+  typecheck:
+    name: Type check (mypy)
+    runs-on: ubuntu-latest
+    continue-on-error: true # mypy strict pas encore atteint à 100 %
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: src/requirements-dev.txt
+
+      - name: Install deps
+        run: |
+          pip install -r src/requirements.txt
+          pip install -r src/requirements-dev.txt mypy
+
+      - name: mypy
+        working-directory: src
+        run: mypy --config-file ../pyproject.toml . || true
+
+  # ─── 3. Tests + coverage ───────────────────────────────────────────────
   test:
     name: Tests (pytest)
     runs-on: ubuntu-latest
@@ -71,7 +151,7 @@ jobs:
       - name: Install Python deps
         run: pip install -r src/requirements-dev.txt
 
-      - name: Run pytest
+      - name: Run pytest + coverage
         env:
           DJANGO_SETTINGS_MODULE: config.settings.test
           DJANGO_SECRET_KEY: ci-test-secret-key
@@ -87,31 +167,99 @@ jobs:
           USE_S3: "False"
           STRIPE_WEBHOOK_SECRET: whsec_test
         working-directory: src
-        run: pytest --cov=apps --cov-report=xml --cov-report=term
+        run: |
+          pytest -v --cov=apps --cov-report=xml --cov-report=term \
+            --junitxml=../pytest-results.xml
 
-      - name: Upload coverage to Codecov
-        if: success()
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            src/coverage.xml
+            pytest-results.xml
+          retention-days: 7
+
+      - name: Upload to Codecov
+        if: success() && github.event_name == 'push'
         uses: codecov/codecov-action@v4
         with:
           files: src/coverage.xml
           fail_ci_if_error: false
 
-  build:
-    name: Build Docker image
+  # ─── 4. Build & smoke-test Docker image ────────────────────────────────
+  docker-build:
+    name: Docker build & smoke test
     runs-on: ubuntu-latest
     needs: [lint, test]
-    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Build production image
+      - name: Build image (load local)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
-          push: false
-          tags: vizhome-backend:${{ github.sha }}
+          load: true
+          tags: vizhome-backend:ci-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Inspect layers + size
+        run: |
+          docker images vizhome-backend:ci-${{ github.sha }} \
+            --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}"
+          docker history vizhome-backend:ci-${{ github.sha }} --no-trunc \
+            --format "table {{.CreatedSince}}\t{{.Size}}\t{{.CreatedBy}}" | head -20
+
+      - name: Run django check inside image
+        run: |
+          docker run --rm \
+            -e DJANGO_SETTINGS_MODULE=config.settings.test \
+            -e DJANGO_SECRET_KEY=ci-smoke \
+            -e DJANGO_DEBUG=False \
+            -e DJANGO_ALLOWED_HOSTS=* \
+            -e POSTGRES_DB=vizhome -e POSTGRES_USER=vizhome \
+            -e POSTGRES_PASSWORD=vizhome -e POSTGRES_HOST=localhost \
+            vizhome-backend:ci-${{ github.sha }} \
+            python manage.py check || echo "::warning::django check non-bloquant"
+
+  # ─── 5. Scan vulnérabilités Trivy ──────────────────────────────────────
+  trivy:
+    name: Trivy vuln scan
+    runs-on: ubuntu-latest
+    needs: docker-build
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image for scan
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          load: true
+          tags: vizhome-backend:trivy-${{ github.sha }}
+          cache-from: type=gha
+
+      - name: Run Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: vizhome-backend:trivy-${{ github.sha }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "0"
+          ignore-unfixed: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-backend

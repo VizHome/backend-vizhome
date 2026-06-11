@@ -9,18 +9,15 @@ Login avec 2FA actif :
 - POST /auth/login → renvoie {require_2fa: true, challenge_token} (pas d'access/refresh)
 - POST /auth/2fa/verify avec challenge_token + code → renvoie les tokens
 """
+
 from __future__ import annotations
 
 import base64
 import io
 import secrets
-import time
-from typing import Any
 
 import qrcode
-from django.conf import settings
 from django.core.cache import cache
-from django.urls import reverse
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -29,7 +26,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import User
-from .serializers import UserSerializer, build_token_pair
+from .serializers import UserSerializer
 from .throttling import LoginThrottle
 
 
@@ -120,14 +117,12 @@ class VerifySetup2FAView(APIView):
         device = get_user_totp_device(request.user, confirmed=False)
         if not device:
             return Response(
-                {'detail': 'Aucune configuration 2FA en attente. Appelez /me/2fa/setup d\'abord.'},
+                {'detail': "Aucune configuration 2FA en attente. Appelez /me/2fa/setup d'abord."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not device.verify_token(serializer.validated_data['code']):
-            return Response(
-                {'detail': 'Code invalide.'}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'detail': 'Code invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
         device.confirmed = True
         device.save()
@@ -149,15 +144,11 @@ class Disable2FAView(APIView):
 
         device = get_user_totp_device(request.user, confirmed=True)
         if not device:
-            return Response(
-                {'detail': '2FA non activé.'}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'detail': '2FA non activé.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Exige un code valide pour désactiver (sécurité)
         if not device.verify_token(serializer.validated_data['code']):
-            return Response(
-                {'detail': 'Code invalide.'}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'detail': 'Code invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
         device.delete()
 
@@ -190,14 +181,13 @@ class Verify2FALoginView(APIView):
             user = User.objects.get(pk=user_id, is_active=True)
         except User.DoesNotExist:
             return Response(
-                {'detail': 'Utilisateur introuvable.'}, status=status.HTTP_400_BAD_REQUEST
+                {'detail': 'Utilisateur introuvable.'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         device = get_user_totp_device(user, confirmed=True)
         if not device or not device.verify_token(serializer.validated_data['code']):
-            return Response(
-                {'detail': 'Code 2FA invalide.'}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'detail': 'Code 2FA invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Import local pour éviter le cycle avec views.py
         from .views import _issue_tokens_for_user

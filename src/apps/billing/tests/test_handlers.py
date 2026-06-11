@@ -1,11 +1,11 @@
 """Tests des webhook handlers : application du plan suivant la subscription Stripe."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from apps.accounts.models import User
 from apps.billing.handlers import _apply_plan_to_user
 
 
@@ -57,6 +57,7 @@ class TestSubscriptionHandlers:
     @patch('apps.billing.handlers.dj_models')
     def test_subscription_created_applies_plan(self, mock_dj, user):
         from apps.billing.handlers import on_subscription_change
+
         sub = self._make_subscription(user)
         mock_dj.Subscription.objects.get.return_value = sub
 
@@ -68,6 +69,7 @@ class TestSubscriptionHandlers:
     @patch('apps.billing.handlers.dj_models')
     def test_subscription_inactive_does_not_change_plan(self, mock_dj, user):
         from apps.billing.handlers import on_subscription_change
+
         sub = self._make_subscription(user, status='past_due')
         mock_dj.Subscription.objects.get.return_value = sub
 

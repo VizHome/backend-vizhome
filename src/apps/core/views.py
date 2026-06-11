@@ -1,11 +1,16 @@
 """Endpoints de healthcheck — pour Docker, load balancers, monitoring."""
+
 from __future__ import annotations
 
 import logging
 
 from django.db import connection
 from django.http import JsonResponse
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+)
 from rest_framework.request import Request
 
 logger = logging.getLogger(__name__)
@@ -44,6 +49,7 @@ def readiness(request: Request) -> JsonResponse:
     # Redis (via cache)
     try:
         from django.core.cache import cache
+
         cache.set('_healthcheck', 'ok', timeout=5)
         if cache.get('_healthcheck') != 'ok':
             raise RuntimeError('cache write/read mismatch')
@@ -54,4 +60,6 @@ def readiness(request: Request) -> JsonResponse:
         ok = False
 
     status_code = 200 if ok else 503
-    return JsonResponse({'status': 'ok' if ok else 'degraded', 'checks': checks}, status=status_code)
+    return JsonResponse(
+        {'status': 'ok' if ok else 'degraded', 'checks': checks}, status=status_code
+    )

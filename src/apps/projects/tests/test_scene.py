@@ -1,8 +1,8 @@
 """Tests Scene : GET + PUT avec versioning."""
+
 from __future__ import annotations
 
 import pytest
-from rest_framework import status
 
 
 @pytest.mark.django_db
@@ -22,7 +22,8 @@ class TestScene:
         }
         r = auth_client.put(
             f'/api/v1/projects/{project.pk}/scene',
-            {'data': scene_data}, format='json',
+            {'data': scene_data},
+            format='json',
         )
         assert r.status_code == 200
         assert r.data['data'] == scene_data
@@ -31,7 +32,8 @@ class TestScene:
     def test_put_scene_persists(self, auth_client, project):
         auth_client.put(
             f'/api/v1/projects/{project.pk}/scene',
-            {'data': {'foo': 'bar'}}, format='json',
+            {'data': {'foo': 'bar'}},
+            format='json',
         )
         project.scene.refresh_from_db()
         assert project.scene.data == {'foo': 'bar'}

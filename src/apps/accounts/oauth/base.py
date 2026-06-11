@@ -4,6 +4,7 @@ Chaque provider doit exposer une méthode `exchange(payload)` qui prend les
 données envoyées par le frontend (id_token, code, redirect_uri…) et retourne
 un OAuthProfile normalisé.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

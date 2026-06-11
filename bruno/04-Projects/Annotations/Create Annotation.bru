@@ -1,0 +1,50 @@
+meta {
+  name: Create Annotation
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/annotations
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "type": "note",
+    "position": {"x": 1.0, "y": 2.0, "z": 0.5},
+    "content": "Vérifier la prise électrique à cet endroit",
+    "color": "#FF5733"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("annotationId", res.body.id);
+  }
+}
+
+tests {
+  test("returns 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("returns annotation", function() {
+    expect(res.body).to.have.property("id");
+    expect(res.body.type).to.equal("note");
+  });
+}
+
+docs {
+  Crée une annotation 3D. `content` et `color` sont **optionnels**
+  (blank=True côté modèle).
+
+  Types valides : `note`, `measure`, `marker`.
+
+  Position : système Three.js standard (mètres).
+}

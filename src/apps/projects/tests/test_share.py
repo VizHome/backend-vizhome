@@ -1,12 +1,11 @@
 """Tests ShareLink + accès public."""
+
 from __future__ import annotations
 
 from datetime import timedelta
 
 import pytest
 from django.utils import timezone
-from rest_framework import status
-from rest_framework.test import APIClient
 
 from apps.projects.models import ShareLink
 
@@ -15,7 +14,9 @@ from apps.projects.models import ShareLink
 class TestShareLink:
     def test_create_share_link(self, auth_client, project):
         r = auth_client.post(
-            f'/api/v1/projects/{project.pk}/share', {'permission': 'view'}, format='json',
+            f'/api/v1/projects/{project.pk}/share',
+            {'permission': 'view'},
+            format='json',
         )
         assert r.status_code == 201
         assert 'token' in r.data
@@ -45,7 +46,8 @@ class TestPublicShared:
 
     def test_expired_token_410(self, api_client, project, user):
         link = ShareLink.objects.create(
-            project=project, created_by=user,
+            project=project,
+            created_by=user,
             expires_at=timezone.now() - timedelta(days=1),
         )
         r = api_client.get(self.URL.format(link.token))

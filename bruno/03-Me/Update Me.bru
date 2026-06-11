@@ -1,0 +1,39 @@
+meta {
+  name: Update Me
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{baseUrl}}{{apiPrefix}}/me/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "first_name": "Bruno Updated",
+    "last_name": "Tester",
+    "avatar_url": "https://example.com/avatar.png"
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("first_name updated", function() {
+    expect(res.body.first_name).to.equal("Bruno Updated");
+  });
+}
+
+docs {
+  Met à jour les champs modifiables du profil : `first_name`,
+  `last_name`, `avatar_url`. L'email et le plan ne sont pas modifiables
+  par cet endpoint.
+}

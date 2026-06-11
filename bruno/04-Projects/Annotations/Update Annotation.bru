@@ -1,0 +1,37 @@
+meta {
+  name: Update Annotation
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/annotations/{{annotationId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "content": "Contenu mis à jour",
+    "color": "#00FF00"
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("content updated", function() {
+    expect(res.body.content).to.equal("Contenu mis à jour");
+  });
+}
+
+docs {
+  Met à jour une annotation (type, position, content, color). PATCH
+  partiel.
+}

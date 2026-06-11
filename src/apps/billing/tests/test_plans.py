@@ -1,4 +1,5 @@
 """Tests du catalogue public des plans."""
+
 from __future__ import annotations
 
 import pytest

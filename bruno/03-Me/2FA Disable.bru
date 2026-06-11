@@ -1,0 +1,35 @@
+meta {
+  name: 2FA Disable
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/me/2fa/disable
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "code": "000000"
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Désactive la 2FA. Requiert un code TOTP valide pour confirmer
+  l'identité.
+
+  **Remplace `000000`** par le code courant de ton app TOTP. Sans 2FA
+  active sur le compte → l'endpoint retourne 400.
+}

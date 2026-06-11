@@ -1,9 +1,9 @@
 """Réponses personnalisées pour le verrouillage django-axes."""
+
 from __future__ import annotations
 
 from django.http import HttpRequest, JsonResponse
 from rest_framework.response import Response
-
 
 _LOCKOUT_PAYLOAD = {
     'detail': (

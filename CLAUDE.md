@@ -26,7 +26,7 @@ containerized). Service name for the Django container is **`api`** (not
 
 ```bash
 # Stack lifecycle
-docker compose up -d                                  # start postgres + redis + minio + api + celery
+docker compose up -d                                  # start postgres + redis + minio + mailpit + api + celery
 docker compose logs -f api                            # live logs (replace api with celery, postgres…)
 docker compose down                                   # stop everything
 docker compose build api celery                       # rebuild after requirements change
@@ -134,8 +134,11 @@ Redis (cache + Celery broker) · Sentry SDK 2.20
 - `docs/DEPLOYMENT.md` — `docker-compose.prod.yml`, Traefik, Stripe webhook
 - `docs/CONTRIBUTING.md` — conventions, PR checklist
 - `SETUP_KEYS.md` — Gemini, Stripe, Google OAuth, GitHub OAuth activation
-
-No `README.md` at root — onboarding lives in `docs/` and `SETUP_KEYS.md`.
+- `README.md` — onboarding public (stack, démarrage Docker, scripts)
+- `bruno/` — collection [Bruno](https://www.usebruno.com/) pour tester
+  les 48 endpoints en local ou prod (chaînage auto JWT, fixtures
+  pré-remplies, scripts post-response qui stockent `accessToken`,
+  `projectId`, etc.). Voir `bruno/README.md` pour le workflow.
 
 ## Conventions
 
@@ -144,3 +147,63 @@ No `README.md` at root — onboarding lives in `docs/` and `SETUP_KEYS.md`.
 - **Tests**: `pytest` mandatory for any new endpoint
 - **Commits**: Conventional Commits (`feat`, `fix`, `refactor`, `docs`, `chore`)
 - **Branches**: `feat/`, `fix/`, `chore/`
+
+## Workflow de validation obligatoire (avant tout commit / fin de tâche)
+
+**Ne jamais déclarer une tâche "done" sans avoir lancé ces 3 checks**. Si
+l'un d'eux échoue, fix avant de continuer. Pas de "je laisse passer cette
+fois, on verra plus tard" : la CI cassera et le fix sera plus douloureux.
+
+```bash
+# Lint Python (RUF/E/W/F/I/B/UP/DJ/SIM/C4)
+python -m ruff check src/             # ou : docker compose exec api ruff check src/
+python -m ruff format --check src/    # vérifie que tout est formaté
+
+# Django system check (URL conf, migrations cohérentes, settings valides)
+cd src && DJANGO_SETTINGS_MODULE=config.settings.test python manage.py check
+
+# Tests pytest (sur le scope modifié au minimum)
+docker compose exec api pytest apps/<app>/      # tests de l'app touchée
+docker compose exec api pytest                  # full suite avant push
+```
+
+Le `ruff` doit sortir `All checks passed!`. Le `manage.py check` doit
+sortir `0 silenced`. Les tests doivent tous passer (un seul fail = pas
+de merge).
+
+### Conventions ruff / Python — règles non négociables
+
+- **Pas de `# type: ignore` ni `# noqa` à l'aveugle**. Si une règle ruff
+  doit être désactivée localement, commenter pourquoi sur la ligne
+  d'avant (`# noqa: B904 -- raise sans `from` volontaire car ...`).
+- **Imports triés alphabétiquement** (auto via `ruff check --fix`).
+- **`from __future__ import annotations`** en tête de chaque module
+  Python qui utilise des annotations de type (déjà la convention sur
+  tout le repo).
+- **Patterns Django/DRF `permission_classes = [...]` etc.** : la règle
+  RUF012 est désactivée globalement dans `pyproject.toml` car elle
+  exigerait `ClassVar[list[...]]` sur des dizaines de lignes pour rien.
+- **`raise ... from exc`** dans tous les `except` qui re-raise un nouvel
+  exception (règle B904).
+- **Pas de tirets cadratins `—` (em-dash)** dans le code, les docstrings,
+  les commentaires, ou la doc markdown. Utiliser `:`, `>`, `,`,
+  parenthèses ou liste à puces. C'est un tell IA banni par le projet.
+
+### Quand un test échoue, ne PAS le skip
+
+Si pytest échoue, comprendre la cause racine. Skipper un test avec
+`@pytest.mark.skip` est interdit sauf si on documente pourquoi
+(`@pytest.mark.skip(reason="blocked by issue #N")`) et qu'on crée
+l'issue. Un test rouge bloque la prod, pas le contraire.
+
+### Tester l'impact d'un changement Django
+
+Avant de toucher un model ou un serializer largement utilisé :
+
+```bash
+# Vérifier qu'aucune migration manquante n'est nécessaire
+docker compose exec api python manage.py makemigrations --check --dry-run
+
+# Lancer les tests des apps qui dépendent du model touché
+docker compose exec api pytest apps/accounts apps/projects apps/renders
+```

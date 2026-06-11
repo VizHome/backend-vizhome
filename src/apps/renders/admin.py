@@ -1,4 +1,5 @@
 """Admin Django pour la supervision des renders."""
+
 from __future__ import annotations
 
 from django.contrib import admin

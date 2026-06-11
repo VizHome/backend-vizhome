@@ -6,6 +6,7 @@ Usage :
 
 Idempotent : utilise les lookup_keys pour mettre à jour si déjà existant.
 """
+
 from __future__ import annotations
 
 from django.core.management.base import BaseCommand, CommandError
@@ -28,7 +29,7 @@ class Command(BaseCommand):
         try:
             stripe = get_stripe_client()
         except StripeNotConfigured as e:
-            raise CommandError(str(e))
+            raise CommandError(str(e)) from e
 
         billable = get_billable_plans()
         if not billable:
@@ -37,7 +38,7 @@ class Command(BaseCommand):
 
         for plan_name, config in billable.items():
             lookup_key = config['stripe_lookup_key']
-            product_name = f"VizHome {config['label']}"
+            product_name = f'VizHome {config["label"]}'
 
             self.stdout.write(f'\n→ Plan « {plan_name} »')
             self.stdout.write(f'  Product   : {product_name}')

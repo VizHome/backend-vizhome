@@ -1,4 +1,5 @@
 """Tests des endpoints renders : list, create, detail, history."""
+
 from __future__ import annotations
 
 from unittest.mock import patch
@@ -21,10 +22,15 @@ class TestCreate:
 
     def test_create_prompt_returns_202_and_triggers_celery(self, auth_client):
         with patch('apps.renders.views.generate_render.delay') as mock_task:
-            response = auth_client.post(self.URL, {
-                'source': 'prompt', 'output_type': '2d',
-                'prompt': 'A modern living room with large windows',
-            }, format='json')
+            response = auth_client.post(
+                self.URL,
+                {
+                    'source': 'prompt',
+                    'output_type': '2d',
+                    'prompt': 'A modern living room with large windows',
+                },
+                format='json',
+            )
 
         assert response.status_code == 202
         assert response.data['status'] == 'pending'
@@ -36,11 +42,16 @@ class TestCreate:
 
     def test_create_sketch_stores_input_image(self, auth_client, sketch_b64):
         with patch('apps.renders.views.generate_render.delay'):
-            response = auth_client.post(self.URL, {
-                'source': 'sketch', 'output_type': '2d',
-                'prompt': 'Photoréaliste',
-                'sketch_base64': sketch_b64,
-            }, format='json')
+            response = auth_client.post(
+                self.URL,
+                {
+                    'source': 'sketch',
+                    'output_type': '2d',
+                    'prompt': 'Photoréaliste',
+                    'sketch_base64': sketch_b64,
+                },
+                format='json',
+            )
 
         assert response.status_code == 202
         render = Render.objects.get(pk=response.data['id'])
@@ -49,25 +60,42 @@ class TestCreate:
 
     def test_create_accepts_data_uri_prefix(self, auth_client, sketch_b64):
         with patch('apps.renders.views.generate_render.delay'):
-            response = auth_client.post(self.URL, {
-                'source': 'sketch', 'output_type': '2d',
-                'style_hint': 'photoréaliste',
-                'sketch_base64': f'data:image/png;base64,{sketch_b64}',
-            }, format='json')
+            response = auth_client.post(
+                self.URL,
+                {
+                    'source': 'sketch',
+                    'output_type': '2d',
+                    'style_hint': 'photoréaliste',
+                    'sketch_base64': f'data:image/png;base64,{sketch_b64}',
+                },
+                format='json',
+            )
         assert response.status_code == 202
 
     def test_create_requires_auth(self, api_client):
-        response = api_client.post(self.URL, {
-            'source': 'prompt', 'output_type': '2d', 'prompt': 'test',
-        }, format='json')
+        response = api_client.post(
+            self.URL,
+            {
+                'source': 'prompt',
+                'output_type': '2d',
+                'prompt': 'test',
+            },
+            format='json',
+        )
         assert response.status_code == 401
 
     def test_quota_enforced(self, auth_client, user):
         user.stats.renders_this_month = user.stats.renders_limit
         user.stats.save()
-        response = auth_client.post(self.URL, {
-            'source': 'prompt', 'output_type': '2d', 'prompt': 'test',
-        }, format='json')
+        response = auth_client.post(
+            self.URL,
+            {
+                'source': 'prompt',
+                'output_type': '2d',
+                'prompt': 'test',
+            },
+            format='json',
+        )
         assert response.status_code == 400
         # Le message contient le détail + code
         assert 'Quota' in str(response.data)

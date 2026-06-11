@@ -3,6 +3,7 @@
 Environment variables are loaded via django-environ from a .env file at the
 project root (one level above `src/`).
 """
+
 from __future__ import annotations
 
 from datetime import timedelta
@@ -43,6 +44,7 @@ THIRD_PARTY_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'axes',
+    'csp',
     'django_otp',
     'django_otp.plugins.otp_totp',
     'djstripe',
@@ -57,6 +59,11 @@ LOCAL_APPS = [
     'apps.renders',
     'apps.gallery',
     'apps.billing',
+    'apps.forum',
+    'apps.support',
+    'apps.admin_panel',
+    'apps.contact',
+    'apps.gdpr',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -71,10 +78,47 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # CSP — Content Security Policy (django-csp 4+)
+    'csp.middleware.CSPMiddleware',
     'django_otp.middleware.OTPMiddleware',
     # axes doit être en dernier
     'axes.middleware.AxesMiddleware',
 ]
+
+# ─── CSP — Content Security Policy ────────────────────────────────────────────
+# django-csp 4+ utilise la struct `CONTENT_SECURITY_POLICY` (dict imbriqué).
+# Stratégie : restrictive par défaut, sources autorisées explicites.
+# L'API renvoie surtout du JSON donc les sources "script-src" etc. servent
+# uniquement à protéger /admin/ + /api/docs/ (Swagger UI charge des scripts).
+CONTENT_SECURITY_POLICY = {
+    'DIRECTIVES': {
+        'default-src': ["'self'"],
+        'script-src': [
+            "'self'",
+            # Swagger UI (drf-spectacular) sert ses statics depuis cdn.jsdelivr
+            'https://cdn.jsdelivr.net',
+            # Stripe.js si on charge le SDK Stripe Elements depuis /admin/ test
+            'https://js.stripe.com',
+            # `'unsafe-inline'` pour les <script> inline de l'admin Django
+            "'unsafe-inline'",
+        ],
+        'style-src': ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
+        'img-src': ["'self'", 'data:', 'https:'],  # img upload + avatars OAuth
+        'font-src': ["'self'", 'data:', 'https://cdn.jsdelivr.net'],
+        'connect-src': [
+            "'self'",
+            'https://api.stripe.com',
+            'https://accounts.google.com',
+            'https://github.com',
+        ],
+        'frame-src': ["'self'", 'https://js.stripe.com'],
+        'object-src': ["'none'"],
+        'base-uri': ["'self'"],
+        'form-action': ["'self'"],
+        'frame-ancestors': ["'none'"],  # équivalent X-Frame-Options: DENY
+        'upgrade-insecure-requests': True,
+    },
+}
 
 # Auth backends : axes intercepte les échecs de login pour le verrouillage
 AUTHENTICATION_BACKENDS = [
@@ -130,6 +174,9 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='no-reply@vizhome.fr')
 
 # ─── OAuth providers ──────────────────────────────────────────────────────────
 GOOGLE_OAUTH_CLIENT_ID = env('GOOGLE_OAUTH_CLIENT_ID', default='')
+# Requis pour le flow `authorization code` (redirect-based) ; pas requis
+# pour le flow legacy `id_token` (Google One Tap / SDK JS).
+GOOGLE_OAUTH_CLIENT_SECRET = env('GOOGLE_OAUTH_CLIENT_SECRET', default='')
 GITHUB_OAUTH_CLIENT_ID = env('GITHUB_OAUTH_CLIENT_ID', default='')
 GITHUB_OAUTH_CLIENT_SECRET = env('GITHUB_OAUTH_CLIENT_SECRET', default='')
 
@@ -159,7 +206,10 @@ CACHES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 8},
+    },
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
@@ -169,12 +219,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
-    'DEFAULT_RENDERER_CLASSES': (
-        'rest_framework.renderers.JSONRenderer',
-    ),
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
+    'DEFAULT_RENDERER_CLASSES': ('rest_framework.renderers.JSONRenderer',),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
@@ -185,9 +231,21 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '60/min',
         'user': '120/min',
+        # ── Auth ─────────────────────────────────────────────────────────
         'register': '5/hour',
         'forgot-password': '3/hour',
         'login': '20/min',
+        # ── Form de contact public (anti-spam par IP) ────────────────────
+        'contact': '5/hour',
+        # ── Génération IA — coûteuse (token Gemini + storage MinIO) ──────
+        # 10 renders/h par user (free) / 60 (pro) à enforcer côté quota,
+        # ici on borne la cadence pour éviter qu'un user fasse 50 reqs
+        # en 10s qui bloqueraient le pool Celery.
+        'render-create': '20/hour',
+        # ── Forum : prévient le flood d'un user (topics + replies) ───────
+        'forum-write': '30/min',
+        # ── Support tickets : un user spam pas 100 tickets ──────────────
+        'support-create': '10/hour',
     },
 }
 
@@ -297,7 +355,15 @@ else:
 
 # ─── Provider IA ──────────────────────────────────────────────────────────────
 GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
-GEMINI_IMAGE_MODEL = env(
-    'GEMINI_IMAGE_MODEL', default='gemini-2.5-flash-image-preview'
-)
+# L'alias "-preview" a été retiré par Google (404 NOT_FOUND) ; le nom GA
+# du modèle image est gemini-2.5-flash-image.
+GEMINI_IMAGE_MODEL = env('GEMINI_IMAGE_MODEL', default='gemini-2.5-flash-image')
+# Mode Vertex AI : le SDK google-genai supporte deux backends.
+#   - False (défaut) : Google AI Studio, auth par clé API
+#     (generativelanguage.googleapis.com)
+#   - True : Vertex AI, auth par clé API (express mode) ou ADC
+#     (GOOGLE_APPLICATION_CREDENTIALS). Nécessite GOOGLE_CLOUD_PROJECT.
+GEMINI_USE_VERTEXAI = env.bool('GEMINI_USE_VERTEXAI', default=False)
+GOOGLE_CLOUD_PROJECT = env('GOOGLE_CLOUD_PROJECT', default='')
+GOOGLE_CLOUD_LOCATION = env('GOOGLE_CLOUD_LOCATION', default='global')
 RENDERS_DEFAULT_PROVIDER = env('RENDERS_DEFAULT_PROVIDER', default='gemini')

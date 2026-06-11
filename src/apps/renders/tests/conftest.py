@@ -1,4 +1,5 @@
 """Fixtures pytest pour l'app renders."""
+
 from __future__ import annotations
 
 import base64

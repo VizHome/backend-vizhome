@@ -5,6 +5,7 @@ Chaque provider doit déclarer :
 - les output_types qu'il supporte
 - une méthode `generate()` qui retourne un GenerationResult ou raise ProviderError
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

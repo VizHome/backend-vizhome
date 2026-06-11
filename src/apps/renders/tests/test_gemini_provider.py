@@ -1,4 +1,5 @@
 """Tests du provider Gemini avec mocks SDK."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -21,8 +22,10 @@ def _mock_gemini_response(image_bytes: bytes, mime: str = 'image/png'):
 
 @pytest.fixture
 def gemini():
-    with patch('django.conf.settings.GEMINI_API_KEY', 'fake-key'), \
-         patch('apps.renders.providers.gemini.genai.Client') as mock_client_cls:
+    with (
+        patch('django.conf.settings.GEMINI_API_KEY', 'fake-key'),
+        patch('apps.renders.providers.gemini.genai.Client'),
+    ):
         provider = GeminiProvider()
         # Patch directement l'instance client pour contrôler les appels
         provider._client = MagicMock()
@@ -31,9 +34,11 @@ def gemini():
 
 class TestGeminiProvider:
     def test_requires_api_key(self):
-        with patch('django.conf.settings.GEMINI_API_KEY', ''):
-            with pytest.raises(ProviderError, match='GEMINI_API_KEY'):
-                GeminiProvider()
+        with (
+            patch('django.conf.settings.GEMINI_API_KEY', ''),
+            pytest.raises(ProviderError, match='GEMINI_API_KEY'),
+        ):
+            GeminiProvider()
 
     def test_rejects_3d_output_type(self, gemini, fake_gemini_result):
         with pytest.raises(ProviderError, match="output_type='3d'"):
@@ -83,9 +88,7 @@ class TestGeminiProvider:
 
     def test_invalid_input_image_raises(self, gemini):
         with pytest.raises(ProviderError, match="Image d'entrée invalide"):
-            gemini.generate(
-                prompt='x', input_image_bytes=b'not an image'
-            )
+            gemini.generate(prompt='x', input_image_bytes=b'not an image')
 
     def test_response_without_image_raises(self, gemini):
         empty = MagicMock(candidates=[MagicMock(content=MagicMock(parts=[]))])

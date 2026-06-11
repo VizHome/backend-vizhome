@@ -1,0 +1,14 @@
+{% autoescape off %}Nouvelle réponse du support VizHome
+
+Bonjour {% if pseudo %}@{{ pseudo }}{% endif %},
+
+L'équipe VizHome a répondu à ton ticket #{{ ticket_id }} "{{ ticket_subject }}" :
+
+------------------------------------------------------------
+{{ body_preview }}
+------------------------------------------------------------
+
+Voir la conversation : {{ cta_url }}
+
+© 2026 VizHome · {{ frontend_url }}
+{% endautoescape %}

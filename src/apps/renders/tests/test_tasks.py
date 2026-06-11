@@ -1,4 +1,5 @@
 """Tests de la tâche Celery generate_render avec provider mocké."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -17,9 +18,7 @@ class TestGenerateRenderTask:
             user=user, source='prompt', output_type='2d', prompt='a house'
         )
 
-        fake_result = GenerationResult(
-            image_bytes=fake_gemini_result, mime_type='image/png'
-        )
+        fake_result = GenerationResult(image_bytes=fake_gemini_result, mime_type='image/png')
         with patch('apps.renders.tasks.get_provider') as mock_get:
             mock_provider = MagicMock(name='gemini')
             mock_provider.name = 'gemini'
@@ -38,9 +37,7 @@ class TestGenerateRenderTask:
         assert user.stats.renders_this_month == 1
 
     def test_provider_error_marks_failed(self, user):
-        render = Render.objects.create(
-            user=user, source='prompt', output_type='2d', prompt='x'
-        )
+        render = Render.objects.create(user=user, source='prompt', output_type='2d', prompt='x')
         with patch('apps.renders.tasks.get_provider') as mock_get:
             mock_get.return_value.generate.side_effect = ProviderError('Safety filter')
             mock_get.return_value.name = 'gemini'
@@ -56,7 +53,10 @@ class TestGenerateRenderTask:
 
     def test_skip_if_already_terminal(self, user):
         render = Render.objects.create(
-            user=user, source='prompt', prompt='x', status='done',
+            user=user,
+            source='prompt',
+            prompt='x',
+            status='done',
         )
         with patch('apps.renders.tasks.get_provider') as mock_get:
             generate_render(render.pk)

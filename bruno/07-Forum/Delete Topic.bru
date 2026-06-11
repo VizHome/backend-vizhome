@@ -1,0 +1,28 @@
+meta {
+  name: Delete Topic
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}{{apiPrefix}}/forum/topics/{{topicId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 204 (owner/staff) or 403", function() {
+    expect([204, 403]).to.include(res.getStatus());
+  });
+}
+
+docs {
+  Supprime un topic (cascade : supprime aussi toutes ses replies via
+  ON DELETE CASCADE).
+
+  Auteur OU staff.
+}

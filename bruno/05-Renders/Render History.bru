@@ -1,0 +1,36 @@
+meta {
+  name: Render History
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/renders/history
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns plain array (no pagination)", function() {
+    expect(res.body).to.be.an("array");
+  });
+}
+
+docs {
+  Endpoint dédié à l'historique des prompts. Filtre :
+  `source=prompt` + `status=done`, limité à 10 derniers résultats.
+
+  **Non paginé** (override `pagination_class = None`) — retourne un
+  plain array, contrairement à `List Renders`.
+
+  Utilisé par `useAiRender.loadHistory` côté frontend pour suggérer
+  des prompts récents.
+}

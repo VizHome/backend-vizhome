@@ -1,0 +1,57 @@
+meta {
+  name: Audit Log
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/admin/audit-log?page=1&page_size=50
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  page_size: 50
+  ~action: user.ban
+  ~actor: thibaut@example.com
+  ~target_type: user
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 403 if not staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+
+  test("if 200 → paginated shape with audit entries", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("count");
+      expect(res.body).to.have.property("results");
+      if (res.body.results.length > 0) {
+        const e = res.body.results[0];
+        expect(e).to.have.property("id");
+        expect(e).to.have.property("action");
+        expect(e).to.have.property("actor_email");
+        expect(e).to.have.property("created_at");
+      }
+    }
+  });
+}
+
+docs {
+  GET /api/v1/admin/audit-log — journal d'audit des actions staff (paginé, staff-only).
+
+  **Query params** (tous optionnels) :
+  - `action` : `user.ban` | `user.unban` | `user.promote_staff` | `user.demote_staff` |
+               `topic.pin` | `topic.unpin` | `topic.lock` | `topic.unlock` | `topic.delete` |
+               `reply.delete` | `reply.mark_solution`
+  - `actor` : recherche `icontains` sur l'email de l'acteur
+  - `target_type` : `user` | `topic` | `reply`
+
+  **Réponse** : pagination DRF standard. Chaque entrée capture
+  `actor_email + ip + user_agent + action + target_repr + payload (snapshot)`.
+}

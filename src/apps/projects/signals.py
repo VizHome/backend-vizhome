@@ -1,4 +1,5 @@
 """Signaux : auto-Scene à la création, sync storage stats à l'upload/delete de modèles."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -19,18 +20,12 @@ def create_scene_for_new_project(
     """À la création d'un projet, instancie sa Scene vide."""
     if created:
         Scene.objects.create(project=instance)
-        UserStats.objects.filter(user=instance.user).update(
-            total_projects=F('total_projects') + 1
-        )
+        UserStats.objects.filter(user=instance.user).update(total_projects=F('total_projects') + 1)
 
 
 @receiver(post_delete, sender=Project)
-def decrement_project_count(
-    sender: type[Project], instance: Project, **kwargs: Any
-) -> None:
-    UserStats.objects.filter(user=instance.user).update(
-        total_projects=F('total_projects') - 1
-    )
+def decrement_project_count(sender: type[Project], instance: Project, **kwargs: Any) -> None:
+    UserStats.objects.filter(user=instance.user).update(total_projects=F('total_projects') - 1)
 
 
 @receiver(post_save, sender=ImportedModel)

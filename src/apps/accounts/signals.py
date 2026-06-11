@@ -1,4 +1,5 @@
 """Signaux : auto-création de Preferences et Stats à l'inscription."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -10,9 +11,7 @@ from .models import PLAN_QUOTAS, User, UserPreferences, UserStats
 
 
 @receiver(post_save, sender=User)
-def create_user_relations(
-    sender: type[User], instance: User, created: bool, **kwargs: Any
-) -> None:
+def create_user_relations(sender: type[User], instance: User, created: bool, **kwargs: Any) -> None:
     """À la création d'un user, instancier ses Preferences et Stats."""
     if not created:
         return

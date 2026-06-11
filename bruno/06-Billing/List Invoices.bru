@@ -1,0 +1,37 @@
+meta {
+  name: List Invoices
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/me/invoices
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns array (no pagination — APIView)", function() {
+    expect(res.body).to.be.an("array");
+  });
+}
+
+docs {
+  Liste les 50 dernières factures Stripe de l'utilisateur, triées par
+  date desc.
+
+  Chaque facture contient `hosted_invoice_url` (page web Stripe) et
+  `invoice_pdf` (URL directe du PDF).
+
+  Si pas de Customer Stripe → array vide (pas d'erreur).
+
+  APIView plain → array non paginé.
+}

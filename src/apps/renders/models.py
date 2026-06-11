@@ -1,4 +1,5 @@
 """Modèles de l'app renders : un seul model Render couvre les 3 sources."""
+
 from __future__ import annotations
 
 from django.conf import settings
@@ -34,14 +35,10 @@ class Render(models.Model):
     )
     prompt = models.TextField(blank=True)
     style_hint = models.CharField(max_length=200, blank=True)
-    input_image = models.ImageField(
-        upload_to='renders/inputs/%Y/%m/', blank=True, null=True
-    )
+    input_image = models.ImageField(upload_to='renders/inputs/%Y/%m/', blank=True, null=True)
 
     # ─── Output ───────────────────────────────────────────────────────────────
-    result_image = models.ImageField(
-        upload_to='renders/outputs/%Y/%m/', blank=True, null=True
-    )
+    result_image = models.ImageField(upload_to='renders/outputs/%Y/%m/', blank=True, null=True)
 
     # ─── État du pipeline ─────────────────────────────────────────────────────
     status = models.CharField(

@@ -1,9 +1,8 @@
 """Tests CRUD Project + duplication."""
+
 from __future__ import annotations
 
 import pytest
-from rest_framework import status
-from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.projects.models import Annotation, Project, Scene
@@ -35,7 +34,12 @@ class TestProjectCRUD:
         assert user.stats.total_projects == 1
 
     def test_get_detail_includes_scene_and_lists(self, auth_client, project):
-        Annotation.objects.create(project=project, type='note', position={'x':0,'y':0,'z':0}, content='hello')
+        Annotation.objects.create(
+            project=project,
+            type='note',
+            position={'x': 0, 'y': 0, 'z': 0},
+            content='hello',
+        )
         r = auth_client.get(f'/api/v1/projects/{project.pk}')
         assert r.status_code == 200
         assert 'scene' in r.data
@@ -44,8 +48,7 @@ class TestProjectCRUD:
         assert len(r.data['annotations']) == 1
 
     def test_patch_updates_fields(self, auth_client, project):
-        r = auth_client.patch(f'/api/v1/projects/{project.pk}',
-                              {'title': 'Renommé'}, format='json')
+        r = auth_client.patch(f'/api/v1/projects/{project.pk}', {'title': 'Renommé'}, format='json')
         assert r.status_code == 200
         project.refresh_from_db()
         assert project.title == 'Renommé'
@@ -70,7 +73,12 @@ class TestDuplicate:
     def test_duplicate_copies_scene_and_annotations(self, auth_client, user, project):
         project.scene.data = {'camera': {'position': [1, 2, 3]}}
         project.scene.save()
-        Annotation.objects.create(project=project, type='note', position={'x':0,'y':0,'z':0}, content='note1')
+        Annotation.objects.create(
+            project=project,
+            type='note',
+            position={'x': 0, 'y': 0, 'z': 0},
+            content='note1',
+        )
 
         r = auth_client.post(f'/api/v1/projects/{project.pk}/duplicate')
         assert r.status_code == 201
@@ -83,9 +91,13 @@ class TestDuplicate:
     def test_duplicate_skips_assets_by_default(self, auth_client, project, fake_glb, user):
         # Ajoute un modèle 3D au projet source
         from apps.projects.models import ImportedModel
+
         ImportedModel.objects.create(
-            project=project, name='Cube', format='glb',
-            file=fake_glb, file_size_bytes=4,
+            project=project,
+            name='Cube',
+            format='glb',
+            file=fake_glb,
+            file_size_bytes=4,
         )
 
         r = auth_client.post(f'/api/v1/projects/{project.pk}/duplicate')
@@ -96,22 +108,27 @@ class TestDuplicate:
 
     def test_duplicate_with_copy_assets_copies_models(self, auth_client, project, user):
         from unittest.mock import patch
+
         from apps.projects.models import ImportedModel
 
-        m1 = ImportedModel.objects.create(
-            project=project, name='Cube', format='glb',
-            file='projects/models/2026/05/orig_abc.glb', file_size_bytes=1024,
+        ImportedModel.objects.create(
+            project=project,
+            name='Cube',
+            format='glb',
+            file='projects/models/2026/05/orig_abc.glb',
+            file_size_bytes=1024,
             position={'x': 1, 'y': 2, 'z': 3},
         )
-        m2 = ImportedModel.objects.create(
-            project=project, name='Sphere', format='obj',
-            file='projects/models/2026/05/orig_xyz.obj', file_size_bytes=2048,
+        ImportedModel.objects.create(
+            project=project,
+            name='Sphere',
+            format='obj',
+            file='projects/models/2026/05/orig_xyz.obj',
+            file_size_bytes=2048,
         )
 
         with patch('apps.projects.presigned.copy_object') as mock_copy:
-            r = auth_client.post(
-                f'/api/v1/projects/{project.pk}/duplicate?copy_assets=true'
-            )
+            r = auth_client.post(f'/api/v1/projects/{project.pk}/duplicate?copy_assets=true')
             assert r.status_code == 201
             assert mock_copy.call_count == 2
 
@@ -126,8 +143,11 @@ class TestDuplicate:
 
     def test_duplicate_with_copy_assets_enforces_quota(self, auth_client, project, user):
         from apps.projects.models import ImportedModel
+
         ImportedModel.objects.create(
-            project=project, name='Big', format='glb',
+            project=project,
+            name='Big',
+            format='glb',
             file='projects/models/2026/05/big.glb',
             file_size_bytes=user.stats.storage_limit_bytes,
         )

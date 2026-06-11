@@ -1,0 +1,111 @@
+# =============================================================================
+# Traefik — Configuration statique (lue au démarrage).
+#
+# Le routage par service est configuré via les labels Docker dans
+# docker-compose.prod.yml. Cette config gère les "globals" :
+#  - entrypoints HTTP/HTTPS
+#  - certificate resolver Let's Encrypt
+#  - providers (docker + fichiers pour middlewares globaux)
+#  - logs JSON structurés
+#  - métriques Prometheus (port 8082)
+#  - dashboard sécurisé
+#
+# Toute modification ici nécessite un `docker compose restart traefik`.
+# Pour les modifs runtime (middlewares, TLS options), éditer plutôt les
+# fichiers dans traefik/dynamic/ qui sont hot-reloadés sans restart.
+# =============================================================================
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+log:
+  level: INFO
+  format: json
+
+accessLog:
+  format: json
+  fields:
+    headers:
+      defaultMode: drop
+      names:
+        User-Agent: keep
+        Referer: keep
+        X-Forwarded-For: keep
+        # Volontairement on NE log PAS Authorization / Cookie (PII / secrets)
+
+# ─── API + Dashboard ──────────────────────────────────────────────────────────
+# Dashboard accessible sur https://traefik.vizhome.fr avec basic auth
+# (cf middleware `dashboard-auth` dans dynamic/middlewares.yml).
+api:
+  dashboard: true
+  # insecure: false → le dashboard n'est PAS exposé sur un port interne ;
+  # il passe par les routes HTTPS standard via le router `dashboard` configuré
+  # dans dynamic/dashboard.yml.
+
+# ─── Entrypoints ──────────────────────────────────────────────────────────────
+entryPoints:
+  web:
+    address: ":80"
+    # Redirection automatique HTTP → HTTPS (sauf pour les challenges ACME)
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  websecure:
+    address: ":443"
+    http:
+      # TLS par défaut sur cet entrypoint
+      tls:
+        certResolver: letsencrypt
+        options: modern
+      middlewares:
+        - security-headers@file
+        - compress@file
+    # HTTP/3 (QUIC) sur même port — gain TTFB en mobile
+    http3:
+      advertisedPort: 443
+
+  # Port interne pour Prometheus scraper (à exposer uniquement sur le LAN ou via Tailscale)
+  metrics:
+    address: ":8082"
+
+# ─── Certificate Resolvers (Let's Encrypt) ───────────────────────────────────
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "${ACME_EMAIL}"
+      storage: /letsencrypt/acme.json
+      keyType: EC256
+      # TLS-ALPN-01 : challenge sur port 443 (déjà ouvert), pas de DNS provider requis.
+      # Alternative HTTP-01 si besoin (port 80 doit être ouvert).
+      tlsChallenge: {}
+
+# ─── Providers ───────────────────────────────────────────────────────────────
+providers:
+  # Provider Docker : lit les labels des services
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: vizhome_proxy
+    # Watch les events Docker pour reconfigurer sans restart
+
+  # Provider Files : middlewares / TLS options / routers statiques
+  # Hot-reload automatique des changements (pas besoin de restart Traefik).
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# ─── Métriques Prometheus ─────────────────────────────────────────────────────
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    addRoutersLabels: true
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.0
+      - 3.0
+      - 10.0

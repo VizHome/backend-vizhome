@@ -1,4 +1,5 @@
 """Tests des management commands billing + accounts."""
+
 from __future__ import annotations
 
 from io import StringIO
@@ -50,6 +51,7 @@ class TestSetupStripeProducts:
 class TestResetMonthlyCounters:
     def test_resets_all_users(self):
         from apps.accounts.models import User
+
         u1 = User.objects.create_user(email='a@a.fr', password='x')
         u2 = User.objects.create_user(email='b@b.fr', password='x')
         UserStats.objects.filter(user=u1).update(renders_this_month=42)

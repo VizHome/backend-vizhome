@@ -1,0 +1,36 @@
+meta {
+  name: Get Scene
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/scene
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns scene shape", function() {
+    expect(res.body).to.have.property("data");
+    expect(res.body).to.have.property("version");
+    expect(res.body).to.have.property("updated_at");
+  });
+}
+
+docs {
+  Récupère la scène 3D sérialisée (JSON). `data` contient l'état Three.js
+  (caméra, lumières, modèles avec transforms, météo, etc.) tel que
+  marshalé par `useSceneSerializer.serialize()` côté frontend.
+
+  `version` s'incrémente à chaque PUT — utile pour détecter les conflits
+  d'édition concurrente.
+}

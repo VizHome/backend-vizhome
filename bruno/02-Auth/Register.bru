@@ -1,0 +1,55 @@
+meta {
+  name: Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{userEmail}}",
+    "password": "{{userPassword}}",
+    "password_confirm": "{{userPassword}}",
+    "first_name": "Bruno",
+    "last_name": "Tester"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("accessToken", res.body.access);
+    bru.setEnvVar("refreshToken", res.body.refresh);
+    bru.setEnvVar("userId", res.body.user.id);
+  }
+}
+
+tests {
+  test("returns 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("returns user + tokens", function() {
+    expect(res.body).to.have.property("user");
+    expect(res.body).to.have.property("access");
+    expect(res.body).to.have.property("refresh");
+  });
+
+  test("user has nested stats + preferences", function() {
+    expect(res.body.user).to.have.property("stats");
+    expect(res.body.user).to.have.property("preferences");
+  });
+}
+
+docs {
+  Crée un nouveau user. Retourne `{user, access, refresh}` + auto-stocke
+  les tokens dans l'environnement.
+
+  Si tu re-runes avec le même email, ça retournera 400 (déjà existant).
+  Change `userEmail` dans l'environnement ou supprime le user via le
+  shell Django.
+}

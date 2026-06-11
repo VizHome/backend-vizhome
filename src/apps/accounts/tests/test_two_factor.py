@@ -1,8 +1,6 @@
 """Tests du flow 2FA TOTP."""
-from __future__ import annotations
 
-import base64
-import re
+from __future__ import annotations
 
 import pyotp
 import pytest
@@ -47,9 +45,7 @@ class TestSetup2FA:
         secret, _ = _setup_2fa(auth_client)
         code = _totp_code(secret)
 
-        response = auth_client.post(
-            '/api/v1/me/2fa/verify-setup', {'code': code}, format='json'
-        )
+        response = auth_client.post('/api/v1/me/2fa/verify-setup', {'code': code}, format='json')
         assert response.status_code == 200
 
         device = TOTPDevice.objects.get(user=user)
@@ -81,9 +77,14 @@ class TestLoginWith2FA:
         auth_client.post('/api/v1/me/2fa/verify-setup', {'code': _totp_code(secret)}, format='json')
 
         # Login → renvoie un challenge, pas de tokens
-        response = api_client.post('/api/v1/auth/login', {
-            'email': user.email, 'password': 'Test1234!',
-        }, format='json')
+        response = api_client.post(
+            '/api/v1/auth/login',
+            {
+                'email': user.email,
+                'password': 'Test1234!',
+            },
+            format='json',
+        )
         assert response.status_code == 200
         assert response.data['require_2fa'] is True
         assert 'challenge_token' in response.data
@@ -97,15 +98,25 @@ class TestLoginWith2FA:
         _reset_totp_replay(user)  # autorise la réutilisation du code en test
 
         # Étape 1
-        login = api_client.post('/api/v1/auth/login', {
-            'email': user.email, 'password': 'Test1234!',
-        }, format='json')
+        login = api_client.post(
+            '/api/v1/auth/login',
+            {
+                'email': user.email,
+                'password': 'Test1234!',
+            },
+            format='json',
+        )
         challenge = login.data['challenge_token']
 
         # Étape 2
-        response = api_client.post('/api/v1/auth/2fa/verify', {
-            'challenge_token': challenge, 'code': _totp_code(secret),
-        }, format='json')
+        response = api_client.post(
+            '/api/v1/auth/2fa/verify',
+            {
+                'challenge_token': challenge,
+                'code': _totp_code(secret),
+            },
+            format='json',
+        )
         assert response.status_code == 200
         assert 'access' in response.data
         assert 'refresh' in response.data
@@ -128,7 +139,5 @@ class TestDisable2FA:
         secret, _ = _setup_2fa(auth_client)
         auth_client.post('/api/v1/me/2fa/verify-setup', {'code': _totp_code(secret)}, format='json')
 
-        response = auth_client.post(
-            '/api/v1/me/2fa/disable', {'code': '000000'}, format='json'
-        )
+        response = auth_client.post('/api/v1/me/2fa/disable', {'code': '000000'}, format='json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST

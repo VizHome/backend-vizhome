@@ -1,4 +1,5 @@
 """Modèles de l'app projects : Project + Scene + ImportedModel + Annotation + ShareLink."""
+
 from __future__ import annotations
 
 import secrets
@@ -28,9 +29,7 @@ class Project(models.Model):
     )
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    thumbnail = models.ImageField(
-        upload_to='projects/thumbnails/%Y/%m/', blank=True, null=True
-    )
+    thumbnail = models.ImageField(upload_to='projects/thumbnails/%Y/%m/', blank=True, null=True)
     is_archived = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -52,9 +51,7 @@ class Scene(models.Model):
     Backend persiste tel quel, sans validation de structure.
     """
 
-    project = models.OneToOneField(
-        Project, on_delete=models.CASCADE, related_name='scene'
-    )
+    project = models.OneToOneField(Project, on_delete=models.CASCADE, related_name='scene')
     data = models.JSONField(default=dict, blank=True)
     version = models.PositiveIntegerField(default=1)
 
@@ -77,15 +74,15 @@ class ImportedModel(models.Model):
         FBX = 'fbx', 'FBX'
         STL = 'stl', 'STL'
 
-    project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name='imported_models'
-    )
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='imported_models')
     name = models.CharField(max_length=200)
     format = models.CharField(max_length=10, choices=Format.choices)
 
     file = models.FileField(upload_to='projects/models/%Y/%m/')
     mtl_file = models.FileField(
-        upload_to='projects/models/%Y/%m/', blank=True, null=True,
+        upload_to='projects/models/%Y/%m/',
+        blank=True,
+        null=True,
         help_text='Fichier .mtl associé (uniquement pour les .obj)',
     )
     file_size_bytes = models.BigIntegerField(
@@ -115,9 +112,7 @@ class Annotation(models.Model):
         MEASURE = 'measure', 'Mesure'
         MARKER = 'marker', 'Marqueur'
 
-    project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name='annotations'
-    )
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='annotations')
     type = models.CharField(max_length=20, choices=Type.choices, default=Type.NOTE)
     position = models.JSONField()  # {x, y, z}
     content = models.TextField(blank=True)
@@ -142,9 +137,7 @@ class ShareLink(models.Model):
         # EDIT n'est pas implémenté pour l'instant ; à ajouter avec un flow de
         # claim si on veut un mode collaboratif
 
-    project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name='share_links'
-    )
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='share_links')
     token = models.CharField(
         max_length=64, unique=True, db_index=True, default=_generate_share_token
     )

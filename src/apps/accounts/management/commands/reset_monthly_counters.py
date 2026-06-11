@@ -5,6 +5,7 @@
 Usage :
     python manage.py reset_monthly_counters
 """
+
 from __future__ import annotations
 
 from django.core.management.base import BaseCommand

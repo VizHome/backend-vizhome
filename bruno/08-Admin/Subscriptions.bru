@@ -1,0 +1,43 @@
+meta {
+  name: Subscriptions
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/admin/subscriptions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 403 if not staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+
+  test("if 200 → mode + items shape", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("mode");
+      expect(res.body).to.have.property("count");
+      expect(res.body).to.have.property("results");
+      expect(res.body.results).to.be.an("array");
+    }
+  });
+}
+
+docs {
+  GET /api/v1/admin/subscriptions — subscriptions Stripe actives (staff-only).
+
+  **Réponse** :
+  - `mode` : `"ok"` si djstripe installé et configuré, `"no_djstripe"` sinon
+  - `count` : nombre total
+  - `results[]` : `{id, user_email, status, current_period_end, cancel_at_period_end, created}`
+
+  Implémentation **défensive** : `status` n'étant pas un field direct selon la version
+  de djstripe, le filtrage par `status in ('active','trialing','past_due')` se fait
+  en Python à partir de `getattr(sub, 'status', ...) or sub.stripe_data.get('status')`.
+}

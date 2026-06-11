@@ -1,0 +1,50 @@
+meta {
+  name: Update Preferences
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}{{apiPrefix}}/me/preferences
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "theme": "dark",
+    "language": "fr",
+    "render_quality": "high",
+    "render_format": "png",
+    "render_resolution": "2048",
+    "notif_email_render": true,
+    "notif_email_newsletter": false,
+    "notif_push_render": true,
+    "notif_push_mentions": false,
+    "analytics_enabled": true,
+    "marketing_enabled": false,
+    "reduced_motion": false,
+    "high_contrast": false,
+    "font_size": "medium"
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("theme updated", function() {
+    expect(res.body.theme).to.equal("dark");
+  });
+}
+
+docs {
+  Met à jour une ou plusieurs préférences. PATCH partiel — envoie juste
+  les champs à modifier. Validations enums côté backend (theme dans
+  light/dark/system, etc.)
+}

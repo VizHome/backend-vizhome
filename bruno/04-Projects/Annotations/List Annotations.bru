@@ -1,0 +1,38 @@
+meta {
+  name: List Annotations
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/annotations
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.body.results && res.body.results.length > 0) {
+    bru.setEnvVar("annotationId", res.body.results[0].id);
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("paginated response", function() {
+    expect(res.body).to.have.property("count");
+    expect(res.body).to.have.property("results");
+  });
+}
+
+docs {
+  Liste les annotations 3D d'un projet (paginé). Chaque annotation a
+  une position `{x, y, z}` dans l'espace 3D, un type (`note`, `measure`,
+  `marker`), du contenu textuel et une couleur.
+}

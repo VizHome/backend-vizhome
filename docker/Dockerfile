@@ -31,6 +31,32 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # =========================================================
 FROM python:3.13-slim AS runner
 
+# ─── Build args injectés via docker build-push-action (release.yml) ─────
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION=dev
+
+# ─── OCI image labels ────────────────────────────────────────────────────
+# Standard : https://github.com/opencontainers/image-spec/blob/main/annotations.md
+LABEL org.opencontainers.image.title="VizHome Backend" \
+      org.opencontainers.image.description="API Django REST pour VizHome — \
+plateforme SaaS de génération de rendus 3D par IA (Gemini), import GLB/OBJ/FBX, \
+forum communautaire, support helpdesk, billing Stripe, admin panel staff." \
+      org.opencontainers.image.vendor="VizHome" \
+      org.opencontainers.image.authors="VizHome team" \
+      org.opencontainers.image.url="https://vizhome.fr" \
+      org.opencontainers.image.documentation="https://github.com/VizHome/backend-vizhome/blob/main/README.md" \
+      org.opencontainers.image.source="https://github.com/VizHome/backend-vizhome" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.base.name="docker.io/library/python:3.13-slim" \
+      org.opencontainers.image.created=$BUILD_DATE \
+      org.opencontainers.image.revision=$VCS_REF \
+      org.opencontainers.image.version=$VERSION \
+      # Labels custom VizHome
+      fr.vizhome.component="backend" \
+      fr.vizhome.runtime="python-3.13" \
+      fr.vizhome.framework="django-6"
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \

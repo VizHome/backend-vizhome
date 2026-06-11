@@ -8,101 +8,271 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('auth', '0012_alter_user_first_name_max_length'),
+        ("auth", "0012_alter_user_first_name_max_length"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='User',
+            name="User",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('password', models.CharField(max_length=128, verbose_name='password')),
-                ('last_login', models.DateTimeField(blank=True, null=True, verbose_name='last login')),
-                ('is_superuser', models.BooleanField(default=False, help_text='Designates that this user has all permissions without explicitly assigning them.', verbose_name='superuser status')),
-                ('email', models.EmailField(db_index=True, max_length=254, unique=True)),
-                ('first_name', models.CharField(blank=True, max_length=100)),
-                ('last_name', models.CharField(blank=True, max_length=100)),
-                ('avatar_url', models.URLField(blank=True, max_length=500)),
-                ('plan', models.CharField(choices=[('free', 'Gratuit'), ('pro', 'Pro'), ('enterprise', 'Entreprise')], default='free', max_length=20)),
-                ('is_active', models.BooleanField(default=True)),
-                ('is_staff', models.BooleanField(default=False)),
-                ('date_joined', models.DateTimeField(default=django.utils.timezone.now)),
-                ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
-                ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("password", models.CharField(max_length=128, verbose_name="password")),
+                (
+                    "last_login",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="last login"
+                    ),
+                ),
+                (
+                    "is_superuser",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Designates that this user has all permissions without explicitly assigning them.",
+                        verbose_name="superuser status",
+                    ),
+                ),
+                (
+                    "email",
+                    models.EmailField(db_index=True, max_length=254, unique=True),
+                ),
+                ("first_name", models.CharField(blank=True, max_length=100)),
+                ("last_name", models.CharField(blank=True, max_length=100)),
+                ("avatar_url", models.URLField(blank=True, max_length=500)),
+                (
+                    "plan",
+                    models.CharField(
+                        choices=[
+                            ("free", "Gratuit"),
+                            ("pro", "Pro"),
+                            ("enterprise", "Entreprise"),
+                        ],
+                        default="free",
+                        max_length=20,
+                    ),
+                ),
+                ("is_active", models.BooleanField(default=True)),
+                ("is_staff", models.BooleanField(default=False)),
+                (
+                    "date_joined",
+                    models.DateTimeField(default=django.utils.timezone.now),
+                ),
+                (
+                    "groups",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="The groups this user belongs to. A user will get all permissions granted to each of their groups.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.group",
+                        verbose_name="groups",
+                    ),
+                ),
+                (
+                    "user_permissions",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="Specific permissions for this user.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.permission",
+                        verbose_name="user permissions",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Utilisateur',
-                'verbose_name_plural': 'Utilisateurs',
-                'db_table': 'accounts_user',
-                'ordering': ['-date_joined'],
+                "verbose_name": "Utilisateur",
+                "verbose_name_plural": "Utilisateurs",
+                "db_table": "accounts_user",
+                "ordering": ["-date_joined"],
             },
             managers=[
-                ('objects', apps.accounts.managers.UserManager()),
+                ("objects", apps.accounts.managers.UserManager()),
             ],
         ),
         migrations.CreateModel(
-            name='UserPreferences',
+            name="UserPreferences",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('theme', models.CharField(choices=[('light', 'Clair'), ('dark', 'Sombre'), ('system', 'Système')], default='system', max_length=10)),
-                ('language', models.CharField(choices=[('fr', 'Français'), ('en', 'English'), ('es', 'Español'), ('de', 'Deutsch')], default='fr', max_length=2)),
-                ('notif_email_render', models.BooleanField(default=True)),
-                ('notif_email_newsletter', models.BooleanField(default=False)),
-                ('notif_push_render', models.BooleanField(default=True)),
-                ('notif_push_mentions', models.BooleanField(default=False)),
-                ('render_quality', models.CharField(choices=[('draft', 'Brouillon'), ('standard', 'Standard'), ('high', 'Haute')], default='standard', max_length=10)),
-                ('render_format', models.CharField(choices=[('png', 'PNG'), ('jpg', 'JPG'), ('webp', 'WebP')], default='png', max_length=5)),
-                ('render_resolution', models.CharField(choices=[('1024', '1024px'), ('2048', '2048px'), ('4096', '4096px')], default='2048', max_length=5)),
-                ('analytics_enabled', models.BooleanField(default=True)),
-                ('marketing_enabled', models.BooleanField(default=False)),
-                ('two_factor_enabled', models.BooleanField(default=False)),
-                ('reduced_motion', models.BooleanField(default=False)),
-                ('high_contrast', models.BooleanField(default=False)),
-                ('font_size', models.CharField(choices=[('small', 'Petit'), ('medium', 'Moyen'), ('large', 'Grand')], default='medium', max_length=10)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='preferences', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "theme",
+                    models.CharField(
+                        choices=[
+                            ("light", "Clair"),
+                            ("dark", "Sombre"),
+                            ("system", "Système"),
+                        ],
+                        default="system",
+                        max_length=10,
+                    ),
+                ),
+                (
+                    "language",
+                    models.CharField(
+                        choices=[
+                            ("fr", "Français"),
+                            ("en", "English"),
+                            ("es", "Español"),
+                            ("de", "Deutsch"),
+                        ],
+                        default="fr",
+                        max_length=2,
+                    ),
+                ),
+                ("notif_email_render", models.BooleanField(default=True)),
+                ("notif_email_newsletter", models.BooleanField(default=False)),
+                ("notif_push_render", models.BooleanField(default=True)),
+                ("notif_push_mentions", models.BooleanField(default=False)),
+                (
+                    "render_quality",
+                    models.CharField(
+                        choices=[
+                            ("draft", "Brouillon"),
+                            ("standard", "Standard"),
+                            ("high", "Haute"),
+                        ],
+                        default="standard",
+                        max_length=10,
+                    ),
+                ),
+                (
+                    "render_format",
+                    models.CharField(
+                        choices=[("png", "PNG"), ("jpg", "JPG"), ("webp", "WebP")],
+                        default="png",
+                        max_length=5,
+                    ),
+                ),
+                (
+                    "render_resolution",
+                    models.CharField(
+                        choices=[
+                            ("1024", "1024px"),
+                            ("2048", "2048px"),
+                            ("4096", "4096px"),
+                        ],
+                        default="2048",
+                        max_length=5,
+                    ),
+                ),
+                ("analytics_enabled", models.BooleanField(default=True)),
+                ("marketing_enabled", models.BooleanField(default=False)),
+                ("two_factor_enabled", models.BooleanField(default=False)),
+                ("reduced_motion", models.BooleanField(default=False)),
+                ("high_contrast", models.BooleanField(default=False)),
+                (
+                    "font_size",
+                    models.CharField(
+                        choices=[
+                            ("small", "Petit"),
+                            ("medium", "Moyen"),
+                            ("large", "Grand"),
+                        ],
+                        default="medium",
+                        max_length=10,
+                    ),
+                ),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="preferences",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'accounts_preferences',
+                "db_table": "accounts_preferences",
             },
         ),
         migrations.CreateModel(
-            name='UserSession',
+            name="UserSession",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('refresh_jti', models.CharField(db_index=True, max_length=255, unique=True)),
-                ('device_name', models.CharField(blank=True, max_length=200)),
-                ('user_agent', models.TextField(blank=True)),
-                ('ip_address', models.GenericIPAddressField(blank=True, null=True)),
-                ('location', models.CharField(blank=True, max_length=200)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('last_active', models.DateTimeField(auto_now=True)),
-                ('revoked_at', models.DateTimeField(blank=True, null=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sessions', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "refresh_jti",
+                    models.CharField(db_index=True, max_length=255, unique=True),
+                ),
+                ("device_name", models.CharField(blank=True, max_length=200)),
+                ("user_agent", models.TextField(blank=True)),
+                ("ip_address", models.GenericIPAddressField(blank=True, null=True)),
+                ("location", models.CharField(blank=True, max_length=200)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("last_active", models.DateTimeField(auto_now=True)),
+                ("revoked_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="sessions",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'accounts_session',
-                'ordering': ['-last_active'],
+                "db_table": "accounts_session",
+                "ordering": ["-last_active"],
             },
         ),
         migrations.CreateModel(
-            name='UserStats',
+            name="UserStats",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('renders_this_month', models.PositiveIntegerField(default=0)),
-                ('renders_limit', models.PositiveIntegerField(default=5)),
-                ('total_projects', models.PositiveIntegerField(default=0)),
-                ('storage_used_bytes', models.BigIntegerField(default=0)),
-                ('storage_limit_bytes', models.BigIntegerField(default=1073741824)),
-                ('period_started_at', models.DateTimeField(default=django.utils.timezone.now)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='stats', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("renders_this_month", models.PositiveIntegerField(default=0)),
+                ("renders_limit", models.PositiveIntegerField(default=5)),
+                ("total_projects", models.PositiveIntegerField(default=0)),
+                ("storage_used_bytes", models.BigIntegerField(default=0)),
+                ("storage_limit_bytes", models.BigIntegerField(default=1073741824)),
+                (
+                    "period_started_at",
+                    models.DateTimeField(default=django.utils.timezone.now),
+                ),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="stats",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'accounts_stats',
+                "db_table": "accounts_stats",
             },
         ),
     ]

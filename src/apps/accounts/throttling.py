@@ -1,4 +1,5 @@
 """Throttles DRF spécifiques aux endpoints d'auth sensibles."""
+
 from __future__ import annotations
 
 from rest_framework.throttling import AnonRateThrottle

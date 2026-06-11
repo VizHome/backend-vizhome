@@ -5,6 +5,7 @@ permanent attaché à une Price Stripe, qui survit aux changements de prix
 (versioning Stripe). La management command `setup_stripe_products` crée les
 Products et Prices côté Stripe avec ces lookup keys.
 """
+
 from __future__ import annotations
 
 from typing import TypedDict

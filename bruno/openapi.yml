@@ -1,0 +1,2328 @@
+openapi: 3.0.3
+info:
+  title: VizHome API
+  version: 1.0.0
+  description: API REST de la plateforme VizHome — visualisation 3D architecturale
+    propulsée par IA (Gemini).
+  contact:
+    email: support@vizhome.fr
+  license:
+    name: Propriétaire
+paths:
+  /api/v1/auth/2fa/verify:
+    post:
+      operationId: auth_2fa_verify_create
+      description: 'Étape 2 du login : échange challenge_token + code TOTP contre
+        des JWT.'
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/forgot-password:
+    post:
+      operationId: auth_forgot_password_create
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/login:
+    post:
+      operationId: auth_login_create
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/logout:
+    post:
+      operationId: auth_logout_create
+      description: Blacklist le refresh token et marque la session comme révoquée.
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/oauth/{provider}/exchange:
+    post:
+      operationId: auth_oauth_exchange_create
+      description: |-
+        Échange un payload OAuth (id_token ou code) contre nos JWT.
+
+        POST /auth/oauth/google/exchange   { "id_token": "..." }
+        POST /auth/oauth/github/exchange   { "code": "...", "redirect_uri": "..." }
+      parameters:
+      - in: path
+        name: provider
+        schema:
+          type: string
+        required: true
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/refresh:
+    post:
+      operationId: auth_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/register:
+    post:
+      operationId: auth_register_create
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/reset-password:
+    post:
+      operationId: auth_reset_password_create
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/billing/plans:
+    get:
+      operationId: billing_plans_retrieve
+      description: GET /api/v1/billing/plans — catalogue public des plans VizHome.
+      tags:
+      - billing
+      responses:
+        '200':
+          description: No response body
+  /api/v1/me/:
+    get:
+      operationId: me_retrieve
+      description: GET = profil complet (user + stats + preferences), PATCH = update
+        profil.
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: me_update
+      description: GET = profil complet (user + stats + preferences), PATCH = update
+        profil.
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: me_partial_update
+      description: GET = profil complet (user + stats + preferences), PATCH = update
+        profil.
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateMeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateMeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateMeRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateMe'
+          description: ''
+  /api/v1/me/2fa/disable:
+    post:
+      operationId: me_2fa_disable_create
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/me/2fa/setup:
+    post:
+      operationId: me_2fa_setup_create
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/me/2fa/verify-setup:
+    post:
+      operationId: me_2fa_verify_setup_create
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/me/change-password:
+    post:
+      operationId: me_change_password_create
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/me/invoices:
+    get:
+      operationId: me_invoices_retrieve
+      description: GET /api/v1/me/invoices — liste les factures Stripe du user.
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/me/payment-methods:
+    get:
+      operationId: me_payment_methods_retrieve
+      description: GET /api/v1/me/payment-methods — liste les cartes du user.
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/me/preferences:
+    get:
+      operationId: me_preferences_retrieve
+      description: GET/PATCH des préférences.
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+          description: ''
+    put:
+      operationId: me_preferences_update
+      description: GET/PATCH des préférences.
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferencesRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserPreferencesRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserPreferencesRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+          description: ''
+    patch:
+      operationId: me_preferences_partial_update
+      description: GET/PATCH des préférences.
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserPreferencesRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserPreferencesRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserPreferencesRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+          description: ''
+  /api/v1/me/sessions:
+    get:
+      operationId: me_sessions_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Un numéro de page de l'ensemble des résultats.
+        schema:
+          type: integer
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserSessionList'
+          description: ''
+  /api/v1/me/sessions/{id}:
+    delete:
+      operationId: me_sessions_destroy
+      description: Révoque une session par son id (blacklist le refresh token associé).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/me/subscription:
+    get:
+      operationId: me_subscription_retrieve
+      description: GET /api/v1/me/subscription — état courant de la subscription du
+        user.
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/me/subscription/cancel:
+    post:
+      operationId: me_subscription_cancel_create
+      description: POST /api/v1/me/subscription/cancel — programme l'annulation en
+        fin de période.
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/me/subscription/checkout:
+    post:
+      operationId: me_subscription_checkout_create
+      description: POST /api/v1/me/subscription/checkout — crée une Checkout Session
+        Stripe.
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/projects/:
+    get:
+      operationId: projects_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Un numéro de page de l'ensemble des résultats.
+        schema:
+          type: integer
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProjectListList'
+          description: ''
+    post:
+      operationId: projects_create
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateUpdateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectCreateUpdate'
+          description: ''
+  /api/v1/projects/{id}:
+    get:
+      operationId: projects_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectDetail'
+          description: ''
+    put:
+      operationId: projects_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateUpdateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectCreateUpdate'
+          description: ''
+    patch:
+      operationId: projects_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectCreateUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectCreateUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectCreateUpdateRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectCreateUpdate'
+          description: ''
+    delete:
+      operationId: projects_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/projects/{id}/annotations:
+    get:
+      operationId: projects_annotations_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: Un numéro de page de l'ensemble des résultats.
+        schema:
+          type: integer
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAnnotationList'
+          description: ''
+    post:
+      operationId: projects_annotations_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnotationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AnnotationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AnnotationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Annotation'
+          description: ''
+  /api/v1/projects/{id}/annotations/{annotation_id}:
+    get:
+      operationId: projects_annotations_retrieve
+      parameters:
+      - in: path
+        name: annotation_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Annotation'
+          description: ''
+    put:
+      operationId: projects_annotations_update
+      parameters:
+      - in: path
+        name: annotation_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnotationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AnnotationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AnnotationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Annotation'
+          description: ''
+    patch:
+      operationId: projects_annotations_partial_update
+      parameters:
+      - in: path
+        name: annotation_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAnnotationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAnnotationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAnnotationRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Annotation'
+          description: ''
+    delete:
+      operationId: projects_annotations_destroy
+      parameters:
+      - in: path
+        name: annotation_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/projects/{id}/duplicate:
+    post:
+      operationId: projects_duplicate_create
+      description: |-
+        POST /projects/{id}/duplicate[?copy_assets=true]
+
+        Par défaut, copie : projet + scene + annotations.
+        Avec ?copy_assets=true, copie aussi les modèles 3D via copy_object MinIO
+        (server-side, rapide, mais incrémente le storage usage).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/projects/{id}/models:
+    get:
+      operationId: projects_models_retrieve
+      description: |-
+        POST /projects/{id}/models — upload multipart classique (< 10MB).
+        GET — liste tous les modèles du projet.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: projects_models_create
+      description: |-
+        POST /projects/{id}/models — upload multipart classique (< 10MB).
+        GET — liste tous les modèles du projet.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/projects/{id}/models/{model_id}:
+    get:
+      operationId: projects_models_retrieve_2
+      description: GET/PATCH/DELETE /projects/{pk}/models/{model_id}.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: model_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportedModel'
+          description: ''
+    put:
+      operationId: projects_models_update
+      description: GET/PATCH/DELETE /projects/{pk}/models/{model_id}.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: model_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportedModelUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ImportedModelUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ImportedModelUpdateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportedModelUpdate'
+          description: ''
+    patch:
+      operationId: projects_models_partial_update
+      description: GET/PATCH/DELETE /projects/{pk}/models/{model_id}.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: model_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedImportedModelUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedImportedModelUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedImportedModelUpdateRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportedModelUpdate'
+          description: ''
+    delete:
+      operationId: projects_models_destroy
+      description: GET/PATCH/DELETE /projects/{pk}/models/{model_id}.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: model_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/projects/{id}/models/confirm:
+    post:
+      operationId: projects_models_confirm_create
+      description: |-
+        POST /projects/{id}/models/confirm
+        Appelé après l'upload PUT direct par le frontend. Vérifie que le fichier
+        existe bien sur MinIO et crée l'ImportedModel.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/projects/{id}/models/upload-url:
+    post:
+      operationId: projects_models_upload_url_create
+      description: |-
+        POST /projects/{id}/models/upload-url
+        Renvoie une URL pré-signée pour PUT direct du fichier vers MinIO.
+        Le frontend doit ensuite appeler /confirm pour enregistrer en DB.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/projects/{id}/scene:
+    get:
+      operationId: projects_scene_retrieve
+      description: |-
+        GET /projects/{id}/scene — lit le JSON state Three.js
+        PUT /projects/{id}/scene — sauvegarde complète (incrémente la version).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scene'
+          description: ''
+    put:
+      operationId: projects_scene_update
+      description: |-
+        GET /projects/{id}/scene — lit le JSON state Three.js
+        PUT /projects/{id}/scene — sauvegarde complète (incrémente la version).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SceneRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SceneRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SceneRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scene'
+          description: ''
+    patch:
+      operationId: projects_scene_partial_update
+      description: |-
+        GET /projects/{id}/scene — lit le JSON state Three.js
+        PUT /projects/{id}/scene — sauvegarde complète (incrémente la version).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSceneRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSceneRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSceneRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scene'
+          description: ''
+  /api/v1/projects/{id}/share:
+    get:
+      operationId: projects_share_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: Un numéro de page de l'ensemble des résultats.
+        schema:
+          type: integer
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedShareLinkList'
+          description: ''
+    post:
+      operationId: projects_share_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShareLinkCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShareLinkCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShareLinkCreateRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareLinkCreate'
+          description: ''
+  /api/v1/projects/{id}/share/{share_id}:
+    delete:
+      operationId: projects_share_destroy
+      description: Suppression d'un share link (révocation).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: share_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/renders/:
+    get:
+      operationId: renders_list
+      description: 'GET /renders : galerie paginée. POST /renders : crée + déclenche
+        Celery.'
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Un numéro de page de l'ensemble des résultats.
+        schema:
+          type: integer
+      tags:
+      - renders
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRenderList'
+          description: ''
+    post:
+      operationId: renders_create
+      description: 'GET /renders : galerie paginée. POST /renders : crée + déclenche
+        Celery.'
+      tags:
+      - renders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenderCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RenderCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RenderCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderCreate'
+          description: ''
+  /api/v1/renders/{id}:
+    get:
+      operationId: renders_retrieve
+      description: GET/PATCH/DELETE /renders/{id}.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - renders
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Render'
+          description: ''
+    put:
+      operationId: renders_update
+      description: GET/PATCH/DELETE /renders/{id}.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - renders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenderUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RenderUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RenderUpdateRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderUpdate'
+          description: ''
+    patch:
+      operationId: renders_partial_update
+      description: GET/PATCH/DELETE /renders/{id}.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - renders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRenderUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRenderUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRenderUpdateRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderUpdate'
+          description: ''
+    delete:
+      operationId: renders_destroy
+      description: GET/PATCH/DELETE /renders/{id}.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - renders
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/renders/history:
+    get:
+      operationId: renders_history_list
+      description: |-
+        GET /renders/history : 10 derniers prompts du user (pour l'autocomplete frontend).
+
+        N'inclut que les renders de source=prompt et status=done.
+      tags:
+      - renders
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Render'
+          description: ''
+  /api/v1/shared/{token}:
+    get:
+      operationId: shared_retrieve
+      description: |-
+        GET /shared/{token} — accès public au projet via token.
+
+        Pas d'auth requise. Renvoie la version read-only complète du projet.
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      tags:
+      - shared
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /health/live:
+    get:
+      operationId: health_live_retrieve
+      description: GET /health/live — le process Django répond.
+      tags:
+      - health
+      responses:
+        '200':
+          description: No response body
+  /health/ready:
+    get:
+      operationId: health_ready_retrieve
+      description: |-
+        GET /health/ready — Django + dépendances critiques (Postgres, Redis) OK.
+
+        Utilisé par les load balancers pour décider de router le trafic vers ce
+        container. Retourne 503 si l'une des deps est down.
+      tags:
+      - health
+      responses:
+        '200':
+          description: No response body
+components:
+  schemas:
+    Annotation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        position: {}
+        content:
+          type: string
+        color:
+          type: string
+          maxLength: 20
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - position
+      - updated_at
+    AnnotationRequest:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        position: {}
+        content:
+          type: string
+        color:
+          type: string
+          maxLength: 20
+      required:
+      - position
+    FontSizeEnum:
+      enum:
+      - small
+      - medium
+      - large
+      type: string
+      description: |-
+        * `small` - Petit
+        * `medium` - Moyen
+        * `large` - Grand
+    FormatEnum:
+      enum:
+      - glb
+      - gltf
+      - obj
+      - fbx
+      - stl
+      type: string
+      description: |-
+        * `glb` - GLB
+        * `gltf` - glTF
+        * `obj` - Wavefront OBJ
+        * `fbx` - FBX
+        * `stl` - STL
+    ImportedModel:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        format:
+          $ref: '#/components/schemas/FormatEnum'
+        file_url:
+          type: string
+          nullable: true
+          readOnly: true
+        mtl_file_url:
+          type: string
+          nullable: true
+          readOnly: true
+        file_size_bytes:
+          type: integer
+          readOnly: true
+          description: Taille totale (file + mtl) — utilisée pour les quotas storage
+        position: {}
+        rotation: {}
+        scale: {}
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - file_size_bytes
+      - file_url
+      - format
+      - id
+      - mtl_file_url
+      - name
+    ImportedModelUpdate:
+      type: object
+      description: PATCH — uniquement transform et nom.
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        position: {}
+        rotation: {}
+        scale: {}
+      required:
+      - name
+    ImportedModelUpdateRequest:
+      type: object
+      description: PATCH — uniquement transform et nom.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        position: {}
+        rotation: {}
+        scale: {}
+      required:
+      - name
+    LanguageEnum:
+      enum:
+      - fr
+      - en
+      - es
+      - de
+      type: string
+      description: |-
+        * `fr` - Français
+        * `en` - English
+        * `es` - Español
+        * `de` - Deutsch
+    OutputTypeEnum:
+      enum:
+      - 2d
+      - 3d
+      type: string
+      description: |-
+        * `2d` - Image 2D
+        * `3d` - Modèle 3D
+    PaginatedAnnotationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation'
+    PaginatedProjectListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectList'
+    PaginatedRenderList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Render'
+    PaginatedShareLinkList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShareLink'
+    PaginatedUserSessionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSession'
+    PatchedAnnotationRequest:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        position: {}
+        content:
+          type: string
+        color:
+          type: string
+          maxLength: 20
+    PatchedImportedModelUpdateRequest:
+      type: object
+      description: PATCH — uniquement transform et nom.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        position: {}
+        rotation: {}
+        scale: {}
+    PatchedProjectCreateUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+        is_archived:
+          type: boolean
+    PatchedRenderUpdateRequest:
+      type: object
+      description: 'PATCH limité : seul le titre est modifiable post-création.'
+      properties:
+        title:
+          type: string
+          maxLength: 200
+    PatchedSceneRequest:
+      type: object
+      properties:
+        data: {}
+    PatchedUpdateMeRequest:
+      type: object
+      description: Subset des champs modifiables via PATCH /me.
+      properties:
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        avatar_url:
+          type: string
+          format: uri
+          maxLength: 500
+    PatchedUserPreferencesRequest:
+      type: object
+      properties:
+        theme:
+          $ref: '#/components/schemas/ThemeEnum'
+        language:
+          $ref: '#/components/schemas/LanguageEnum'
+        notif_email_render:
+          type: boolean
+        notif_email_newsletter:
+          type: boolean
+        notif_push_render:
+          type: boolean
+        notif_push_mentions:
+          type: boolean
+        render_quality:
+          $ref: '#/components/schemas/RenderQualityEnum'
+        render_format:
+          $ref: '#/components/schemas/RenderFormatEnum'
+        render_resolution:
+          $ref: '#/components/schemas/RenderResolutionEnum'
+        analytics_enabled:
+          type: boolean
+        marketing_enabled:
+          type: boolean
+        two_factor_enabled:
+          type: boolean
+        reduced_motion:
+          type: boolean
+        high_contrast:
+          type: boolean
+        font_size:
+          $ref: '#/components/schemas/FontSizeEnum'
+    PermissionEnum:
+      enum:
+      - view
+      type: string
+      description: '* `view` - Lecture seule'
+    PlanEnum:
+      enum:
+      - free
+      - pro
+      - enterprise
+      type: string
+      description: |-
+        * `free` - Gratuit
+        * `pro` - Pro
+        * `enterprise` - Entreprise
+    ProjectCreateUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        is_archived:
+          type: boolean
+      required:
+      - title
+    ProjectCreateUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+        is_archived:
+          type: boolean
+      required:
+      - title
+    ProjectDetail:
+      type: object
+      description: Vue détaillée incluant la scène + les modèles + annotations.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        thumbnail_url:
+          type: string
+          nullable: true
+          readOnly: true
+        is_archived:
+          type: boolean
+        models_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        scene:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        imported_models:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+        annotations:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+      required:
+      - annotations
+      - created_at
+      - id
+      - imported_models
+      - models_count
+      - scene
+      - thumbnail_url
+      - title
+      - updated_at
+    ProjectList:
+      type: object
+      description: Vue compacte pour le listing.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        thumbnail_url:
+          type: string
+          nullable: true
+          readOnly: true
+        is_archived:
+          type: boolean
+        models_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - models_count
+      - thumbnail_url
+      - title
+      - updated_at
+    Render:
+      type: object
+      description: Serializer en lecture — utilisé pour list, retrieve et response
+        create.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          readOnly: true
+        output_type:
+          allOf:
+          - $ref: '#/components/schemas/OutputTypeEnum'
+          readOnly: true
+        prompt:
+          type: string
+          readOnly: true
+        style_hint:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        is_terminal:
+          type: boolean
+          readOnly: true
+        result_url:
+          type: string
+          nullable: true
+          readOnly: true
+        input_image_url:
+          type: string
+          nullable: true
+          readOnly: true
+        error_message:
+          type: string
+          readOnly: true
+        provider:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - completed_at
+      - created_at
+      - error_message
+      - id
+      - input_image_url
+      - is_terminal
+      - output_type
+      - prompt
+      - provider
+      - result_url
+      - source
+      - status
+      - style_hint
+      - title
+      - updated_at
+    RenderCreate:
+      type: object
+      description: Input pour POST /renders. Accepte sketch_base64 pour les modes
+        sketch/screenshot.
+      properties:
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        output_type:
+          $ref: '#/components/schemas/OutputTypeEnum'
+        prompt:
+          type: string
+        style_hint:
+          type: string
+          maxLength: 200
+        title:
+          type: string
+          maxLength: 200
+      required:
+      - source
+    RenderCreateRequest:
+      type: object
+      description: Input pour POST /renders. Accepte sketch_base64 pour les modes
+        sketch/screenshot.
+      properties:
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        output_type:
+          $ref: '#/components/schemas/OutputTypeEnum'
+        prompt:
+          type: string
+        style_hint:
+          type: string
+          maxLength: 200
+        title:
+          type: string
+          maxLength: 200
+        sketch_base64:
+          type: string
+          writeOnly: true
+      required:
+      - source
+    RenderFormatEnum:
+      enum:
+      - png
+      - jpg
+      - webp
+      type: string
+      description: |-
+        * `png` - PNG
+        * `jpg` - JPG
+        * `webp` - WebP
+    RenderQualityEnum:
+      enum:
+      - draft
+      - standard
+      - high
+      type: string
+      description: |-
+        * `draft` - Brouillon
+        * `standard` - Standard
+        * `high` - Haute
+    RenderResolutionEnum:
+      enum:
+      - '1024'
+      - '2048'
+      - '4096'
+      type: string
+      description: |-
+        * `1024` - 1024px
+        * `2048` - 2048px
+        * `4096` - 4096px
+    RenderUpdate:
+      type: object
+      description: 'PATCH limité : seul le titre est modifiable post-création.'
+      properties:
+        title:
+          type: string
+          maxLength: 200
+    RenderUpdateRequest:
+      type: object
+      description: 'PATCH limité : seul le titre est modifiable post-création.'
+      properties:
+        title:
+          type: string
+          maxLength: 200
+    Scene:
+      type: object
+      properties:
+        data: {}
+        version:
+          type: integer
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - updated_at
+      - version
+    SceneRequest:
+      type: object
+      properties:
+        data: {}
+    ShareLink:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        token:
+          type: string
+          readOnly: true
+        share_url:
+          type: string
+          readOnly: true
+        permission:
+          $ref: '#/components/schemas/PermissionEnum'
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_used_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        is_expired:
+          type: boolean
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - is_expired
+      - last_used_at
+      - share_url
+      - token
+    ShareLinkCreate:
+      type: object
+      properties:
+        permission:
+          $ref: '#/components/schemas/PermissionEnum'
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+    ShareLinkCreateRequest:
+      type: object
+      properties:
+        permission:
+          $ref: '#/components/schemas/PermissionEnum'
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+    SourceEnum:
+      enum:
+      - prompt
+      - sketch
+      - screenshot
+      type: string
+      description: |-
+        * `prompt` - Prompt textuel
+        * `sketch` - Croquis 2D
+        * `screenshot` - Capture 3D
+    StatusEnum:
+      enum:
+      - pending
+      - processing
+      - done
+      - failed
+      type: string
+      description: |-
+        * `pending` - En attente
+        * `processing` - En cours
+        * `done` - Terminé
+        * `failed` - Échoué
+    ThemeEnum:
+      enum:
+      - light
+      - dark
+      - system
+      type: string
+      description: |-
+        * `light` - Clair
+        * `dark` - Sombre
+        * `system` - Système
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    TypeEnum:
+      enum:
+      - note
+      - measure
+      - marker
+      type: string
+      description: |-
+        * `note` - Note
+        * `measure` - Mesure
+        * `marker` - Marqueur
+    UpdateMe:
+      type: object
+      description: Subset des champs modifiables via PATCH /me.
+      properties:
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        avatar_url:
+          type: string
+          format: uri
+          maxLength: 500
+    User:
+      type: object
+      description: Serializer principal pour /me — inclut stats + preferences en nested.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        name:
+          type: string
+          readOnly: true
+        avatar_url:
+          type: string
+          format: uri
+          maxLength: 500
+        plan:
+          allOf:
+          - $ref: '#/components/schemas/PlanEnum'
+          readOnly: true
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+        stats:
+          allOf:
+          - $ref: '#/components/schemas/UserStats'
+          readOnly: true
+        preferences:
+          allOf:
+          - $ref: '#/components/schemas/UserPreferences'
+          readOnly: true
+      required:
+      - date_joined
+      - email
+      - id
+      - name
+      - plan
+      - preferences
+      - stats
+    UserPreferences:
+      type: object
+      properties:
+        theme:
+          $ref: '#/components/schemas/ThemeEnum'
+        language:
+          $ref: '#/components/schemas/LanguageEnum'
+        notif_email_render:
+          type: boolean
+        notif_email_newsletter:
+          type: boolean
+        notif_push_render:
+          type: boolean
+        notif_push_mentions:
+          type: boolean
+        render_quality:
+          $ref: '#/components/schemas/RenderQualityEnum'
+        render_format:
+          $ref: '#/components/schemas/RenderFormatEnum'
+        render_resolution:
+          $ref: '#/components/schemas/RenderResolutionEnum'
+        analytics_enabled:
+          type: boolean
+        marketing_enabled:
+          type: boolean
+        two_factor_enabled:
+          type: boolean
+        reduced_motion:
+          type: boolean
+        high_contrast:
+          type: boolean
+        font_size:
+          $ref: '#/components/schemas/FontSizeEnum'
+    UserPreferencesRequest:
+      type: object
+      properties:
+        theme:
+          $ref: '#/components/schemas/ThemeEnum'
+        language:
+          $ref: '#/components/schemas/LanguageEnum'
+        notif_email_render:
+          type: boolean
+        notif_email_newsletter:
+          type: boolean
+        notif_push_render:
+          type: boolean
+        notif_push_mentions:
+          type: boolean
+        render_quality:
+          $ref: '#/components/schemas/RenderQualityEnum'
+        render_format:
+          $ref: '#/components/schemas/RenderFormatEnum'
+        render_resolution:
+          $ref: '#/components/schemas/RenderResolutionEnum'
+        analytics_enabled:
+          type: boolean
+        marketing_enabled:
+          type: boolean
+        two_factor_enabled:
+          type: boolean
+        reduced_motion:
+          type: boolean
+        high_contrast:
+          type: boolean
+        font_size:
+          $ref: '#/components/schemas/FontSizeEnum'
+    UserRequest:
+      type: object
+      description: Serializer principal pour /me — inclut stats + preferences en nested.
+      properties:
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        avatar_url:
+          type: string
+          format: uri
+          maxLength: 500
+    UserSession:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        device_name:
+          type: string
+          readOnly: true
+        user_agent:
+          type: string
+          readOnly: true
+        ip_address:
+          type: string
+          readOnly: true
+          nullable: true
+        location:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        last_active:
+          type: string
+          format: date-time
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+        is_current:
+          type: boolean
+          readOnly: true
+      required:
+      - created_at
+      - device_name
+      - id
+      - ip_address
+      - is_active
+      - is_current
+      - last_active
+      - location
+      - user_agent
+    UserStats:
+      type: object
+      properties:
+        renders_this_month:
+          type: integer
+          readOnly: true
+        renders_limit:
+          type: integer
+          readOnly: true
+        total_projects:
+          type: integer
+          readOnly: true
+        storage_used_bytes:
+          type: integer
+          readOnly: true
+        storage_limit_bytes:
+          type: integer
+          readOnly: true
+        period_started_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - period_started_at
+      - renders_limit
+      - renders_this_month
+      - storage_limit_bytes
+      - storage_used_bytes
+      - total_projects
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+tags:
+- name: Auth
+  description: Login, register, 2FA, OAuth
+- name: Me
+  description: Profile, préférences, sessions
+- name: Renders
+  description: Génération IA (Gemini)
+- name: Projects
+  description: Scènes 3D Three.js
+- name: Billing
+  description: Abonnements Stripe

@@ -1,0 +1,64 @@
+meta {
+  name: Overview
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/admin/overview
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 403 if not staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+
+  test("if 200 → all sections present", function() {
+    if (res.getStatus() === 200) {
+      const keys = ['generated_at', 'users', 'sessions', 'renders',
+                    'projects', 'storage', 'billing', 'forum', 'system'];
+      keys.forEach(k => expect(res.body).to.have.property(k));
+    }
+  });
+
+  test("if 403 → forbidden message", function() {
+    if (res.getStatus() === 403) {
+      expect(res.body).to.have.property("detail");
+    }
+  });
+}
+
+docs {
+  Dashboard consolidé du panel admin — **réservé au staff** (`user.is_staff = true`).
+
+  Retourne en une seule réponse toutes les métriques de l'app :
+
+  - **users** : total, nouveaux (today/week/month), par plan, 2FA adoption,
+    staff count, 5 inscriptions récentes
+  - **sessions** : total actives, users uniques actifs
+  - **renders** : total, ce mois, par status (pending/processing/done/failed),
+    par source (prompt/sketch/screenshot), taux de succès, 5 derniers
+  - **projects** : total, archivés, avec scène, modèles moyens/projet
+  - **storage** : bytes total, top 10 users
+  - **billing** : MRR (cents + €), users payants, par plan
+  - **forum** : categories, topics, replies, uploads orphelins, 5 topics récents
+  - **system** : intégrations configurées (gemini, stripe, oauth, minio, sentry)
+
+  **Promouvoir un user en staff** depuis un shell Django :
+
+  ```bash
+  docker compose exec api python manage.py shell -c \\
+    "from apps.accounts.models import User; \\
+     u = User.objects.get(email='toi@example.com'); \\
+     u.is_staff = True; u.save()"
+  ```
+
+  Ensuite reconnecte-toi → le bouton "Admin" apparaît dans le menu user
+  du frontend, et tu peux hit cet endpoint avec ton JWT.
+}

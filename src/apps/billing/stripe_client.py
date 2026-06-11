@@ -1,4 +1,5 @@
 """Wrapper Stripe : configure la clé API et expose des helpers haut niveau."""
+
 from __future__ import annotations
 
 import stripe
@@ -22,8 +23,8 @@ def get_stripe_client():
     if not key:
         mode = 'live' if settings.STRIPE_LIVE_MODE else 'test'
         raise StripeNotConfigured(
-            f"Stripe API key absente (STRIPE_{mode.upper()}_SECRET_KEY). "
-            f"Configure Stripe dans .env pour activer le billing."
+            f'Stripe API key absente (STRIPE_{mode.upper()}_SECRET_KEY). '
+            f'Configure Stripe dans .env pour activer le billing.'
         )
     stripe.api_key = key
     return stripe

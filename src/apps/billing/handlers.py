@@ -3,6 +3,7 @@
 dj-stripe persiste tous les objets Stripe en DB et émet des signaux que
 l'on écoute ici pour déclencher la logique métier propre à VizHome.
 """
+
 from __future__ import annotations
 
 import logging

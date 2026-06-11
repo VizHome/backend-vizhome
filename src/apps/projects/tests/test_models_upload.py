@@ -1,12 +1,10 @@
 """Tests upload de modèles 3D — multipart + presigned URL."""
+
 from __future__ import annotations
 
 from unittest.mock import patch
 
 import pytest
-from rest_framework import status
-
-from apps.projects.models import ImportedModel
 
 
 @pytest.mark.django_db
@@ -28,10 +26,12 @@ class TestMultipartUpload:
 
     def test_upload_unsupported_format_rejected(self, auth_client, project):
         from django.core.files.uploadedfile import SimpleUploadedFile
+
         bad = SimpleUploadedFile('cube.exe', b'xxxx')
         r = auth_client.post(
             f'/api/v1/projects/{project.pk}/models',
-            {'name': 'Cube', 'file': bad}, format='multipart',
+            {'name': 'Cube', 'file': bad},
+            format='multipart',
         )
         assert r.status_code == 400
         assert 'file' in r.data
@@ -41,7 +41,8 @@ class TestMultipartUpload:
         user.stats.save()
         r = auth_client.post(
             f'/api/v1/projects/{project.pk}/models',
-            {'name': 'Cube', 'file': fake_glb}, format='multipart',
+            {'name': 'Cube', 'file': fake_glb},
+            format='multipart',
         )
         assert r.status_code == 400
         assert 'storage' in str(r.data).lower()
@@ -51,7 +52,8 @@ class TestMultipartUpload:
     ):
         r = auth_client.post(
             f'/api/v1/projects/{project.pk}/models',
-            {'name': 'Cube', 'file': fake_glb}, format='multipart',
+            {'name': 'Cube', 'file': fake_glb},
+            format='multipart',
         )
         model_id = r.data['id']
         user.stats.refresh_from_db()
@@ -113,7 +115,8 @@ class TestPresignedUpload:
         key = 'projects/models/2026/05/abc.glb'
         r = auth_client.post(
             self.URL_CONFIRM.format(project.pk),
-            {'name': 'House', 'key': key}, format='json',
+            {'name': 'House', 'key': key},
+            format='json',
         )
         assert r.status_code == 201
         assert r.data['name'] == 'House'
@@ -128,6 +131,7 @@ class TestPresignedUpload:
         mock_head.return_value = None
         r = auth_client.post(
             self.URL_CONFIRM.format(project.pk),
-            {'name': 'House', 'key': 'missing.glb'}, format='json',
+            {'name': 'House', 'key': 'missing.glb'},
+            format='json',
         )
         assert r.status_code == 400

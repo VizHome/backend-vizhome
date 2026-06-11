@@ -1,4 +1,5 @@
 """Tests des endpoints /me et /me/preferences."""
+
 from __future__ import annotations
 
 import pytest
@@ -14,13 +15,15 @@ class TestMe:
         response = api_client.get('/api/v1/me/')
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_get_me_returns_profile_with_stats_and_prefs(
-        self, auth_client: APIClient, user: User
-    ):
+    def test_get_me_returns_profile_with_stats_and_prefs(self, auth_client: APIClient, user: User):
         response = auth_client.get('/api/v1/me/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['email'] == user.email
-        assert response.data['name'] == 'Jean Dupont'
+        # `name` est désormais le pseudo public (immuable), pas first_name+last_name
+        assert response.data['name'] == user.pseudo
+        assert response.data['pseudo'] == user.pseudo
+        assert response.data['first_name'] == 'Jean'
+        assert response.data['last_name'] == 'Dupont'
         assert 'stats' in response.data
         assert 'preferences' in response.data
         assert response.data['stats']['renders_limit'] == 5  # plan free
@@ -59,28 +62,34 @@ class TestPreferences:
         assert user.preferences.reduced_motion is True
 
     def test_patch_invalid_choice_rejected(self, auth_client: APIClient):
-        response = auth_client.patch(
-            '/api/v1/me/preferences', {'theme': 'rainbow'}, format='json'
-        )
+        response = auth_client.patch('/api/v1/me/preferences', {'theme': 'rainbow'}, format='json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.django_db
 class TestChangePassword:
     def test_change_password(self, auth_client: APIClient, user: User):
-        response = auth_client.post('/api/v1/me/change-password', {
-            'current_password': 'Test1234!',
-            'new_password': 'NewPass1234!',
-            'new_password_confirm': 'NewPass1234!',
-        }, format='json')
+        response = auth_client.post(
+            '/api/v1/me/change-password',
+            {
+                'current_password': 'Test1234!',
+                'new_password': 'NewPass1234!',
+                'new_password_confirm': 'NewPass1234!',
+            },
+            format='json',
+        )
         assert response.status_code == status.HTTP_204_NO_CONTENT
         user.refresh_from_db()
         assert user.check_password('NewPass1234!')
 
     def test_wrong_current_password_rejected(self, auth_client: APIClient):
-        response = auth_client.post('/api/v1/me/change-password', {
-            'current_password': 'wrong',
-            'new_password': 'NewPass1234!',
-            'new_password_confirm': 'NewPass1234!',
-        }, format='json')
+        response = auth_client.post(
+            '/api/v1/me/change-password',
+            {
+                'current_password': 'wrong',
+                'new_password': 'NewPass1234!',
+                'new_password_confirm': 'NewPass1234!',
+            },
+            format='json',
+        )
         assert response.status_code == status.HTTP_400_BAD_REQUEST

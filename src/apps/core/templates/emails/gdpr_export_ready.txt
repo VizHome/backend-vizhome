@@ -1,0 +1,15 @@
+{% autoescape off %}Ton export de données VizHome est prêt
+
+Bonjour,
+
+L'archive contenant l'ensemble de tes données personnelles VizHome
+(profil, projets, rendus, tickets, posts forum) est prête.
+
+Télécharge-la (lien valable 24 heures) :
+
+{{ cta_url }}
+
+Tu peux aussi la retrouver depuis ton espace : {{ privacy_url }}
+
+© 2026 VizHome · {{ frontend_url }}
+{% endautoescape %}

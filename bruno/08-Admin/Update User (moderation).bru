@@ -1,0 +1,48 @@
+meta {
+  name: Update User (moderation)
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}{{apiPrefix}}/admin/users/{{userId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "is_active": false
+  }
+}
+
+tests {
+  test("returns 200 (or 400 / 403 / 404)", function() {
+    expect([200, 400, 403, 404]).to.include(res.getStatus());
+  });
+
+  test("if 400 → self-action garde-fou", function() {
+    if (res.getStatus() === 400) {
+      expect(res.body).to.have.property("code");
+      expect(["self_demotion_forbidden", "self_deactivation_forbidden"]).to.include(res.body.code);
+    }
+  });
+}
+
+docs {
+  PATCH /api/v1/admin/users/{id} — modération staff-only.
+
+  **Champs modifiables** :
+  - `is_active` : `false` pour bannir, `true` pour réactiver
+  - `is_staff` : `true` pour promouvoir, `false` pour rétrograder
+
+  **Garde-fous** : un staff ne peut PAS retirer son propre rôle staff ni
+  désactiver son propre compte (HTTP 400 avec `code: self_demotion_forbidden`
+  ou `self_deactivation_forbidden`).
+
+  Utilisé côté frontend par `/admin/users` (menu actions sur chaque ligne).
+}

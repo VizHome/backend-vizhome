@@ -11,6 +11,7 @@ endpoints différents :
 
 Donc on utilise DEUX clients boto3 distincts.
 """
+
 from __future__ import annotations
 
 import boto3
@@ -78,9 +79,7 @@ def head_object(key: str) -> dict | None:
     """
     client = get_internal_client()
     try:
-        return client.head_object(
-            Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key
-        )
+        return client.head_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
     except client.exceptions.NoSuchKey:
         return None
     except Exception:

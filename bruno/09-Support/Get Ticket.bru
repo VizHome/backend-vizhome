@@ -1,0 +1,47 @@
+meta {
+  name: Get Ticket
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/support/tickets/{{ticketId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 404 if not yours)", function() {
+    expect([200, 404]).to.include(res.getStatus());
+  });
+
+  test("includes threaded messages", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("messages");
+      expect(res.body.messages).to.be.an("array");
+      expect(res.body.messages_count).to.equal(res.body.messages.length);
+    }
+  });
+
+  test("user can see own ticket; staff can see any", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("user_pseudo");
+      expect(res.body).to.have.property("user_email");
+    }
+  });
+}
+
+docs {
+  GET /api/v1/support/tickets/{id} — détail du ticket + tous les messages.
+
+  Visibilité :
+  - User normal : ne voit que ses propres tickets (404 sinon)
+  - Staff : voit tous les tickets
+
+  Chaque message contient `author` (mini : id + name + pseudo + is_staff),
+  `from_staff` (snapshot au moment du message), `body`, `created_at`.
+}

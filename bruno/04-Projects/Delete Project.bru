@@ -1,0 +1,33 @@
+meta {
+  name: Delete Project
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 204", function() {
+    expect(res.getStatus()).to.equal(204);
+  });
+}
+
+docs {
+  ⚠️ **Destructif** — supprime le projet, sa scène, ses modèles
+  importés, ses annotations et ses share links en cascade.
+
+  Les fichiers MinIO associés (modèles 3D) ne sont PAS supprimés
+  automatiquement (lifecycle policy MinIO à configurer séparément).
+
+  **Note** : si tu lances cette requête, les autres requêtes du dossier
+  04-Projects échoueront (le projectId pointe vers un projet supprimé).
+  Re-crée un projet avec `Create Project` pour continuer.
+}

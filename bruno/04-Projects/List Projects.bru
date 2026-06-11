@@ -1,0 +1,46 @@
+meta {
+  name: List Projects
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/projects/?page=1&page_size=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  page_size: 20
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.body.results && res.body.results.length > 0) {
+    bru.setEnvVar("projectId", res.body.results[0].id);
+  }
+}
+
+tests {
+  test("returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("paginated response", function() {
+    expect(res.body).to.have.property("count");
+    expect(res.body).to.have.property("results");
+  });
+}
+
+docs {
+  Liste les projets de l'utilisateur (paginé, 20 par page par défaut).
+
+  Le serializer `ProjectListSerializer` retourne une version allégée
+  (sans la scène ni les modèles importés) pour optimiser le payload.
+
+  Auto-stocke `projectId` = premier projet trouvé.
+}

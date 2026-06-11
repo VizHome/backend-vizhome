@@ -1,4 +1,5 @@
 """Provider GitHub OAuth — authorization code flow."""
+
 from __future__ import annotations
 
 from typing import Any

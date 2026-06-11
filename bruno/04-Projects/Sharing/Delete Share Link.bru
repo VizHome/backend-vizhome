@@ -1,0 +1,26 @@
+meta {
+  name: Delete Share Link
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/share/{{shareId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 204", function() {
+    expect(res.getStatus()).to.equal(204);
+  });
+}
+
+docs {
+  Révoque un lien de partage. Après suppression, l'URL publique
+  `/shared/{token}` retourne 404.
+}

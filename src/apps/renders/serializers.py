@@ -1,4 +1,5 @@
 """Serializers DRF pour l'app renders."""
+
 from __future__ import annotations
 
 import base64
@@ -68,7 +69,14 @@ class RenderCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Render
-        fields = ('source', 'output_type', 'prompt', 'style_hint', 'title', 'sketch_base64')
+        fields = (
+            'source',
+            'output_type',
+            'prompt',
+            'style_hint',
+            'title',
+            'sketch_base64',
+        )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         source = attrs['source']
@@ -77,9 +85,7 @@ class RenderCreateSerializer(serializers.ModelSerializer):
         style_hint = (attrs.get('style_hint') or '').strip()
 
         if source == Render.Source.PROMPT and not prompt:
-            raise serializers.ValidationError(
-                {'prompt': 'Prompt requis pour source=prompt.'}
-            )
+            raise serializers.ValidationError({'prompt': 'Prompt requis pour source=prompt.'})
         if source in (Render.Source.SKETCH, Render.Source.SCREENSHOT) and not sketch:
             raise serializers.ValidationError(
                 {'sketch_base64': f'sketch_base64 requis pour source={source}.'}
@@ -92,11 +98,16 @@ class RenderCreateSerializer(serializers.ModelSerializer):
             )
 
         # Validation provider : output_type doit être supporté
-        try:
-            from django.conf import settings
-            provider = get_provider(settings.RENDERS_DEFAULT_PROVIDER)
-        except Exception as e:
-            raise serializers.ValidationError(f'Provider IA indisponible : {e}')
+        #
+        # Note : on NE capture PAS ProviderError ici — on le laisse remonter
+        # jusqu'à la view qui le traduit en 503 + code structuré (pattern
+        # cohérent avec _stripe_unavailable_response côté billing). Capturer
+        # ici produirait un 400 + non_field_errors, qui est sémantiquement
+        # faux (l'input client est correct, c'est le serveur qui n'a pas la
+        # clé d'API).
+        from django.conf import settings
+
+        provider = get_provider(settings.RENDERS_DEFAULT_PROVIDER)
 
         if not provider.supports(attrs.get('output_type', Render.OutputType.IMAGE_2D)):
             raise serializers.ValidationError(

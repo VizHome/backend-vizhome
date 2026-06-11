@@ -1,4 +1,5 @@
 """Tests de listing et révocation de sessions."""
+
 from __future__ import annotations
 
 import pytest
@@ -13,14 +14,26 @@ class TestSessions:
     def test_list_sessions(self, api_client: APIClient, user: User):
         # Login deux fois → 2 sessions
         for ua in ['Mozilla/5.0 Chrome Windows', 'Mozilla/5.0 Safari Mac']:
-            api_client.post('/api/v1/auth/login', {
-                'email': user.email, 'password': 'Test1234!',
-            }, format='json', HTTP_USER_AGENT=ua)
+            api_client.post(
+                '/api/v1/auth/login',
+                {
+                    'email': user.email,
+                    'password': 'Test1234!',
+                },
+                format='json',
+                HTTP_USER_AGENT=ua,
+            )
 
         # Auth avec un des access tokens
-        login = api_client.post('/api/v1/auth/login', {
-            'email': user.email, 'password': 'Test1234!',
-        }, format='json', HTTP_USER_AGENT='Mozilla/5.0 Firefox Linux')
+        login = api_client.post(
+            '/api/v1/auth/login',
+            {
+                'email': user.email,
+                'password': 'Test1234!',
+            },
+            format='json',
+            HTTP_USER_AGENT='Mozilla/5.0 Firefox Linux',
+        )
         api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {login.data["access"]}')
 
         response = api_client.get('/api/v1/me/sessions')
@@ -33,9 +46,14 @@ class TestSessions:
             user=user, refresh_jti='fake-jti', device_name='Chrome — Windows'
         )
         # Auth en tant que ce user
-        login = api_client.post('/api/v1/auth/login', {
-            'email': user.email, 'password': 'Test1234!',
-        }, format='json')
+        login = api_client.post(
+            '/api/v1/auth/login',
+            {
+                'email': user.email,
+                'password': 'Test1234!',
+            },
+            format='json',
+        )
         api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {login.data["access"]}')
 
         response = api_client.delete(f'/api/v1/me/sessions/{target.pk}')

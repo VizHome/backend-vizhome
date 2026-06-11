@@ -1,4 +1,5 @@
 """Serializers DRF pour accounts."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -10,7 +11,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import User, UserPreferences, UserSession, UserStats
+from .models import PSEUDO_VALIDATOR, User, UserPreferences, UserSession, UserStats
 
 
 # ─── User ─────────────────────────────────────────────────────────────────────
@@ -35,7 +36,11 @@ class UserPreferencesSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Serializer principal pour /me — inclut stats + preferences en nested."""
+    """Serializer principal pour /me — inclut stats + preferences en nested.
+
+    `pseudo` est read-only ici : modifiable uniquement par staff via
+    /admin/users/{id} (cf. apps.admin_panel.serializers.AdminUserUpdateSerializer).
+    """
 
     name = serializers.CharField(read_only=True)
     stats = UserStatsSerializer(read_only=True)
@@ -46,35 +51,71 @@ class UserSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'email',
+            'pseudo',
             'first_name',
             'last_name',
             'name',
             'avatar_url',
             'plan',
+            'is_staff',
+            'is_banned_from_forum',
             'date_joined',
             'stats',
             'preferences',
         )
-        read_only_fields = ('id', 'email', 'plan', 'date_joined')
+        read_only_fields = (
+            'id',
+            'email',
+            'pseudo',
+            'plan',
+            'is_staff',
+            'is_banned_from_forum',
+            'date_joined',
+        )
 
 
 # ─── Register / Login ─────────────────────────────────────────────────────────
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True, required=True)
+    # Le validator regex doit être réappliqué explicitement : déclarer
+    # `pseudo = CharField()` override le mapping ModelSerializer → on perd
+    # les validators du modèle si on ne les réinjecte pas.
+    pseudo = serializers.CharField(
+        required=True,
+        min_length=3,
+        max_length=30,
+        validators=[PSEUDO_VALIDATOR],
+    )
 
     class Meta:
         model = User
-        fields = ('email', 'first_name', 'last_name', 'password', 'password_confirm')
+        fields = (
+            'email',
+            'pseudo',
+            'first_name',
+            'last_name',
+            'password',
+            'password_confirm',
+        )
 
     def validate_email(self, value: str) -> str:
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError('Un compte avec cet email existe déjà.')
         return value.lower()
 
+    def validate_pseudo(self, value: str) -> str:
+        # Le validator regex du modèle est appliqué automatiquement par
+        # full_clean → ici on ajoute juste l'unicité case-insensitive.
+        if User.objects.filter(pseudo__iexact=value).exists():
+            raise serializers.ValidationError('Ce pseudo est déjà pris.')
+        return value
+
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError({'password_confirm': 'Les mots de passe ne correspondent pas.'})
+            raise serializers.ValidationError(
+                {'password_confirm': 'Les mots de passe ne correspondent pas.'}
+            )
         password_validation.validate_password(attrs['password'])
         return attrs
 
@@ -115,13 +156,15 @@ class ResetPasswordSerializer(serializers.Serializer):
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError({'password_confirm': 'Les mots de passe ne correspondent pas.'})
+            raise serializers.ValidationError(
+                {'password_confirm': 'Les mots de passe ne correspondent pas.'}
+            )
 
         try:
             uid = force_str(urlsafe_base64_decode(attrs['uid']))
             user = User.objects.get(pk=uid)
-        except (User.DoesNotExist, ValueError, TypeError):
-            raise serializers.ValidationError({'uid': 'Lien invalide.'})
+        except (User.DoesNotExist, ValueError, TypeError) as exc:
+            raise serializers.ValidationError({'uid': 'Lien invalide.'}) from exc
 
         if not default_token_generator.check_token(user, attrs['token']):
             raise serializers.ValidationError({'token': 'Token invalide ou expiré.'})
@@ -144,7 +187,9 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if attrs['new_password'] != attrs['new_password_confirm']:
-            raise serializers.ValidationError({'new_password_confirm': 'Les mots de passe ne correspondent pas.'})
+            raise serializers.ValidationError(
+                {'new_password_confirm': 'Les mots de passe ne correspondent pas.'}
+            )
         password_validation.validate_password(
             attrs['new_password'], user=self.context['request'].user
         )

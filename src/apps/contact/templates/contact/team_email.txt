@@ -1,0 +1,14 @@
+Nouveau message via le formulaire de contact VizHome
+=====================================================
+
+De : {{ payload.name }} <{{ payload.email }}>
+Sujet : {{ subject_label }}
+{% if payload.newsletter_opt_in %}Newsletter : opt-in OUI{% endif %}
+
+Message :
+---------
+{{ payload.message }}
+
+---
+Pour répondre, utilise simplement la fonction "Répondre" de ton client mail :
+le Reply-To pointe sur {{ payload.email }}.

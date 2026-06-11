@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Nouveau message contact VizHome</title>
+</head>
+<body style="font-family: -apple-system, system-ui, sans-serif; line-height: 1.5; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 24px;">
+  <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 8px;">
+    Nouveau message via le formulaire de contact
+  </h2>
+
+  <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+    <tr>
+      <td style="padding: 8px; background: #f9fafb; font-weight: 600; width: 120px;">De</td>
+      <td style="padding: 8px;">
+        {{ payload.name }} &lt;<a href="mailto:{{ payload.email }}">{{ payload.email }}</a>&gt;
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; background: #f9fafb; font-weight: 600;">Sujet</td>
+      <td style="padding: 8px;">{{ subject_label }}</td>
+    </tr>
+    {% if payload.newsletter_opt_in %}
+    <tr>
+      <td style="padding: 8px; background: #f9fafb; font-weight: 600;">Newsletter</td>
+      <td style="padding: 8px; color: #059669;">✓ Opt-in</td>
+    </tr>
+    {% endif %}
+  </table>
+
+  <h3 style="margin-top: 24px;">Message</h3>
+  <div style="background: #f9fafb; border-left: 4px solid #2563eb; padding: 16px; white-space: pre-wrap;">{{ payload.message }}</div>
+
+  <p style="margin-top: 24px; color: #6b7280; font-size: 13px;">
+    Pour répondre, utilise la fonction "Répondre" de ton client : le Reply-To
+    pointe directement sur {{ payload.email }}.
+  </p>
+</body>
+</html>

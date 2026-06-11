@@ -1,4 +1,5 @@
 """Fixtures pytest partagées pour les tests d'accounts."""
+
 from __future__ import annotations
 
 import pytest
@@ -13,6 +14,7 @@ def _clear_cache_and_axes(db):
     """Nettoie le cache (throttles, 2FA challenges) et les access attempts axes entre tests."""
     cache.clear()
     from axes.models import AccessAttempt, AccessLog
+
     AccessAttempt.objects.all().delete()
     AccessLog.objects.all().delete()
     yield

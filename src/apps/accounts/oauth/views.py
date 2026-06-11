@@ -1,4 +1,5 @@
 """Endpoint d'échange OAuth : POST /auth/oauth/{provider}/exchange."""
+
 from __future__ import annotations
 
 from rest_framework import status
@@ -27,7 +28,7 @@ class OAuthExchangeView(APIView):
         oauth_provider = get_provider(provider)
         if not oauth_provider:
             return Response(
-                {'detail': f"Provider OAuth inconnu : {provider}"},
+                {'detail': f'Provider OAuth inconnu : {provider}'},
                 status=status.HTTP_404_NOT_FOUND,
             )
 

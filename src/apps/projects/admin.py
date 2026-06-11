@@ -1,4 +1,5 @@
 """Admin Django pour l'app projects."""
+
 from __future__ import annotations
 
 from django.contrib import admin

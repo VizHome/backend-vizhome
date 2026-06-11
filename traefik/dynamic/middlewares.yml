@@ -1,0 +1,134 @@
+# =============================================================================
+# Middlewares réutilisables — appliqués via labels Docker
+# `traefik.http.routers.<router>.middlewares=<name>@file`.
+#
+# Hot-reload : Traefik recharge ce fichier dès qu'il change (cf watch=true).
+# =============================================================================
+
+http:
+  middlewares:
+    # ─────────────────────────────────────────────────────────────────────
+    # Sécurité : headers HTTP recommandés
+    # https://owasp.org/www-project-secure-headers/
+    # ─────────────────────────────────────────────────────────────────────
+    security-headers:
+      headers:
+        # HSTS — force HTTPS sur tous les sous-domaines pendant 1 an
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+
+        # Anti-MIME sniffing
+        contentTypeNosniff: true
+
+        # Anti-clickjacking
+        frameDeny: true
+        # Si besoin d'iframe pour /admin/ : `customFrameOptionsValue: "SAMEORIGIN"`
+
+        # XSS protection legacy (kept for compatibility avec vieux browsers)
+        browserXssFilter: true
+
+        # Référer policy stricte
+        referrerPolicy: "strict-origin-when-cross-origin"
+
+        # Permissions (anciennement Feature-Policy)
+        permissionsPolicy: "camera=(), microphone=(), geolocation=(self), interest-cohort=()"
+
+        # Cross-Origin-* policies (renforcent l'isolation entre origines)
+        customResponseHeaders:
+          Cross-Origin-Opener-Policy: "same-origin"
+          Cross-Origin-Resource-Policy: "same-site"
+          # Retire la signature serveur pour ne pas leak la version
+          Server: ""
+          X-Powered-By: ""
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Compression : Brotli + gzip négociés selon Accept-Encoding
+    # ─────────────────────────────────────────────────────────────────────
+    compress:
+      compress:
+        # Pas de compression sur les types déjà compressés (jpeg, png, mp4...)
+        excludedContentTypes:
+          - image/jpeg
+          - image/png
+          - image/webp
+          - image/avif
+          - video/mp4
+          - application/zip
+          - application/gzip
+        # Pas de compression sous 1024 bytes (overhead pas rentable)
+        minResponseBodyBytes: 1024
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Rate limit global doux : 100 req/sec en moyenne, burst 200
+    # Limite par IP source (header X-Forwarded-For si trust proxy).
+    # ─────────────────────────────────────────────────────────────────────
+    rate-limit-global:
+      rateLimit:
+        average: 100
+        burst: 200
+        period: 1s
+        sourceCriterion:
+          ipStrategy:
+            depth: 1  # 1 hop trusted (Cloudflare/Traefik lui-même)
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Rate limit strict pour endpoints sensibles (login, contact, register)
+    # ─────────────────────────────────────────────────────────────────────
+    rate-limit-strict:
+      rateLimit:
+        average: 5
+        burst: 10
+        period: 1m
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Basic Auth pour dashboard Traefik
+    # Générer le hash :  htpasswd -nbB admin "mot-de-passe-fort"
+    # Stocker dans .env.prod : TRAEFIK_DASHBOARD_AUTH="admin:$2y$..."
+    # ─────────────────────────────────────────────────────────────────────
+    dashboard-auth:
+      basicAuth:
+        # Le users est injecté via variable d'env dans docker-compose
+        # → on utilise un usersFile généré au runtime (cf entrypoint).
+        # Pour la simplicité on déclare ici via env vars (Traefik supporte).
+        # Override possible via traefik/dynamic/dashboard-auth.local.yml
+        users:
+          # Placeholder à remplacer par ton hash htpasswd
+          - "admin:$2y$05$REPLACE_ME_WITH_REAL_HASH"
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Redirect www → apex (vizhome.fr canonical, pas www.vizhome.fr)
+    # ─────────────────────────────────────────────────────────────────────
+    redirect-www-to-apex:
+      redirectRegex:
+        regex: "^https?://www\\.(.+)"
+        replacement: "https://${1}"
+        permanent: true
+
+    # ─────────────────────────────────────────────────────────────────────
+    # CORS pour l'API si appelée par d'autres domaines (mobile apps, etc.)
+    # Côté Django on a déjà django-cors-headers, mais Traefik peut prendre
+    # le relais pour des appels OPTIONS qui ne touchent pas Django.
+    # ─────────────────────────────────────────────────────────────────────
+    api-cors:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - "*"
+        accessControlExposeHeaders:
+          - "*"
+        accessControlAllowOriginList:
+          - "https://vizhome.fr"
+          - "https://www.vizhome.fr"
+        accessControlMaxAge: 86400
+        addVaryHeader: true

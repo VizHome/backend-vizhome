@@ -1,0 +1,36 @@
+meta {
+  name: Invoices
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}{{apiPrefix}}/admin/invoices
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns 200 (or 403 if not staff)", function() {
+    expect([200, 403]).to.include(res.getStatus());
+  });
+
+  test("if 200 → results array", function() {
+    if (res.getStatus() === 200) {
+      expect(res.body).to.have.property("results");
+      expect(res.body.results).to.be.an("array");
+    }
+  });
+}
+
+docs {
+  GET /api/v1/admin/invoices — 100 dernières factures Stripe (staff-only).
+
+  **Réponse** : `{mode, count, results[]}` avec chaque entrée
+  `{id, number, user_email, amount_paid, currency, status, created,
+    hosted_invoice_url, invoice_pdf}`.
+}

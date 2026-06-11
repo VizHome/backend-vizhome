@@ -1,50 +1,64 @@
-# ─── Core Django ─────────────────────────────────────────────────────────────
-Django>=5.2,<6.0
-djangorestframework>=3.16
-djangorestframework-simplejwt>=5.5
+#  Core Django 
+Django>=6.0.6
+djangorestframework>=3.17.1
+djangorestframework-simplejwt>=5.5.1
 
-# ─── Database ────────────────────────────────────────────────────────────────
-psycopg[binary]>=3.2
+#  Database 
+psycopg[binary]>=3.3.4
 
-# ─── Configuration ───────────────────────────────────────────────────────────
-django-environ>=0.12
+#  Configuration 
+django-environ>=0.13.0
 
-# ─── CORS ────────────────────────────────────────────────────────────────────
-django-cors-headers>=4.6
+#  CORS 
+django-cors-headers>=4.9.0
 
-# ─── Sécurité ────────────────────────────────────────────────────────────────
-django-axes>=7.0
-django-otp>=1.5
-qrcode[pil]>=8.0
+#  Sécurité
+django-axes>=8.3.1
+django-otp>=1.7.0
+qrcode[pil]>=8.2
+# CSP — Content Security Policy en complément des headers Traefik
+django-csp>=4.0
 
-# ─── OAuth ───────────────────────────────────────────────────────────────────
-google-auth>=2.36
-requests>=2.32
+#  OAuth 
+google-auth>=2.53.0
+requests>=2.34.2
 
-# ─── Async tasks (étape 3) ───────────────────────────────────────────────────
-celery>=5.4
-redis>=5.2
+#  Async tasks (étape 3) 
+celery>=5.6.3
+redis>=8.0.0
 
-# ─── Provider IA Gemini ──────────────────────────────────────────────────────
-google-genai>=1.0
-Pillow>=11.0
+#  Provider IA Gemini 
+google-genai>=2.8.0
+Pillow>=12.2.0
 
-# ─── Storage S3-compatible (MinIO en dev/prod self-hosted) ───────────────────
-django-storages[s3]>=1.14
-boto3>=1.35
+#  Storage S3-compatible (MinIO en dev/prod self-hosted) 
+django-storages[s3]>=1.14.6
+boto3>=1.43.24
 
-# ─── Stripe ──────────────────────────────────────────────────────────────────
-dj-stripe>=2.9
-stripe>=11.0
+#  Stripe
+dj-stripe>=2.10.3
+# stripe est pinné < 13 : dj-stripe 2.10.x déclare stripe>=11.3 SANS borne
+# supérieure, mais les versions récentes (15.x) renvoient des objets non
+# dict-compatibles que dj-stripe stocke en JSONField, ce qui casse le
+# traitement des webhooks ("Object of type Account is not JSON serializable").
+# À réévaluer à la prochaine release dj-stripe.
+stripe>=11.3,<13
 
-# ─── Documentation API ───────────────────────────────────────────────────────
-drf-spectacular>=0.28
+#  Documentation API 
+drf-spectacular>=0.29.0
 
-# ─── Tâches périodiques (Celery beat) ────────────────────────────────────────
-django-celery-beat>=2.7
+#  Tâches périodiques (Celery beat) 
+django-celery-beat>=2.9.0
 
-# ─── Monitoring / observabilité ──────────────────────────────────────────────
-sentry-sdk[django]>=2.20
+#  Production WSGI server
+gunicorn>=26.0.0
 
-# ─── Production WSGI server ──────────────────────────────────────────────────
-gunicorn>=23
+#  OpenTelemetry tracing distribué (auto-instrument Django/Celery/Psycopg/Redis/HTTP)
+opentelemetry-distro>=0.63b1
+opentelemetry-exporter-otlp>=1.42.1
+opentelemetry-instrumentation-django>=0.63b1
+opentelemetry-instrumentation-celery>=0.63b1
+opentelemetry-instrumentation-psycopg>=0.63b1
+opentelemetry-instrumentation-redis>=0.63b1
+opentelemetry-instrumentation-requests>=0.63b1
+

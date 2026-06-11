@@ -1,4 +1,5 @@
 """Instance Celery pour les tâches asynchrones (renders IA)."""
+
 from __future__ import annotations
 
 import os

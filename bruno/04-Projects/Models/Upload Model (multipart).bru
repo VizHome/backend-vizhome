@@ -1,0 +1,53 @@
+meta {
+  name: Upload Model (multipart)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}{{apiPrefix}}/projects/{{projectId}}/models
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:multipart-form {
+  name: Mon modèle test
+  file: @file()
+  mtl_file: @file()
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("modelId", res.body.id);
+  }
+}
+
+tests {
+  test("returns 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("returns model with file_url", function() {
+    expect(res.body).to.have.property("file_url");
+    expect(res.body).to.have.property("format");
+  });
+}
+
+docs {
+  Upload classique multipart (recommandé pour fichiers < 10 MB).
+
+  **Tu dois remplacer** `@file()` par un vrai chemin :
+  - Pour Bruno desktop : clique sur le bouton "select file" à côté du champ
+  - Ou édite le `.bru` : `file: @file(/chemin/absolu/vers/model.glb)`
+
+  Formats supportés : `.glb`, `.gltf`, `.obj`, `.fbx`, `.stl`.
+  Le `mtl_file` n'est utile que pour les imports `.obj` (textures
+  matérielles).
+
+  Pour les **gros fichiers** (> 10 MB), utiliser le flow presigned
+  (`Get Presigned URL` → PUT vers MinIO → `Confirm Presigned Upload`).
+}

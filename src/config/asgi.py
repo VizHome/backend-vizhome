@@ -1,4 +1,5 @@
 """ASGI config for VizHome backend."""
+
 import os
 
 from django.core.asgi import get_asgi_application

@@ -1,0 +1,18 @@
+# =============================================================================
+# Router pour le Dashboard Traefik (https://traefik.vizhome.fr)
+# Protégé par Basic Auth (cf middleware `dashboard-auth`).
+# =============================================================================
+
+http:
+  routers:
+    dashboard:
+      rule: "Host(`${TRAEFIK_DASHBOARD_HOST}`)"
+      entryPoints:
+        - websecure
+      service: api@internal
+      middlewares:
+        - dashboard-auth@file
+        - security-headers@file
+      tls:
+        certResolver: letsencrypt
+        options: modern

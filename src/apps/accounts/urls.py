@@ -3,6 +3,7 @@
 Le module expose deux listes de routes incluses sous `auth/` et `me/` depuis
 config/urls.py.
 """
+
 from __future__ import annotations
 
 from django.urls import path
@@ -21,7 +22,11 @@ auth_patterns = [
     # 2FA — étape 2 du login
     path('2fa/verify', two_factor.Verify2FALoginView.as_view(), name='2fa-verify-login'),
     # OAuth
-    path('oauth/<str:provider>/exchange', OAuthExchangeView.as_view(), name='oauth-exchange'),
+    path(
+        'oauth/<str:provider>/exchange',
+        OAuthExchangeView.as_view(),
+        name='oauth-exchange',
+    ),
 ]
 
 me_patterns = [
@@ -32,6 +37,10 @@ me_patterns = [
     path('sessions/<int:pk>', views.SessionDetailView.as_view(), name='session-detail'),
     # 2FA — gestion par le user authentifié
     path('2fa/setup', two_factor.Setup2FAView.as_view(), name='2fa-setup'),
-    path('2fa/verify-setup', two_factor.VerifySetup2FAView.as_view(), name='2fa-verify-setup'),
+    path(
+        '2fa/verify-setup',
+        two_factor.VerifySetup2FAView.as_view(),
+        name='2fa-verify-setup',
+    ),
     path('2fa/disable', two_factor.Disable2FAView.as_view(), name='2fa-disable'),
 ]
