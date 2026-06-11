@@ -37,7 +37,12 @@ boto3>=1.43.24
 
 #  Stripe
 dj-stripe>=2.10.3
-stripe>=15.2.0
+# stripe est pinné < 13 : dj-stripe 2.10.x déclare stripe>=11.3 SANS borne
+# supérieure, mais les versions récentes (15.x) renvoient des objets non
+# dict-compatibles que dj-stripe stocke en JSONField, ce qui casse le
+# traitement des webhooks ("Object of type Account is not JSON serializable").
+# À réévaluer à la prochaine release dj-stripe.
+stripe>=11.3,<13
 
 #  Documentation API 
 drf-spectacular>=0.29.0

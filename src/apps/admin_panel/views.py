@@ -654,14 +654,18 @@ class AdminInvoicesView(APIView):
 
         data = []
         for inv in invoices:
+            # dj-stripe 2.10 : ces champs ne sont plus des colonnes (les
+            # getattr renvoyaient des valeurs vides), ils vivent dans le
+            # JSON `stripe_data`.
+            sd = getattr(inv, 'stripe_data', None) or {}
             row = {
                 'id': str(inv.id),
-                'number': getattr(inv, 'number', '') or '',
-                'amount_paid': getattr(inv, 'amount_paid', 0) or 0,
-                'currency': getattr(inv, 'currency', '') or '',
-                'status': getattr(inv, 'status', '') or '',
-                'hosted_invoice_url': getattr(inv, 'hosted_invoice_url', '') or '',
-                'invoice_pdf': getattr(inv, 'invoice_pdf', '') or '',
+                'number': sd.get('number') or '',
+                'amount_paid': sd.get('amount_paid') or 0,
+                'currency': sd.get('currency') or '',
+                'status': sd.get('status') or '',
+                'hosted_invoice_url': sd.get('hosted_invoice_url') or '',
+                'invoice_pdf': sd.get('invoice_pdf') or '',
             }
             try:
                 created = getattr(inv, 'created', None)

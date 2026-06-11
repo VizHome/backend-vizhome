@@ -232,19 +232,24 @@ class InvoiceListView(APIView):
             return Response([])
 
         invoices = customer.invoices.all().order_by('-created')[:50]
-        data = [
-            {
-                'id': inv.id,
-                'number': inv.number,
-                'amount_paid': inv.amount_paid,
-                'currency': inv.currency,
-                'status': inv.status,
-                'created': inv.created,
-                'hosted_invoice_url': inv.hosted_invoice_url,
-                'invoice_pdf': inv.invoice_pdf,
-            }
-            for inv in invoices
-        ]
+        # dj-stripe 2.10 a aminci ses modèles : number, amount_paid, status,
+        # hosted_invoice_url... ne sont plus des colonnes mais vivent dans le
+        # JSON `stripe_data`. Y accéder en attribut lève AttributeError.
+        data = []
+        for inv in invoices:
+            sd = inv.stripe_data or {}
+            data.append(
+                {
+                    'id': inv.id,
+                    'number': sd.get('number') or '',
+                    'amount_paid': sd.get('amount_paid') or 0,
+                    'currency': sd.get('currency') or '',
+                    'status': sd.get('status') or '',
+                    'created': inv.created,
+                    'hosted_invoice_url': sd.get('hosted_invoice_url') or '',
+                    'invoice_pdf': sd.get('invoice_pdf') or '',
+                }
+            )
         return Response(InvoiceSerializer(data, many=True).data)
 
 
@@ -262,7 +267,8 @@ class PaymentMethodListView(APIView):
         methods = dj_models.PaymentMethod.objects.filter(customer=customer)
         data = []
         for pm in methods:
-            card = pm.card or {}
+            # dj-stripe 2.10 : `card` n'est plus une colonne, cf stripe_data.
+            card = (pm.stripe_data or {}).get('card') or {}
             data.append(
                 {
                     'id': pm.id,
