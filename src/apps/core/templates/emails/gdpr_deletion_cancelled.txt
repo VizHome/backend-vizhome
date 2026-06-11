@@ -1,0 +1,14 @@
+{% autoescape off %}Suppression de ton compte VizHome annulée
+
+Bonjour,
+
+La suppression de ton compte a bien été annulée. Ton compte est réactivé :
+tes projets, rendus et préférences sont intacts.
+
+Retourner sur VizHome : {{ cta_url }}
+
+Si tu n'es pas à l'origine de cette annulation, change ton mot de passe
+immédiatement depuis les paramètres de sécurité.
+
+© 2026 VizHome · {{ frontend_url }}
+{% endautoescape %}

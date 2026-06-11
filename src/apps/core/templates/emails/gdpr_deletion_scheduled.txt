@@ -1,0 +1,16 @@
+{% autoescape off %}Suppression de ton compte VizHome programmée
+
+Bonjour,
+
+Ta demande de suppression de compte a bien été enregistrée. Ton compte est
+désormais désactivé et sera définitivement supprimé le {{ scheduled_for|date:'d F Y' }}.
+
+Tu as changé d'avis ? Annule la suppression avant cette date :
+
+{{ cta_url }}
+
+Après l'échéance, la suppression est irréversible (projets, rendus et
+fichiers effacés conformément au RGPD).
+
+© 2026 VizHome · {{ frontend_url }}
+{% endautoescape %}

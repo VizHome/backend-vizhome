@@ -1,0 +1,13 @@
+{% extends 'emails/base_email.html' %}
+{% block content %}
+<h1 style="margin:0 0 16px 0; font-size:20px; font-weight:700; color:#18181b;">Suppression annulée, bon retour !</h1>
+<p style="margin:0 0 12px 0;">Bonjour,</p>
+<p style="margin:0 0 12px 0;">
+  La suppression de ton compte VizHome a bien été <strong>annulée</strong>.
+  Ton compte est réactivé : tes projets, rendus et préférences sont intacts.
+</p>
+<p style="margin:0; font-size:13px; color:#71717a;">
+  Si tu n'es pas à l'origine de cette annulation, change ton mot de passe
+  immédiatement depuis les paramètres de sécurité.
+</p>
+{% endblock %}

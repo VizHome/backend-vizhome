@@ -6,7 +6,6 @@ from typing import Any
 
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -15,6 +14,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from apps.core.emails import send_templated_email
 
 from .lockout import drf_lockout_response
 from .models import User, UserSession
@@ -158,16 +159,15 @@ class ForgotPasswordView(APIView):
             token = default_token_generator.make_token(user)
             reset_url = f'{settings.FRONTEND_URL}/auth/reset-password?uid={uid}&token={token}'
 
-            send_mail(
+            send_templated_email(
                 subject='Réinitialisation de votre mot de passe VizHome',
-                message=(
-                    f'Bonjour,\n\n'
-                    f'Vous avez demandé une réinitialisation de votre mot de passe.\n'
-                    f'Cliquez sur ce lien pour en choisir un nouveau :\n\n{reset_url}\n\n'
-                    f"Si vous n'êtes pas à l'origine de cette demande, ignorez cet email."
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
+                recipients=[user.email],
+                template='password_reset',
+                context={
+                    'cta_url': reset_url,
+                    'cta_label': 'Réinitialiser mon mot de passe',
+                    'preheader': 'Choisis un nouveau mot de passe pour ton compte VizHome.',
+                },
                 fail_silently=False,
             )
 

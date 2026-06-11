@@ -1,0 +1,13 @@
+{% extends 'emails/base_email.html' %}
+{% block content %}
+<h1 style="margin:0 0 16px 0; font-size:20px; font-weight:700; color:#18181b;">Ton export de données est prêt</h1>
+<p style="margin:0 0 12px 0;">Bonjour,</p>
+<p style="margin:0 0 12px 0;">
+  L'archive contenant l'ensemble de tes données personnelles VizHome
+  (profil, projets, rendus, tickets, posts forum) est prête à être téléchargée.
+</p>
+<p style="margin:0; font-size:13px; color:#71717a;">
+  Le lien de téléchargement est valable <strong>24 heures</strong>. Passé ce
+  délai, tu pourras relancer un export depuis ton espace personnel.
+</p>
+{% endblock %}

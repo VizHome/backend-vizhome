@@ -3,13 +3,17 @@
 Envoyé via Mailpit en dev (capture les mails sur localhost:8025), via
 SMTP réel en prod. `fail_silently=True` car un email raté ne doit jamais
 bloquer la création du ticket / message côté UX.
+
+Les emails sont rendus HTML + texte via les templates brandés
+`emails/support_*.html|txt` (cf apps.core.emails.send_templated_email).
 """
 
 from __future__ import annotations
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
+
+from apps.core.emails import send_templated_email
 
 from .models import SupportMessage, SupportTicket
 
@@ -31,6 +35,10 @@ def _staff_emails() -> list[str]:
     )
 
 
+def _preview(text: str, limit: int) -> str:
+    return (text[:limit] + '…') if len(text) > limit else text
+
+
 def notify_staff_new_ticket(ticket: SupportTicket) -> None:
     """Email envoyé aux staffs quand un nouveau ticket est ouvert.
 
@@ -40,29 +48,23 @@ def notify_staff_new_ticket(ticket: SupportTicket) -> None:
     if not recipients:
         return
 
-    url = _frontend_ticket_url(ticket.pk, admin=True)
     first_msg = ticket.messages.order_by('created_at').first()
-    body_preview = (
-        (first_msg.body[:300] + '…')
-        if first_msg and len(first_msg.body) > 300
-        else (first_msg.body if first_msg else '')
-    )
-
-    send_mail(
+    send_templated_email(
         subject=f'[Support #{ticket.pk}] {ticket.subject}',
-        message=(
-            f'Nouveau ticket de support ouvert par @{ticket.user.pseudo} '
-            f'({ticket.user.email})\n\n'
-            f'Catégorie : {ticket.get_category_display()}\n'
-            f'Priorité  : {ticket.get_priority_display()}\n\n'
-            f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
-            f'{body_preview}\n'
-            f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
-            f"Ouvrir le ticket dans l'admin : {url}\n"
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=recipients,
-        fail_silently=True,
+        recipients=recipients,
+        template='support_new_ticket',
+        context={
+            'ticket_id': ticket.pk,
+            'ticket_subject': ticket.subject,
+            'pseudo': ticket.user.pseudo,
+            'user_email': ticket.user.email,
+            'category': ticket.get_category_display(),
+            'priority': ticket.get_priority_display(),
+            'body_preview': _preview(first_msg.body if first_msg else '', 300),
+            'cta_url': _frontend_ticket_url(ticket.pk, admin=True),
+            'cta_label': 'Ouvrir le ticket',
+            'preheader': f'Nouveau ticket de @{ticket.user.pseudo}',
+        },
     )
 
 
@@ -73,23 +75,19 @@ def notify_user_staff_replied(message: SupportMessage) -> None:
     if not user.email:
         return
 
-    url = _frontend_ticket_url(ticket.pk)
-    body_preview = (message.body[:400] + '…') if len(message.body) > 400 else message.body
-
-    send_mail(
+    send_templated_email(
         subject=f"[Support #{ticket.pk}] Nouvelle réponse de l'équipe VizHome",
-        message=(
-            f'Bonjour @{user.pseudo},\n\n'
-            f'Tu as reçu une nouvelle réponse sur ton ticket "{ticket.subject}" :\n\n'
-            f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
-            f'{body_preview}\n'
-            f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
-            f'Voir la conversation : {url}\n\n'
-            f"— L'équipe VizHome"
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        fail_silently=True,
+        recipients=[user.email],
+        template='support_staff_reply',
+        context={
+            'ticket_id': ticket.pk,
+            'ticket_subject': ticket.subject,
+            'pseudo': user.pseudo,
+            'body_preview': _preview(message.body, 400),
+            'cta_url': _frontend_ticket_url(ticket.pk),
+            'cta_label': 'Voir la conversation',
+            'preheader': "L'équipe VizHome a répondu à ton ticket",
+        },
     )
 
 
@@ -103,19 +101,17 @@ def notify_staff_user_replied(message: SupportMessage) -> None:
     if not ticket.assignee or not ticket.assignee.email:
         return
 
-    url = _frontend_ticket_url(ticket.pk, admin=True)
-    body_preview = (message.body[:300] + '…') if len(message.body) > 300 else message.body
-
-    send_mail(
+    send_templated_email(
         subject=f'[Support #{ticket.pk}] @{ticket.user.pseudo} a répondu',
-        message=(
-            f'@{ticket.user.pseudo} a répondu sur "{ticket.subject}" :\n\n'
-            f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
-            f'{body_preview}\n'
-            f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
-            f'Ouvrir le ticket : {url}\n'
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[ticket.assignee.email],
-        fail_silently=True,
+        recipients=[ticket.assignee.email],
+        template='support_user_reply',
+        context={
+            'ticket_id': ticket.pk,
+            'ticket_subject': ticket.subject,
+            'pseudo': ticket.user.pseudo,
+            'body_preview': _preview(message.body, 300),
+            'cta_url': _frontend_ticket_url(ticket.pk, admin=True),
+            'cta_label': 'Ouvrir le ticket',
+            'preheader': f'Réponse de @{ticket.user.pseudo} sur le ticket #{ticket.pk}',
+        },
     )
