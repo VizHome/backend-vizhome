@@ -1,4 +1,4 @@
-"""Provider Gemini — utilise gemini-2.5-flash-image-preview pour text-to-image et image-to-image."""
+"""Provider Gemini : modèle image (gemini-2.5-flash-image) pour text-to-image et image-to-image."""
 
 from __future__ import annotations
 
@@ -15,21 +15,50 @@ from .base import BaseProvider, GenerationResult, ProviderError
 class GeminiProvider(BaseProvider):
     """Implémentation Gemini (Google).
 
-    Le modèle gemini-2.5-flash-image-preview accepte du texte seul OU
-    texte + image (image-to-image). Il retourne une image en inline_data.
+    Le modèle image Gemini (GEMINI_IMAGE_MODEL, défaut gemini-2.5-flash-image)
+    accepte du texte seul OU texte + image (image-to-image). Il retourne une
+    image en inline_data.
     """
 
     name = 'gemini'
     supported_output_types = {'2d'}
 
     def __init__(self) -> None:
-        api_key = settings.GEMINI_API_KEY
-        if not api_key:
-            raise ProviderError(
-                'GEMINI_API_KEY non configuré. '
-                'Renseigne la variable dans .env pour activer le provider Gemini.'
-            )
-        self._client = genai.Client(api_key=api_key)
+        if settings.GEMINI_USE_VERTEXAI:
+            # Backend Vertex AI. Le SDK impose un choix exclusif :
+            #   - express mode : api_key SEULE (clé liée à un service account,
+            #     format "AQ.…") ; passer project/location en plus lève
+            #     "Project/location and API key are mutually exclusive".
+            #   - mode ADC : project + location, auth via Application Default
+            #     Credentials (GOOGLE_APPLICATION_CREDENTIALS vers un JSON de
+            #     service account monté dans le container).
+            if settings.GEMINI_API_KEY:
+                self._client = genai.Client(
+                    vertexai=True,
+                    api_key=settings.GEMINI_API_KEY,
+                )
+            else:
+                project = settings.GOOGLE_CLOUD_PROJECT
+                if not project:
+                    raise ProviderError(
+                        'GEMINI_USE_VERTEXAI=1 sans GEMINI_API_KEY : il faut '
+                        'GOOGLE_CLOUD_PROJECT (+ credentials ADC) dans .env.'
+                    )
+                self._client = genai.Client(
+                    vertexai=True,
+                    project=project,
+                    location=settings.GOOGLE_CLOUD_LOCATION,
+                )
+        else:
+            # Backend Google AI Studio (generativelanguage.googleapis.com),
+            # auth par clé API créée sur https://aistudio.google.com/apikey.
+            api_key = settings.GEMINI_API_KEY
+            if not api_key:
+                raise ProviderError(
+                    'GEMINI_API_KEY non configuré. '
+                    'Renseigne la variable dans .env pour activer le provider Gemini.'
+                )
+            self._client = genai.Client(api_key=api_key)
         self._model = settings.GEMINI_IMAGE_MODEL
 
     def generate(

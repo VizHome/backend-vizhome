@@ -122,12 +122,13 @@ Champs **obligatoires** à remplir :
 
 | Variable | Source |
 |---|---|
-| `GEMINI_API_KEY` | https://aistudio.google.com/apikey |
+| `GEMINI_API_KEY` | https://aistudio.google.com/apikey (la clé doit autoriser l'API "Generative Language API", sinon 403 `API_KEY_SERVICE_BLOCKED`) |
+| `GEMINI_USE_VERTEXAI` + `GOOGLE_CLOUD_PROJECT` + `GOOGLE_CLOUD_LOCATION` | Optionnel : bascule le provider sur le backend Vertex AI (clé API express mode ou `GOOGLE_APPLICATION_CREDENTIALS`) |
 | `STRIPE_LIVE_SECRET_KEY` + `STRIPE_LIVE_PUBLISHABLE_KEY` | dashboard.stripe.com |
 | `STRIPE_WEBHOOK_SECRET` | Stripe dashboard → Webhooks → Add endpoint |
 | `GOOGLE_OAUTH_CLIENT_ID` | Google Cloud Console → Credentials |
 | `GITHUB_OAUTH_CLIENT_ID` + `_SECRET` | github.com → Settings → Developers |
-| `SENTRY_DSN` | sentry.io (optionnel) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Collecteur OpenTelemetry (optionnel, no-op si absent) |
 | `EMAIL_HOST` + `EMAIL_HOST_USER` + `EMAIL_HOST_PASSWORD` | SMTP (SendGrid, Mailgun, SES…) |
 
 Voir [SETUP_KEYS.md](../SETUP_KEYS.md) pour le guide détaillé.

@@ -104,7 +104,9 @@ class RenderSSEView(View):
         )
         response['Cache-Control'] = 'no-cache'
         response['X-Accel-Buffering'] = 'no'  # Nginx : ne pas bufferiser
-        response['Connection'] = 'keep-alive'
+        # Pas de header `Connection` : c'est un header hop-by-hop géré par le
+        # serveur HTTP lui-même. wsgiref (runserver dev) le refuse avec
+        # "AssertionError: Hop-by-hop header not allowed" → 500 sur le flux.
         return response
 
     # ─── Helpers ────────────────────────────────────────────────────────────

@@ -355,5 +355,15 @@ else:
 
 # ─── Provider IA ──────────────────────────────────────────────────────────────
 GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
-GEMINI_IMAGE_MODEL = env('GEMINI_IMAGE_MODEL', default='gemini-2.5-flash-image-preview')
+# L'alias "-preview" a été retiré par Google (404 NOT_FOUND) ; le nom GA
+# du modèle image est gemini-2.5-flash-image.
+GEMINI_IMAGE_MODEL = env('GEMINI_IMAGE_MODEL', default='gemini-2.5-flash-image')
+# Mode Vertex AI : le SDK google-genai supporte deux backends.
+#   - False (défaut) : Google AI Studio, auth par clé API
+#     (generativelanguage.googleapis.com)
+#   - True : Vertex AI, auth par clé API (express mode) ou ADC
+#     (GOOGLE_APPLICATION_CREDENTIALS). Nécessite GOOGLE_CLOUD_PROJECT.
+GEMINI_USE_VERTEXAI = env.bool('GEMINI_USE_VERTEXAI', default=False)
+GOOGLE_CLOUD_PROJECT = env('GOOGLE_CLOUD_PROJECT', default='')
+GOOGLE_CLOUD_LOCATION = env('GOOGLE_CLOUD_LOCATION', default='global')
 RENDERS_DEFAULT_PROVIDER = env('RENDERS_DEFAULT_PROVIDER', default='gemini')

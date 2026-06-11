@@ -17,6 +17,30 @@ from .providers import ProviderError, get_provider
 
 logger = logging.getLogger(__name__)
 
+# Instructions injectées AVANT le prompt utilisateur selon la source du
+# render. Sans elles, le modèle image-to-image de Gemini a tendance à
+# "éditer" l'image d'entrée (il redessine le croquis en plus propre, ou
+# incruste le bloc 3D gris tel quel dans un décor) au lieu de la
+# transformer en rendu photoréaliste.
+SOURCE_INSTRUCTIONS: dict[str, str] = {
+    Render.Source.SKETCH: (
+        'Transform this rough hand-drawn sketch into a photorealistic '
+        'architectural photograph. Use the sketch ONLY as a guide for the '
+        'composition, layout and proportions. Render real materials, '
+        'realistic lighting, vegetation, sky and surroundings. The final '
+        'image must look like a professional photograph of a real building, '
+        'with absolutely no visible sketch lines or drawing style. '
+    ),
+    Render.Source.SCREENSHOT: (
+        'This image is an untextured 3D massing model (plain gray volume). '
+        'Replace the gray volume entirely with a fully detailed, '
+        'photorealistic building that keeps the same overall shape, '
+        'footprint and camera angle. Add realistic facade materials, '
+        'windows, doors, roofing, landscaping and ambient context. '
+        'Do NOT keep any gray untextured surface in the final image. '
+    ),
+}
+
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=10)
 def generate_render(self, render_id: int) -> None:
@@ -47,8 +71,13 @@ def generate_render(self, render_id: int) -> None:
             with render.input_image.open('rb') as f:
                 input_bytes = f.read()
 
+        # Préfixe l'instruction de transformation selon la source (no-op
+        # pour source=prompt qui n'a pas d'image d'entrée à transformer).
+        instruction = SOURCE_INSTRUCTIONS.get(render.source, '')
+        full_prompt = f'{instruction}{render.prompt}'.strip()
+
         result = provider.generate(
-            prompt=render.prompt,
+            prompt=full_prompt,
             output_type=render.output_type,
             input_image_bytes=input_bytes,
             style_hint=render.style_hint,
