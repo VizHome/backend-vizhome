@@ -50,10 +50,12 @@ log "✓ Postgres is up"
 
 # ─── 2. Attendre Redis ───────────────────────────────────────────────────────
 if [ -n "$REDIS_URL" ]; then
-    # Extraction host/port basique depuis redis://[:pwd@]host:port[/db]
-    REDIS_HOST=$(echo "$REDIS_URL" | sed -E 's|^redis://([^:@]+:)?([^:/]+).*|\2|')
-    REDIS_PORT=$(echo "$REDIS_URL" | sed -E 's|^redis://[^:]+:?[^:]*:([0-9]+).*|\1|')
-    REDIS_PORT=${REDIS_PORT:-6379}
+    # Parsing robuste de l'URL via urllib (gère redis://[:pwd@]host:port[/db],
+    # rediss://, IPv6, port absent). Le sed maison cassait sur l'absence de
+    # mot de passe : le groupe optionnel mangeait le hostname et REDIS_HOST
+    # devenait le port (d'où "Waiting for Redis (6379:6379)").
+    REDIS_HOST=$(python -c "import os,urllib.parse as u; p=u.urlparse(os.environ['REDIS_URL']); print(p.hostname or 'redis')")
+    REDIS_PORT=$(python -c "import os,urllib.parse as u; p=u.urlparse(os.environ['REDIS_URL']); print(p.port or 6379)")
 
     log "Waiting for Redis ($REDIS_HOST:$REDIS_PORT)..."
     i=0

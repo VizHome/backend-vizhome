@@ -28,18 +28,18 @@ class OAuthExchangeView(APIView):
         oauth_provider = get_provider(provider)
         if not oauth_provider:
             return Response(
-                {"detail": f"Provider OAuth inconnu : {provider}"},
+                {'detail': f'Provider OAuth inconnu : {provider}'},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
         try:
             profile = oauth_provider.exchange(request.data)
         except OAuthError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         if not profile.email_verified:
             return Response(
-                {"detail": "Email non vérifié auprès du provider."},
+                {'detail': 'Email non vérifié auprès du provider.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -47,10 +47,10 @@ class OAuthExchangeView(APIView):
         user, created = User.objects.get_or_create(
             email=profile.email,
             defaults={
-                "first_name": profile.first_name,
-                "last_name": profile.last_name,
-                "avatar_url": profile.avatar_url,
-                "is_active": True,
+                'first_name': profile.first_name,
+                'last_name': profile.last_name,
+                'avatar_url': profile.avatar_url,
+                'is_active': True,
             },
         )
 
@@ -62,8 +62,8 @@ class OAuthExchangeView(APIView):
         tokens = _issue_tokens_for_user(user, request)
         return Response(
             {
-                "user": UserSerializer(user).data,
-                "created": created,
+                'user': UserSerializer(user).data,
+                'created': created,
                 **tokens,
             },
             status=status.HTTP_200_OK,

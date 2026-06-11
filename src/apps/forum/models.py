@@ -39,9 +39,9 @@ class Category(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "forum_category"
-        ordering = ["order", "name"]
-        verbose_name_plural = "Categories"
+        db_table = 'forum_category'
+        ordering = ['order', 'name']
+        verbose_name_plural = 'Categories'
 
     def __str__(self) -> str:
         return self.name
@@ -55,11 +55,9 @@ class Category(models.Model):
 class Topic(models.Model):
     """Sujet de discussion dans une catégorie."""
 
-    category = models.ForeignKey(
-        Category, on_delete=models.CASCADE, related_name="topics"
-    )
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='topics')
     author = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="topics"
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='topics'
     )
     title = models.CharField(max_length=200)
     # slug pour URL friendly (ex: /forum/12-comment-importer-un-modele-glb)
@@ -81,11 +79,11 @@ class Topic(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "forum_topic"
-        ordering = ["-is_pinned", "-last_reply_at", "-created_at"]
+        db_table = 'forum_topic'
+        ordering = ['-is_pinned', '-last_reply_at', '-created_at']
         indexes = [
-            models.Index(fields=["-last_reply_at"]),
-            models.Index(fields=["category", "-last_reply_at"]),
+            models.Index(fields=['-last_reply_at']),
+            models.Index(fields=['category', '-last_reply_at']),
         ]
 
     def __str__(self) -> str:
@@ -101,9 +99,9 @@ class Topic(models.Model):
 class Reply(models.Model):
     """Réponse à un Topic."""
 
-    topic = models.ForeignKey(Topic, on_delete=models.CASCADE, related_name="replies")
+    topic = models.ForeignKey(Topic, on_delete=models.CASCADE, related_name='replies')
     author = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="forum_replies"
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='forum_replies'
     )
     content = models.TextField()
     # Marquée par l'auteur du topic comme la solution acceptée
@@ -113,10 +111,10 @@ class Reply(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "forum_reply"
-        ordering = ["created_at"]  # chronologique ASC (lecture naturelle)
+        db_table = 'forum_reply'
+        ordering = ['created_at']  # chronologique ASC (lecture naturelle)
         indexes = [
-            models.Index(fields=["topic", "created_at"]),
+            models.Index(fields=['topic', 'created_at']),
         ]
 
     def __str__(self) -> str:
@@ -142,7 +140,7 @@ class ForumUpload(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="forum_uploads",
+        related_name='forum_uploads',
     )
     # Clé MinIO (ex: forum/uploads/4/2026/05/abc.png)
     key = models.CharField(max_length=500, unique=True)
@@ -158,13 +156,13 @@ class ForumUpload(models.Model):
     first_used_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        db_table = "forum_upload"
-        ordering = ["-created_at"]
+        db_table = 'forum_upload'
+        ordering = ['-created_at']
         indexes = [
             # Pour la tâche de cleanup : trouver vite les unused vieux
-            models.Index(fields=["used", "created_at"]),
+            models.Index(fields=['used', 'created_at']),
         ]
 
     def __str__(self) -> str:
-        flag = "used" if self.used else "orphan"
-        return f"ForumUpload[{flag}] {self.key}"
+        flag = 'used' if self.used else 'orphan'
+        return f'ForumUpload[{flag}] {self.key}'

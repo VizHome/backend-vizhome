@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from django.core import mail
+from django.core.cache import cache
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -14,6 +15,17 @@ pytestmark = pytest.mark.django_db
 
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture(autouse=True)
+def _reset_throttle_cache():
+    """Vide le cache entre chaque test pour éviter que le throttle
+    `contact` (5/h par IP) ne pollue les tests successifs depuis la
+    même IP de test (`testserver`).
+    """
+    cache.clear()
+    yield
+    cache.clear()
 
 
 @pytest.fixture

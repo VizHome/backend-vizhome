@@ -7,22 +7,22 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 
-API = "/api/v1/admin/overview"
+API = '/api/v1/admin/overview'
 
 
 @pytest.fixture
 def user_normal(db) -> User:
     return User.objects.create_user(
-        email="normal@example.com",
-        password="Secure!1234",
+        email='normal@example.com',
+        password='Secure!1234',
     )
 
 
 @pytest.fixture
 def user_staff(db) -> User:
     return User.objects.create_user(
-        email="admin@example.com",
-        password="Secure!1234",
+        email='admin@example.com',
+        password='Secure!1234',
         is_staff=True,
     )
 
@@ -62,78 +62,78 @@ class TestOverviewShape:
         r = client_staff.get(API)
         assert r.status_code == 200
         expected_keys = {
-            "generated_at",
-            "users",
-            "sessions",
-            "renders",
-            "projects",
-            "storage",
-            "billing",
-            "forum",
-            "system",
+            'generated_at',
+            'users',
+            'sessions',
+            'renders',
+            'projects',
+            'storage',
+            'billing',
+            'forum',
+            'system',
         }
         assert set(r.data.keys()) == expected_keys
 
     def test_users_section_shape(self, client_staff, user_staff):
         r = client_staff.get(API)
-        u = r.data["users"]
-        assert "total" in u and isinstance(u["total"], int)
-        assert "new_today" in u
-        assert "new_this_week" in u
-        assert "new_this_month" in u
-        assert "by_plan" in u
-        assert "two_factor_enabled" in u
-        assert "staff_count" in u
-        assert "recent" in u
+        u = r.data['users']
+        assert 'total' in u and isinstance(u['total'], int)
+        assert 'new_today' in u
+        assert 'new_this_week' in u
+        assert 'new_this_month' in u
+        assert 'by_plan' in u
+        assert 'two_factor_enabled' in u
+        assert 'staff_count' in u
+        assert 'recent' in u
         # Staff user devrait compter
-        assert u["total"] >= 1
-        assert u["staff_count"] >= 1
+        assert u['total'] >= 1
+        assert u['staff_count'] >= 1
 
     def test_renders_section_shape(self, client_staff):
         r = client_staff.get(API)
-        rd = r.data["renders"]
-        assert "total" in rd
-        assert "this_month" in rd
-        assert "by_status" in rd
-        assert "by_source" in rd
-        assert "success_rate" in rd
-        assert "recent" in rd
+        rd = r.data['renders']
+        assert 'total' in rd
+        assert 'this_month' in rd
+        assert 'by_status' in rd
+        assert 'by_source' in rd
+        assert 'success_rate' in rd
+        assert 'recent' in rd
 
     def test_storage_section_shape(self, client_staff):
         r = client_staff.get(API)
-        s = r.data["storage"]
-        assert "total_bytes" in s
-        assert "top_users" in s
-        assert isinstance(s["top_users"], list)
+        s = r.data['storage']
+        assert 'total_bytes' in s
+        assert 'top_users' in s
+        assert isinstance(s['top_users'], list)
 
     def test_billing_section_shape(self, client_staff):
         r = client_staff.get(API)
-        b = r.data["billing"]
-        assert "paying_users" in b
-        assert "mrr_eur" in b
-        assert "mrr_cents" in b
-        assert "by_plan" in b
+        b = r.data['billing']
+        assert 'paying_users' in b
+        assert 'mrr_eur' in b
+        assert 'mrr_cents' in b
+        assert 'by_plan' in b
 
     def test_forum_section_shape(self, client_staff):
         r = client_staff.get(API)
-        f = r.data["forum"]
-        assert "categories" in f
-        assert "topics" in f
-        assert "replies" in f
-        assert "uploads_total" in f
-        assert "uploads_orphan" in f
-        assert "recent_topics" in f
+        f = r.data['forum']
+        assert 'categories' in f
+        assert 'topics' in f
+        assert 'replies' in f
+        assert 'uploads_total' in f
+        assert 'uploads_orphan' in f
+        assert 'recent_topics' in f
 
     def test_system_section_reports_integrations(self, client_staff):
         r = client_staff.get(API)
-        s = r.data["system"]
+        s = r.data['system']
         for key in (
-            "gemini_configured",
-            "stripe_configured",
-            "google_oauth_configured",
-            "github_oauth_configured",
-            "minio_configured",
-            "sentry_configured",
+            'gemini_configured',
+            'stripe_configured',
+            'google_oauth_configured',
+            'github_oauth_configured',
+            'minio_configured',
+            'otel_configured',
         ):
             assert key in s
             assert isinstance(s[key], bool)
@@ -144,36 +144,36 @@ class TestMetricsComputation:
     def test_users_new_today_counted(self, client_staff, user_staff):
         r = client_staff.get(API)
         # Le staff vient d'être créé via la fixture → compté dans new_today
-        assert r.data["users"]["new_today"] >= 1
+        assert r.data['users']['new_today'] >= 1
 
     def test_users_by_plan_distribution(self, client_staff):
         # Crée 3 free + 2 pro
         for i in range(3):
             User.objects.create_user(
-                email=f"free{i}@example.com",
-                password="Pass!1234",
-                plan="free",
+                email=f'free{i}@example.com',
+                password='Pass!1234',
+                plan='free',
             )
         for i in range(2):
             User.objects.create_user(
-                email=f"pro{i}@example.com",
-                password="Pass!1234",
-                plan="pro",
+                email=f'pro{i}@example.com',
+                password='Pass!1234',
+                plan='pro',
             )
         r = client_staff.get(API)
-        by_plan = r.data["users"]["by_plan"]
-        assert by_plan.get("free", 0) >= 3
-        assert by_plan.get("pro", 0) == 2
+        by_plan = r.data['users']['by_plan']
+        assert by_plan.get('free', 0) >= 3
+        assert by_plan.get('pro', 0) == 2
 
     def test_billing_mrr_from_paying_users(self, client_staff):
         # 2 users pro (19€ chacun) → mrr_eur = 38
         for i in range(2):
             User.objects.create_user(
-                email=f"mrr-pro-{i}@example.com",
-                password="Pass!1234",
-                plan="pro",
+                email=f'mrr-pro-{i}@example.com',
+                password='Pass!1234',
+                plan='pro',
             )
         r = client_staff.get(API)
-        assert r.data["billing"]["paying_users"] >= 2
+        assert r.data['billing']['paying_users'] >= 2
         # Pro = 1900 cents → mrr_cents incrémenté d'au moins 3800
-        assert r.data["billing"]["mrr_cents"] >= 3800
+        assert r.data['billing']['mrr_cents'] >= 3800

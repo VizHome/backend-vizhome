@@ -16,7 +16,7 @@ from rest_framework.throttling import AnonRateThrottle, BaseThrottle
 from rest_framework.views import APIView
 
 from .models import NewsletterSubscriber
-from .serializers import ContactMessageSerializer
+from .serializers import SUBJECT_CHOICES, ContactMessageSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +56,10 @@ class ContactView(APIView):
     # ────────────────────────────────────────────────────────────────────
     def _send_team_email(self, payload: dict[str, Any]) -> None:
         recipient = getattr(settings, 'CONTACT_RECIPIENT_EMAIL', DEFAULT_RECIPIENT)
-        subject_label = dict(ContactMessageSerializer.fields['subject'].choices).get(
-            payload['subject'], payload['subject']
-        )
-        email_subject = f'[VizHome contact] {subject_label} — {payload["name"]}'
+        # Lecture directe de la const module (DRF `Serializer.fields` est une
+        # `cached_property` non subscriptable au niveau de la classe).
+        subject_label = dict(SUBJECT_CHOICES).get(payload['subject'], payload['subject'])
+        email_subject = f'[VizHome contact] {subject_label} - {payload["name"]}'
 
         # Plain text fallback
         text_body = render_to_string(

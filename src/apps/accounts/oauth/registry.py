@@ -7,8 +7,8 @@ from .github import GitHubProvider
 from .google import GoogleProvider
 
 _PROVIDERS: dict[str, type[OAuthProvider]] = {
-    "google": GoogleProvider,
-    "github": GitHubProvider,
+    'google': GoogleProvider,
+    'github': GitHubProvider,
 }
 
 

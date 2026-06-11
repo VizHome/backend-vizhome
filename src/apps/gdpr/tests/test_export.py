@@ -22,9 +22,7 @@ class TestExportRequest:
         r = api_client.post(self.URL)
         assert r.status_code == 401
 
-    def test_creates_export_request_and_triggers_task(
-        self, auth_client: APIClient, user: User
-    ):
+    def test_creates_export_request_and_triggers_task(self, auth_client: APIClient, user: User):
         with patch('apps.gdpr.tasks.build_user_export_zip.delay') as mock_delay:
             r = auth_client.post(self.URL)
         assert r.status_code == 202
@@ -33,12 +31,8 @@ class TestExportRequest:
         assert export.status == ExportRequest.Status.QUEUED
         mock_delay.assert_called_once_with(export.pk)
 
-    def test_idempotent_returns_pending_existing(
-        self, auth_client: APIClient, user: User
-    ):
-        existing = ExportRequest.objects.create(
-            user=user, status=ExportRequest.Status.PROCESSING
-        )
+    def test_idempotent_returns_pending_existing(self, auth_client: APIClient, user: User):
+        existing = ExportRequest.objects.create(user=user, status=ExportRequest.Status.PROCESSING)
         with patch('apps.gdpr.tasks.build_user_export_zip.delay') as mock_delay:
             r = auth_client.post(self.URL)
         assert r.status_code == 202
@@ -59,21 +53,15 @@ class TestExportStatus:
         assert r.status_code == 404
         assert r.data['code'] == 'no_export'
 
-    def test_returns_status_for_latest_export(
-        self, auth_client: APIClient, user: User
-    ):
+    def test_returns_status_for_latest_export(self, auth_client: APIClient, user: User):
         ExportRequest.objects.create(user=user, status=ExportRequest.Status.QUEUED)
-        latest = ExportRequest.objects.create(
-            user=user, status=ExportRequest.Status.PROCESSING
-        )
+        latest = ExportRequest.objects.create(user=user, status=ExportRequest.Status.PROCESSING)
         r = auth_client.get(self.URL)
         assert r.status_code == 200
         assert r.data['id'] == latest.pk
         assert r.data['status'] == 'processing'
 
-    def test_marks_ready_as_expired_after_deadline(
-        self, auth_client: APIClient, user: User
-    ):
+    def test_marks_ready_as_expired_after_deadline(self, auth_client: APIClient, user: User):
         ExportRequest.objects.create(
             user=user,
             status=ExportRequest.Status.READY,
@@ -84,11 +72,10 @@ class TestExportStatus:
         assert r.status_code == 200
         assert r.data['status'] == 'expired'
 
-    def test_does_not_leak_other_user_export(
-        self, other_auth_client: APIClient, user: User
-    ):
+    def test_does_not_leak_other_user_export(self, other_auth_client: APIClient, user: User):
         ExportRequest.objects.create(
-            user=user, status=ExportRequest.Status.READY,
+            user=user,
+            status=ExportRequest.Status.READY,
             expires_at=timezone.now() + timedelta(hours=EXPORT_LINK_TTL_HOURS),
         )
         # `other_auth_client` is logged as `other_user` who has no exports

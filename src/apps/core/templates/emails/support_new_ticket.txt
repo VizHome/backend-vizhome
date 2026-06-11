@@ -1,0 +1,15 @@
+{% autoescape off %}Nouveau ticket de support #{{ ticket_id }}
+
+@{{ pseudo }} ({{ user_email }}) a ouvert un ticket : {{ ticket_subject }}
+
+Catégorie : {{ category }}
+Priorité : {{ priority }}
+
+------------------------------------------------------------
+{{ body_preview }}
+------------------------------------------------------------
+
+Ouvrir le ticket dans l'admin : {{ cta_url }}
+
+© 2026 VizHome · {{ frontend_url }}
+{% endautoescape %}

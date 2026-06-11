@@ -39,7 +39,7 @@ class ExportRequestAdmin(admin.ModelAdmin):
     )
     ordering: ClassVar[tuple[str, ...]] = ('-requested_at',)
 
-    def has_add_permission(self, request) -> bool:  # noqa: ARG002
+    def has_add_permission(self, request) -> bool:
         return False
 
 
@@ -65,5 +65,5 @@ class DeletionRequestAdmin(admin.ModelAdmin):
     )
     ordering: ClassVar[tuple[str, ...]] = ('-requested_at',)
 
-    def has_add_permission(self, request) -> bool:  # noqa: ARG002
+    def has_add_permission(self, request) -> bool:
         return False

@@ -27,26 +27,26 @@ from apps.forum.models import ForumUpload
 
 class Command(BaseCommand):
     help = (
-        "Supprime les ForumUpload `used=False` plus vieux que --hours heures "
-        "(défaut 24), avec leur fichier MinIO associé."
+        'Supprime les ForumUpload `used=False` plus vieux que --hours heures '
+        '(défaut 24), avec leur fichier MinIO associé.'
     )
 
     def add_arguments(self, parser) -> None:
         parser.add_argument(
-            "--hours",
+            '--hours',
             type=int,
             default=24,
-            help="Période de grâce en heures avant suppression (défaut: 24).",
+            help='Période de grâce en heures avant suppression (défaut: 24).',
         )
         parser.add_argument(
-            "--dry-run",
-            action="store_true",
+            '--dry-run',
+            action='store_true',
             help="N'effectue aucune suppression, juste un rapport.",
         )
 
     def handle(self, *args, **options) -> None:
-        hours: int = options["hours"]
-        dry_run: bool = options["dry_run"]
+        hours: int = options['hours']
+        dry_run: bool = options['dry_run']
 
         threshold = timezone.now() - timedelta(hours=hours)
         orphans = ForumUpload.objects.filter(
@@ -55,18 +55,16 @@ class Command(BaseCommand):
         )
         total = orphans.count()
 
-        self.stdout.write(
-            f"Trouvé {total} upload(s) orphelin(s) plus vieux que {hours}h."
-        )
+        self.stdout.write(f'Trouvé {total} upload(s) orphelin(s) plus vieux que {hours}h.')
         if total == 0:
             return
 
         if dry_run:
-            self.stdout.write(self.style.WARNING("--dry-run : aucune suppression."))
+            self.stdout.write(self.style.WARNING('--dry-run : aucune suppression.'))
             for u in orphans[:20]:
-                self.stdout.write(f"  - {u.key} (créé {u.created_at:%Y-%m-%d %H:%M})")
+                self.stdout.write(f'  - {u.key} (créé {u.created_at:%Y-%m-%d %H:%M})')
             if total > 20:
-                self.stdout.write(f"  … et {total - 20} autres.")
+                self.stdout.write(f'  … et {total - 20} autres.')
             return
 
         deleted_files = 0
@@ -79,9 +77,7 @@ class Command(BaseCommand):
                     default_storage.delete(upload.key)
                 deleted_files += 1
             except Exception as e:
-                self.stderr.write(
-                    self.style.ERROR(f"Échec suppression fichier {upload.key} : {e}")
-                )
+                self.stderr.write(self.style.ERROR(f'Échec suppression fichier {upload.key} : {e}'))
                 failed += 1
                 # On supprime quand même le record DB (sinon il restera
                 # orphelin et on essaiera de le re-suppr indéfiniment).
@@ -92,8 +88,8 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"✓ {deleted_records} record(s) supprimé(s), "
-                f"{deleted_files} fichier(s) MinIO supprimé(s)"
-                + (f", {failed} échec(s) MinIO." if failed else ".")
+                f'✓ {deleted_records} record(s) supprimé(s), '
+                f'{deleted_files} fichier(s) MinIO supprimé(s)'
+                + (f', {failed} échec(s) MinIO.' if failed else '.')
             )
         )

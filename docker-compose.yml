@@ -3,15 +3,15 @@ services:
     image: postgres:16-alpine
     container_name: vizhome-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-vizhome}
+      POSTGRES_USER: ${POSTGRES_USER:-vizhome}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vizhome_password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vizhome} -d ${POSTGRES_DB:-vizhome}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -41,7 +41,7 @@ services:
     image: sosedoff/pgweb:latest
     container_name: vizhome-pgweb
     environment:
-      PGWEB_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      PGWEB_DATABASE_URL: postgres://${POSTGRES_USER:-vizhome}:${POSTGRES_PASSWORD:-vizhome_password}@postgres:5432/${POSTGRES_DB:-vizhome}?sslmode=disable
       PGWEB_SESSIONS: "1"
     ports:
       - "8081:8081"
@@ -49,20 +49,6 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
-
-  # Fallback DB admin si pgweb ne pull pas (image tiny + très fiable).
-  # Décommenter ce bloc + commenter pgweb ci-dessus si besoin.
-  # Accessible sur http://localhost:8082 → System: PostgreSQL,
-  # Server: postgres, User/Password/Database = .env.
-  # adminer:
-  #   image: adminer:latest
-  #   container_name: vizhome-adminer
-  #   ports:
-  #     - "8082:8080"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   restart: unless-stopped
 
   minio:
     image: minio/minio:latest
@@ -141,6 +127,25 @@ services:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
+    restart: unless-stopped
+
+  stripe-cli:
+    # Forward automatique des webhooks Stripe vers l'API en dev : plus
+    # besoin de lancer `stripe listen` à la main dans un terminal.
+    # Auth par clé API (pas de login interactif). Le signing secret du CLI
+    # est lié au compte+clé (stable ~90 jours) et correspond déjà au
+    # STRIPE_WEBHOOK_SECRET du .env poussé dans l'endpoint dj-stripe par
+    # le bootstrap. L'UUID vient de la table djstripe_webhookendpoint
+    # (cf DJSTRIPE_WEBHOOK_UUID dans .env).
+    image: stripe/stripe-cli:latest
+    container_name: vizhome-stripe-cli
+    command: >-
+      listen
+      --api-key ${STRIPE_TEST_SECRET_KEY}
+      --forward-to http://api:8000/webhooks/stripe/webhook/${DJSTRIPE_WEBHOOK_UUID}/
+    depends_on:
+      api:
+        condition: service_started
     restart: unless-stopped
 
   celery:

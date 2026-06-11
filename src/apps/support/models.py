@@ -16,31 +16,31 @@ class SupportTicket(models.Model):
     """Ticket de support ouvert par un user, géré par le staff."""
 
     class Status(models.TextChoices):
-        OPEN = "open", "Ouvert"  # User a posté, staff n'a pas encore répondu
-        PENDING = "pending", "En cours"  # Staff a pris en charge / discussion active
+        OPEN = 'open', 'Ouvert'  # User a posté, staff n'a pas encore répondu
+        PENDING = 'pending', 'En cours'  # Staff a pris en charge / discussion active
         RESOLVED = (
-            "resolved",
-            "Résolu",
+            'resolved',
+            'Résolu',
         )  # Staff a marqué résolu, en attente confirmation
-        CLOSED = "closed", "Fermé"  # Définitif, plus de réponses possibles
+        CLOSED = 'closed', 'Fermé'  # Définitif, plus de réponses possibles
 
     class Priority(models.TextChoices):
-        LOW = "low", "Faible"
-        MEDIUM = "medium", "Moyenne"
-        HIGH = "high", "Haute"
-        URGENT = "urgent", "Urgente"
+        LOW = 'low', 'Faible'
+        MEDIUM = 'medium', 'Moyenne'
+        HIGH = 'high', 'Haute'
+        URGENT = 'urgent', 'Urgente'
 
     class Category(models.TextChoices):
-        TECHNICAL = "technical", "Problème technique"
-        BILLING = "billing", "Facturation"
-        ACCOUNT = "account", "Compte / accès"
-        FEATURE = "feature", "Demande de fonctionnalité"
-        OTHER = "other", "Autre"
+        TECHNICAL = 'technical', 'Problème technique'
+        BILLING = 'billing', 'Facturation'
+        ACCOUNT = 'account', 'Compte / accès'
+        FEATURE = 'feature', 'Demande de fonctionnalité'
+        OTHER = 'other', 'Autre'
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="support_tickets",
+        related_name='support_tickets',
     )
     subject = models.CharField(max_length=200)
     category = models.CharField(
@@ -66,7 +66,7 @@ class SupportTicket(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="assigned_support_tickets",
+        related_name='assigned_support_tickets',
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -74,18 +74,18 @@ class SupportTicket(models.Model):
     closed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        db_table = "support_ticket"
-        ordering = ["-updated_at"]
-        verbose_name = "Ticket de support"
-        verbose_name_plural = "Tickets de support"
+        db_table = 'support_ticket'
+        ordering = ['-updated_at']
+        verbose_name = 'Ticket de support'
+        verbose_name_plural = 'Tickets de support'
 
     def __str__(self) -> str:
-        return f"#{self.pk} — {self.subject[:50]}"
+        return f'#{self.pk} — {self.subject[:50]}'
 
     def mark_closed(self) -> None:
         self.status = self.Status.CLOSED
         self.closed_at = timezone.now()
-        self.save(update_fields=["status", "closed_at", "updated_at"])
+        self.save(update_fields=['status', 'closed_at', 'updated_at'])
 
 
 class SupportMessage(models.Model):
@@ -98,13 +98,13 @@ class SupportMessage(models.Model):
     ticket = models.ForeignKey(
         SupportTicket,
         on_delete=models.CASCADE,
-        related_name="messages",
+        related_name='messages',
     )
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        related_name="support_messages",
+        related_name='support_messages',
     )
     # Snapshot du flag staff au moment du message (utile si l'auteur perd
     # le rôle staff plus tard — l'historique reste lisible).
@@ -113,9 +113,9 @@ class SupportMessage(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "support_message"
-        ordering = ["created_at"]
+        db_table = 'support_message'
+        ordering = ['created_at']
 
     def __str__(self) -> str:
-        who = "staff" if self.from_staff else "user"
-        return f"#{self.ticket_id} [{who}] {self.body[:40]}"
+        who = 'staff' if self.from_staff else 'user'
+        return f'#{self.ticket_id} [{who}] {self.body[:40]}'

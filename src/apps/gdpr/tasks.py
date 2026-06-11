@@ -12,8 +12,9 @@ from typing import Any
 from celery import shared_task
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
 from django.utils import timezone
+
+from apps.core.emails import send_templated_email
 
 from .models import EXPORT_LINK_TTL_HOURS, DeletionRequest, ExportRequest
 from .storage import (
@@ -175,14 +176,14 @@ def _build_zip(data: dict[str, Any]) -> bytes:
     """Construit l'archive ZIP en mémoire (data.json + README)."""
     buffer = io.BytesIO()
     readme = (
-        "# Export RGPD VizHome\n\n"
-        "Ce ZIP contient toutes les données personnelles associées à votre "
-        "compte VizHome.\n\n"
-        "Fichiers :\n"
-        "- data.json — profil, préférences, stats, projets, renders, "
-        "forum, support, sessions.\n\n"
-        "Ce lien de téléchargement est valable 24 heures. Au-delà, demande "
-        "un nouvel export depuis Mon compte → Confidentialité.\n"
+        '# Export RGPD VizHome\n\n'
+        'Ce ZIP contient toutes les données personnelles associées à votre '
+        'compte VizHome.\n\n'
+        'Fichiers :\n'
+        '- data.json — profil, préférences, stats, projets, renders, '
+        'forum, support, sessions.\n\n'
+        'Ce lien de téléchargement est valable 24 heures. Au-delà, demande '
+        'un nouvel export depuis Mon compte → Confidentialité.\n'
     )
     with zipfile.ZipFile(buffer, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr('README.md', readme)
@@ -243,17 +244,17 @@ def build_user_export_zip(self, export_id: int) -> None:
         try:
             download_url = generate_export_download_url(key)
             frontend = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-            send_mail(
+            privacy_url = f'{frontend}/account/privacy'
+            send_templated_email(
                 subject='Votre export RGPD VizHome est prêt',
-                message=(
-                    f'Bonjour,\n\n'
-                    f"Ton archive d'export RGPD est prête.\n"
-                    f'Télécharge-la depuis ton espace : {frontend}/account/privacy\n\n'
-                    f"Lien direct (valable 24h) : {download_url or '(indisponible)'}\n"
-                ),
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@vizhome.fr'),
-                recipient_list=[user.email],
-                fail_silently=True,
+                recipients=[user.email],
+                template='gdpr_export_ready',
+                context={
+                    'cta_url': download_url or privacy_url,
+                    'cta_label': 'Télécharger mes données',
+                    'privacy_url': privacy_url,
+                    'preheader': 'Ton archive de données personnelles est disponible 24h.',
+                },
             )
         except Exception:
             logger.exception('Échec envoi email export RGPD %s', export.pk)
@@ -265,9 +266,7 @@ def build_user_export_zip(self, export_id: int) -> None:
         export.status = ExportRequest.Status.FAILED
         export.error_message = str(exc)[:2000]
         export.completed_at = timezone.now()
-        export.save(
-            update_fields=['status', 'error_message', 'completed_at']
-        )
+        export.save(update_fields=['status', 'error_message', 'completed_at'])
 
 
 # ─── Cleanup périodique des exports expirés ──────────────────────────────────

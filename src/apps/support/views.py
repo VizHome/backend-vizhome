@@ -29,8 +29,8 @@ def _annotated_qs(qs):
     Ces colonnes alimentent les serializers list/detail sans N+1.
     """
     return qs.annotate(
-        messages_count=Count("messages"),
-        last_message_at=Max("messages__created_at"),
+        messages_count=Count('messages'),
+        last_message_at=Max('messages__created_at'),
     )
 
 
@@ -43,10 +43,10 @@ def _attach_last_from_staff(tickets_iterable):
     last_per_ticket: dict[int, bool] = {}
     for msg in (
         SupportMessage.objects.filter(ticket_id__in=ticket_ids)
-        .order_by("ticket_id", "-created_at")
-        .values("ticket_id", "from_staff")
+        .order_by('ticket_id', '-created_at')
+        .values('ticket_id', 'from_staff')
     ):
-        last_per_ticket.setdefault(msg["ticket_id"], msg["from_staff"])
+        last_per_ticket.setdefault(msg['ticket_id'], msg['from_staff'])
     for t in tickets_iterable:
         t.last_message_from_staff = last_per_ticket.get(t.pk, False)
 
@@ -61,19 +61,19 @@ class TicketListCreateView(generics.ListCreateAPIView):
 
     def get_throttles(self):
         """Limite la création à 10 tickets/h/user (anti-spam, le GET reste libre)."""
-        if self.request.method == "POST":
+        if self.request.method == 'POST':
             return [SupportCreateThrottle()]
         return super().get_throttles()
 
     def get_queryset(self):
         return _annotated_qs(
             SupportTicket.objects.filter(user=self.request.user)
-            .select_related("user", "assignee")
-            .order_by("-updated_at")
+            .select_related('user', 'assignee')
+            .order_by('-updated_at')
         )
 
     def get_serializer_class(self):
-        if self.request.method == "POST":
+        if self.request.method == 'POST':
             return SupportTicketCreateSerializer
         return SupportTicketListSerializer
 
@@ -82,9 +82,7 @@ class TicketListCreateView(generics.ListCreateAPIView):
         page = self.paginate_queryset(qs)
         if page is not None:
             _attach_last_from_staff(page)
-            return self.get_paginated_response(
-                self.get_serializer(page, many=True).data
-            )
+            return self.get_paginated_response(self.get_serializer(page, many=True).data)
         items = list(qs)
         _attach_last_from_staff(items)
         return Response(self.get_serializer(items, many=True).data)
@@ -109,19 +107,19 @@ class TicketDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = SupportTicketDetailSerializer
 
     def get_permissions(self):
-        if self.request.method == "PATCH":
+        if self.request.method == 'PATCH':
             return [IsAuthenticated(), IsAdminUser()]
         return [IsAuthenticated()]
 
     def get_serializer_class(self):
-        if self.request.method == "PATCH":
+        if self.request.method == 'PATCH':
             return SupportTicketUpdateStatusSerializer
         return SupportTicketDetailSerializer
 
     def get_queryset(self):
         qs = _annotated_qs(
-            SupportTicket.objects.select_related("user", "assignee").prefetch_related(
-                "messages", "messages__author"
+            SupportTicket.objects.select_related('user', 'assignee').prefetch_related(
+                'messages', 'messages__author'
             )
         )
         if self.request.user.is_staff:
@@ -133,7 +131,7 @@ class TicketDetailView(generics.RetrieveUpdateAPIView):
         instance = serializer.save()
         if instance.status == SupportTicket.Status.CLOSED and not instance.closed_at:
             instance.closed_at = timezone.now()
-            instance.save(update_fields=["closed_at"])
+            instance.save(update_fields=['closed_at'])
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -161,7 +159,7 @@ class TicketMessageCreateView(APIView):
 
         if ticket.status == SupportTicket.Status.CLOSED:
             return Response(
-                {"detail": "Ce ticket est fermé.", "code": "ticket_closed"},
+                {'detail': 'Ce ticket est fermé.', 'code': 'ticket_closed'},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -171,7 +169,7 @@ class TicketMessageCreateView(APIView):
             ticket=ticket,
             author=request.user,
             from_staff=request.user.is_staff,
-            body=serializer.validated_data["body"],
+            body=serializer.validated_data['body'],
         )
 
         # Transition automatique du statut
@@ -179,17 +177,17 @@ class TicketMessageCreateView(APIView):
         if request.user.is_staff:
             if ticket.assignee is None:
                 ticket.assignee = request.user
-                updated_fields.append("assignee")
+                updated_fields.append('assignee')
             if ticket.status == SupportTicket.Status.OPEN:
                 ticket.status = SupportTicket.Status.PENDING
-                updated_fields.append("status")
+                updated_fields.append('status')
         else:
             # User répond après que staff ait marqué résolu → réouverture
             if ticket.status == SupportTicket.Status.RESOLVED:
                 ticket.status = SupportTicket.Status.PENDING
-                updated_fields.append("status")
+                updated_fields.append('status')
         if updated_fields:
-            ticket.save(update_fields=[*updated_fields, "updated_at"])
+            ticket.save(update_fields=[*updated_fields, 'updated_at'])
 
         # Notifie l'autre partie (fail_silently à l'intérieur).
         from .notifications import (
@@ -220,25 +218,25 @@ class AdminTicketListView(generics.ListAPIView):
     serializer_class = SupportTicketListSerializer
 
     def get_queryset(self):
-        qs = _annotated_qs(SupportTicket.objects.select_related("user", "assignee"))
+        qs = _annotated_qs(SupportTicket.objects.select_related('user', 'assignee'))
         params = self.request.query_params
-        if params.get("status"):
-            qs = qs.filter(status=params["status"])
-        if params.get("priority"):
-            qs = qs.filter(priority=params["priority"])
-        if params.get("category"):
-            qs = qs.filter(category=params["category"])
-        if params.get("assignee"):
-            qs = qs.filter(assignee_id=params["assignee"])
-        if params.get("unassigned") == "true":
+        if params.get('status'):
+            qs = qs.filter(status=params['status'])
+        if params.get('priority'):
+            qs = qs.filter(priority=params['priority'])
+        if params.get('category'):
+            qs = qs.filter(category=params['category'])
+        if params.get('assignee'):
+            qs = qs.filter(assignee_id=params['assignee'])
+        if params.get('unassigned') == 'true':
             qs = qs.filter(assignee__isnull=True)
-        if params.get("search"):
+        if params.get('search'):
             qs = qs.filter(
-                Q(subject__icontains=params["search"])
-                | Q(user__email__icontains=params["search"])
-                | Q(user__pseudo__icontains=params["search"]),
+                Q(subject__icontains=params['search'])
+                | Q(user__email__icontains=params['search'])
+                | Q(user__pseudo__icontains=params['search']),
             )
-        ordering = params.get("ordering", "-updated_at")
+        ordering = params.get('ordering', '-updated_at')
         return qs.order_by(ordering)
 
     def list(self, request, *args, **kwargs):
@@ -246,9 +244,7 @@ class AdminTicketListView(generics.ListAPIView):
         page = self.paginate_queryset(qs)
         if page is not None:
             _attach_last_from_staff(page)
-            return self.get_paginated_response(
-                self.get_serializer(page, many=True).data
-            )
+            return self.get_paginated_response(self.get_serializer(page, many=True).data)
         items = list(qs)
         _attach_last_from_staff(items)
         return Response(self.get_serializer(items, many=True).data)

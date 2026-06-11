@@ -20,7 +20,7 @@ class PlanSerializer(serializers.Serializer):
 class CheckoutRequestSerializer(serializers.Serializer):
     """Body de POST /me/subscription/checkout."""
 
-    plan = serializers.ChoiceField(choices=["pro", "enterprise"])
+    plan = serializers.ChoiceField(choices=['pro', 'enterprise'])
 
 
 class CheckoutResponseSerializer(serializers.Serializer):

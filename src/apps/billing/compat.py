@@ -34,7 +34,7 @@ def patch_stripe_object_get() -> None:
     except ImportError:  # pas de stripe installé ⇒ rien à patcher
         return
 
-    if hasattr(StripeObject, "get") and callable(StripeObject.get):
+    if hasattr(StripeObject, 'get') and callable(StripeObject.get):
         # déjà présente (stripe ≤ 11 ou patch déjà appliqué)
         return
 
@@ -46,7 +46,7 @@ def patch_stripe_object_get() -> None:
             return default
 
     StripeObject.get = _get
-    logger.info("Patched stripe.StripeObject.get (compat dj-stripe 2.10 ↔ stripe ≥ 12)")
+    logger.info('Patched stripe.StripeObject.get (compat dj-stripe 2.10 ↔ stripe ≥ 12)')
 
 
 def _stripe_aware_default(obj: Any) -> Any:
@@ -58,14 +58,14 @@ def _stripe_aware_default(obj: Any) -> Any:
 
     if StripeObject is not None and isinstance(obj, StripeObject):
         # to_dict_recursive() est dispo sur les vieux SDK ; sinon fallback iter
-        if hasattr(obj, "to_dict_recursive"):
+        if hasattr(obj, 'to_dict_recursive'):
             return obj.to_dict_recursive()
         return {k: obj[k] for k in obj}  # __iter__ + __getitem__ existent toujours
 
     # ISO format pour datetime, fallback string pour le reste
-    if hasattr(obj, "isoformat"):
+    if hasattr(obj, 'isoformat'):
         return obj.isoformat()
-    raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
+    raise TypeError(f'Object of type {obj.__class__.__name__} is not JSON serializable')
 
 
 def _stripe_aware_dumps(value: Any, **kwargs: Any) -> str:
@@ -89,4 +89,4 @@ def patch_psycopg_json_dumps() -> None:
         return
 
     set_json_dumps(_stripe_aware_dumps)
-    logger.info("Patched psycopg JSON dumps (compat Stripe Account → dict)")
+    logger.info('Patched psycopg JSON dumps (compat Stripe Account → dict)')

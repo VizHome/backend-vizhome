@@ -2,9 +2,9 @@ from django.apps import AppConfig
 
 
 class BillingConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.billing"
-    verbose_name = "Billing"
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.billing'
+    verbose_name = 'Billing'
 
     def ready(self) -> None:
         # Patches compat stripe-python ≥ 12 ↔ dj-stripe 2.10 (cf compat.py)

@@ -74,14 +74,13 @@ class ExportDataStatusView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:
-        latest = (
-            ExportRequest.objects.filter(user=request.user)
-            .order_by('-requested_at')
-            .first()
-        )
+        latest = ExportRequest.objects.filter(user=request.user).order_by('-requested_at').first()
         if latest is None:
             return Response(
-                {'detail': "Aucune demande d'export pour ce compte.", 'code': 'no_export'},
+                {
+                    'detail': "Aucune demande d'export pour ce compte.",
+                    'code': 'no_export',
+                },
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -157,7 +156,7 @@ class RequestDeleteAccountView(APIView):
                 'detail': (
                     f'Compte désactivé. La suppression définitive sera effective '
                     f'dans {DELETION_GRACE_PERIOD_DAYS} jours. Tu peux annuler '
-                    f'tant que la suppression n\'est pas effectuée.'
+                    f"tant que la suppression n'est pas effectuée."
                 ),
                 'request': DeletionRequestSerializer(deletion).data,
             },

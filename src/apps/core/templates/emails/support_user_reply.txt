@@ -1,0 +1,12 @@
+{% autoescape off %}@{{ pseudo }} a répondu sur le ticket #{{ ticket_id }}
+
+Ticket : {{ ticket_subject }}
+
+------------------------------------------------------------
+{{ body_preview }}
+------------------------------------------------------------
+
+Ouvrir le ticket dans l'admin : {{ cta_url }}
+
+© 2026 VizHome · {{ frontend_url }}
+{% endautoescape %}

@@ -90,12 +90,23 @@ core/
 ├── apps.py
 ├── views.py                      liveness + readiness
 ├── urls.py                       /health/live, /health/ready
+├── emails.py                     send_templated_email (emails HTML brandés)
+├── templates/emails/             base_email.html + déclinaisons par contexte
+│                                 (password_reset, gdpr_export_ready,
+│                                  gdpr_deletion_*, support_*) en .html + .txt
 ├── tests.py                      tests healthcheck + bootstrap command
 └── management/commands/
     └── bootstrap.py              orchestrateur "zéro-commande" pour le deploy
 ```
 
 Endpoints `/health/*` pour Docker healthcheck + load balancer prod.
+
+**`send_templated_email`** : tous les emails transactionnels (reset password,
+export RGPD, notifications support) passent par ce helper. Il rend la paire
+`emails/<name>.html` (layout table email-safe, styles inline, palette zinc)
++ `emails/<name>.txt` (fallback texte, `{% autoescape off %}` obligatoire
+sinon Django escape les `&` des URLs) et envoie un `EmailMultiAlternatives`.
+`fail_silently=True` par défaut : un email raté ne casse pas le flux métier.
 
 **`manage.py bootstrap`** : exécuté par l'entrypoint Docker au démarrage de
 l'API. Idempotent. Étapes : `migrate` → `collectstatic` → `compilemessages`

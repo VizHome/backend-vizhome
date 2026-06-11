@@ -30,11 +30,11 @@ def _public_base_url() -> str:
     Avec MINIO_S3_CUSTOM_DOMAIN='localhost:9000/vizhome-media' et
     MINIO_S3_URL_PROTOCOL='http:'.
     """
-    domain = (getattr(settings, "AWS_S3_CUSTOM_DOMAIN", "") or "").rstrip("/")
-    protocol = getattr(settings, "AWS_S3_URL_PROTOCOL", "http:") or "http:"
+    domain = (getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', '') or '').rstrip('/')
+    protocol = getattr(settings, 'AWS_S3_URL_PROTOCOL', 'http:') or 'http:'
     if not domain:
-        return ""
-    return f"{protocol}//{domain}/"
+        return ''
+    return f'{protocol}//{domain}/'
 
 
 def extract_used_keys(html: str) -> set[str]:
@@ -60,7 +60,7 @@ def extract_used_keys(html: str) -> set[str]:
         if not src.startswith(prefix):
             continue
         # Strip le préfixe + d'éventuels query params (?versionId=, etc.)
-        key = src[len(prefix) :].split("?", 1)[0].split("#", 1)[0]
+        key = src[len(prefix) :].split('?', 1)[0].split('#', 1)[0]
         if key:
             keys.add(key)
     return keys

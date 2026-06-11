@@ -26,6 +26,17 @@ select = [
 ignore = [
     "E501",  # ligne trop longue (géré par formatter)
     "B008",  # appels de fonction dans les defaults (DRF/Django)
+    # RUF012 demande typing.ClassVar sur les listes mutables de classe.
+    # Patterns ultra-standards en Django/DRF (permission_classes,
+    # list_display, list_filter, ordering, throttle_classes, etc.) qui
+    # n'ont jamais posé de problème : on désactive globalement plutôt
+    # que de polluer 100+ fichiers avec ClassVar[...].
+    "RUF012",
+    # RUF002 / RUF003 : caractères Unicode ambigus dans docstrings et
+    # commentaires (ex: tirets cadratins, guillemets typographiques).
+    # On utilise volontairement ces caractères dans la doc FR.
+    "RUF002",
+    "RUF003",
 ]
 
 [tool.ruff.lint.per-file-ignores]

@@ -272,7 +272,31 @@ Le pipeline est déjà câblé côté backend (`apps/billing/handlers.py` écout
 `customer.subscription.created/updated/deleted`). Il suffit que **Stripe CLI
 tourne** pour forwarder les events vers ton localhost.
 
-### Setup en 4 étapes
+### Forward automatique (recommandé : zéro action)
+
+Le service `stripe-cli` du `docker-compose.yml` lance le forward tout seul
+au `docker compose up`. Pré-requis dans `.env` :
+
+- `STRIPE_TEST_SECRET_KEY` : ta clé test (auth par clé API, pas de login)
+- `DJSTRIPE_WEBHOOK_UUID` : l'UUID de l'endpoint dj-stripe (visible dans la
+  table `djstripe_webhookendpoint` ou dans la sortie de
+  `manage.py setup_webhook_endpoint`)
+- `STRIPE_WEBHOOK_SECRET` : le signing secret du CLI. Il est lié au couple
+  compte+clé (stable ~90 jours) : récupère-le avec
+  `docker compose run --rm stripe-cli listen --api-key sk_test_... --print-secret`
+
+Vérification : `docker logs vizhome-stripe-cli` doit montrer `Ready!` puis
+des `<-- [200] POST http://api:8000/webhooks/...` à chaque event. Pour
+déclencher un event de test sans rien installer :
+
+```bash
+docker compose exec stripe-cli stripe trigger customer.updated --api-key sk_test_...
+```
+
+ATTENTION : ne lance PAS `stripe listen` à la main en parallèle du service
+Docker, chaque event serait livré deux fois.
+
+### Setup manuel (alternative sans Docker)
 
 ```bash
 # 1. Installer Stripe CLI une fois :
