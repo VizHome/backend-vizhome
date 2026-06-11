@@ -129,6 +129,25 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  stripe-cli:
+    # Forward automatique des webhooks Stripe vers l'API en dev : plus
+    # besoin de lancer `stripe listen` à la main dans un terminal.
+    # Auth par clé API (pas de login interactif). Le signing secret du CLI
+    # est lié au compte+clé (stable ~90 jours) et correspond déjà au
+    # STRIPE_WEBHOOK_SECRET du .env poussé dans l'endpoint dj-stripe par
+    # le bootstrap. L'UUID vient de la table djstripe_webhookendpoint
+    # (cf DJSTRIPE_WEBHOOK_UUID dans .env).
+    image: stripe/stripe-cli:latest
+    container_name: vizhome-stripe-cli
+    command: >-
+      listen
+      --api-key ${STRIPE_TEST_SECRET_KEY}
+      --forward-to http://api:8000/webhooks/stripe/webhook/${DJSTRIPE_WEBHOOK_UUID}/
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
   celery:
     container_name: vizhome-celery
     build:
